@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="debug_title">Transactions (debug)</string>
+    <plurals name="debug_transaction_count">
+        <item quantity="one">%1$d transaction</item>
+        <item quantity="other">%1$d transactions</item>
+    </plurals>
+    <plurals name="debug_unparsed_count">
+        <item quantity="one">%1$d unparsed bank SMS</item>
+        <item quantity="other">%1$d unparsed bank SMS</item>
+    </plurals>
+    <string name="debug_grant_sms">Allow SMS access</string>
+    <string name="debug_sync_now">Sync now</string>
+    <plurals name="debug_backfill">
+        <item quantity="one">Import last %1$d day</item>
+        <item quantity="other">Import last %1$d days</item>
+    </plurals>
+    <string name="debug_empty">No transactions yet. New bank SMS appear here automatically.</string>
+    <string name="debug_unknown_merchant">Unknown merchant</string>
+    <string name="debug_flag_card">card</string>
+    <string name="debug_flag_backfill">backfill</string>
+    <string name="debug_flag_duplicate">same payment as #%1$d?</string>
+</resources>

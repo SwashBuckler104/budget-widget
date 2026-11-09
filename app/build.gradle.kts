@@ -36,5 +36,6 @@ dependencies {
     implementation(projects.feature.settings)
 
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.hilt.work)
     implementation(libs.androidx.core.ktx)
 }
