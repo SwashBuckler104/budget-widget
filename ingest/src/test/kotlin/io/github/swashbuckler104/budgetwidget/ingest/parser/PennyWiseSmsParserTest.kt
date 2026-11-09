@@ -28,6 +28,21 @@ class PennyWiseSmsParserTest {
     }
 
     @Test
+    fun `promotional headers are never transaction alerts`() {
+        val promo =
+            RawSms(
+                "JD-KOTAKB-P",
+                "Apply & link your Kotak Credit Card to UPI & get 5 Reward Points per Rs.100 spent. T&C: https://kotak.example/x",
+                1,
+            )
+        assertThat(BankParserFactory.parse(promo.body, promo.sender, 1)).isNotNull() // upstream false positive
+        assertThat(parser.isKnownBankSender(promo.sender)).isFalse()
+        assertThat(parser.isKnownBankSender("JD-KOTAKB-S")).isTrue()
+        assertThat(parser.isKnownBankSender("CP-HDFCBK-T")).isTrue()
+        assertThat(parser.isKnownBankSender("AD-HDFCBK")).isTrue()
+    }
+
+    @Test
     fun `foreign-currency banks are not v1 bank senders`() {
         assertThat(BankParserFactory.isKnownBankSender("EVEREST")).isTrue()
         assertThat(parser.isKnownBankSender("EVEREST")).isFalse()

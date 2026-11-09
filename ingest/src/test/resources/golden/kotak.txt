@@ -62,3 +62,8 @@ type: INCOME
 amount: 25.00
 direction: IN
 last4: 4821
+---
+name: Card offer from the promotional header is not a spend
+sender: JD-KOTAKB-P
+body: Apply & link your Kotak Credit Card to UPI & get 5 Reward Points per Rs.100 spent. T&C: https://kotak.example/upi
+type: NOT_BANK

@@ -15,6 +15,8 @@ import javax.inject.Inject
  * claims every 7-10 digit number). We narrow it so personal SMS are never treated as financial
  * (hard constraint 4, docs/DECISIONS.md ADR-0017):
  * - a phone number is never a bank sender (Indian banks must use registered alphanumeric headers);
+ * - promotional headers (TRAI suffix `-P`, e.g. `JD-KOTAKB-P`) are marketing, never transaction
+ *   alerts; upstream parses some card offers ("get 5 points per Rs.100 spent") as spends;
  * - only INR parsers count (v1 tracks INR only).
  */
 internal class PennyWiseSmsParser @Inject constructor() : SmsParser {
@@ -33,6 +35,7 @@ internal class PennyWiseSmsParser @Inject constructor() : SmsParser {
 
     private fun parsersFor(sender: String): List<BankParser> {
         if (PHONE_NUMBER.matches(sender.replace(SEPARATORS, ""))) return emptyList()
+        if (PROMOTIONAL_HEADER.matches(sender)) return emptyList()
         return BankParserFactory.getParsers(sender).filter { it.getCurrency().equals(INR, ignoreCase = true) }
     }
 
@@ -40,5 +43,8 @@ internal class PennyWiseSmsParser @Inject constructor() : SmsParser {
         const val INR = "INR"
         val PHONE_NUMBER = Regex("""\+?\d+""")
         val SEPARATORS = Regex("""[\s().-]""")
+
+        /** TRAI header `XX-HEADER-P`: P promotional (S service, T transactional, G government). */
+        val PROMOTIONAL_HEADER = Regex("""^[A-Z]{2}-[A-Z0-9]+-P$""", RegexOption.IGNORE_CASE)
     }
 }
