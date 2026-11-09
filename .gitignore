@@ -1,0 +1,21 @@
+# Gradle / build output
+.gradle/
+.kotlin/
+build/
+local.properties
+
+# IDE
+.idea/
+*.iml
+.vscode/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Signing material must never be committed (release.yml decodes it from secrets).
+*.jks
+*.keystore
+keystore.properties
+
+# OS
+.DS_Store

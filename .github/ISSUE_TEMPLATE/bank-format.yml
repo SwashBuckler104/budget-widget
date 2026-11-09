@@ -1,0 +1,71 @@
+name: Bank SMS format
+description: A bank, card or UPI SMS is not detected, or is parsed wrongly.
+labels: ["bank-format"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This helps add the format to our test corpus and, where needed, to the upstream parser.
+        **Anonymize before posting.** Replace names, account/card digits, UPI IDs, reference
+        numbers and balances with fake values **of the same shape**. Keep the sender ID and the
+        wording, spacing and punctuation exactly as they are.
+  - type: input
+    id: bank
+    attributes:
+      label: Bank / card / app
+      placeholder: "HDFC Bank credit card"
+    validations:
+      required: true
+  - type: input
+    id: sender
+    attributes:
+      label: Sender ID
+      description: As shown in your SMS app (this is not personal data).
+      placeholder: "AD-HDFCBK"
+    validations:
+      required: true
+  - type: textarea
+    id: sms
+    attributes:
+      label: Anonymized SMS text
+      description: Paste the message after anonymizing it. One SMS per block if you have several.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+      placeholder: |
+        Amount: ₹1,234.50
+        Direction: debit (money out) / credit (money in)
+        Merchant: SWIGGY
+        Account/card last 4: 1234
+        Card transaction: yes/no
+    validations:
+      required: true
+  - type: dropdown
+    id: actual
+    attributes:
+      label: What the app did
+      options:
+        - Not detected at all
+        - Shows up under Settings → Unparsed bank SMS
+        - Detected with the wrong amount
+        - Detected with the wrong direction (debit/credit)
+        - Detected with the wrong merchant or account
+        - Other (describe below)
+    validations:
+      required: true
+  - type: checkboxes
+    id: anonymized
+    attributes:
+      label: Privacy check
+      options:
+        - label: I replaced all names, account/card numbers, UPI IDs, references and balances with fake values.
+          required: true
+  - type: input
+    id: app-version
+    attributes:
+      label: App version
+      placeholder: "0.1.0"

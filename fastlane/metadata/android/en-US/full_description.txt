@@ -1,0 +1,8 @@
+Budget Widget turns every bank, card and UPI SMS into a card in an inbox. Sort it in one tap from
+the notification, the home-screen Quick-Sort widget or the app, and close the day before midnight
+to keep your streak.
+
+Private by construction: the app has no internet permission, so your financial data never leaves
+your phone. No accounts, no ads, no analytics.
+
+SMS parsing uses PennyWise parser-core (AGPL-3.0).

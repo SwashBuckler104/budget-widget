@@ -1,0 +1,24 @@
+Budget Widget
+Copyright (C) 2026 SwashBuckler104 and Budget Widget contributors
+
+This program is free software: you can redistribute it and/or modify it under the terms of the
+GNU Affero General Public License version 3 as published by the Free Software Foundation.
+See LICENSE for the full text.
+
+-------------------------------------------------------------------------------------------------
+Third-party code
+-------------------------------------------------------------------------------------------------
+
+PennyWise parser-core
+  Source:   https://github.com/sarim2000/pennywiseai-tracker (directory parser-core/)
+  Included: as the git submodule third_party/pennywise, pinned to commit
+            0623c2b94c2d61c2a30a9068c5525bde83f6a46c, compiled unmodified by the :parser-core module.
+  License:  GNU Affero General Public License v3.0
+  Copyright (C) the PennyWise authors and contributors.
+
+  Budget Widget uses PennyWise parser-core for on-device bank SMS parsing. Budget Widget is an
+  independent project. It is not affiliated with or endorsed by PennyWise, and it does not use
+  the PennyWise name, logo or branding (see the upstream TRADEMARKS.md).
+
+Other dependencies (AndroidX, Kotlin, Dagger/Hilt, kotlinx libraries) are distributed under the
+Apache License 2.0 and are fetched by Gradle at build time.
