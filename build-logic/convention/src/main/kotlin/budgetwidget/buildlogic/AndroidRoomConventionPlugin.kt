@@ -1,6 +1,7 @@
 package budgetwidget.buildlogic
 
 import androidx.room.gradle.RoomExtension
+import com.android.build.api.dsl.LibraryExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
@@ -15,6 +16,10 @@ class AndroidRoomConventionPlugin : Plugin<Project> {
 
             extensions.configure<RoomExtension> {
                 schemaDirectory("$projectDir/schemas")
+            }
+            // Migration tests (Robolectric) read the exported schemas as test assets.
+            extensions.configure<LibraryExtension> {
+                sourceSets.getByName("test").assets.directories.add("$projectDir/schemas")
             }
             dependencies {
                 add("implementation", libs.library("androidx-room-runtime"))
