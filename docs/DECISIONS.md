@@ -52,7 +52,7 @@ deliberate deviation. Newest at the bottom. Status is Accepted unless stated.
 
 ## ADR-0013: WorkManager permissions (no boot receiver, no network state)
 - **Context:** WorkManager merges `RECEIVE_BOOT_COMPLETED`, `ACCESS_NETWORK_STATE`, `WAKE_LOCK` and `FOREGROUND_SERVICE`. SCOPE.md forbids the first.
-- **Decision:** `:ingest`'s manifest removes `RECEIVE_BOOT_COMPLETED` and `ACCESS_NETWORK_STATE` (we never use network constraints). It keeps `WAKE_LOCK`, which WorkManager uses while workers run, and `FOREGROUND_SERVICE`, which expedited work needs on API 26-30.
+- **Decision:** the app manifest removes `RECEIVE_BOOT_COMPLETED` and `ACCESS_NETWORK_STATE` (only the app's merge sees WorkManager's entries) (we never use network constraints). It keeps `WAKE_LOCK`, which WorkManager uses while workers run, and `FOREGROUND_SERVICE`, which expedited work needs on API 26-30.
 - **Consequence:** after a reboot, scheduled work comes back on the next process start. An incoming SMS starts the process, and so does opening the app. `BudgetWidgetApp.onCreate` re-arms the periodic scan and runs a reconcile, which catches up from the checkpoint. Nothing is lost; it may arrive later.
 
 ## ADR-0014: `SmsParser` and `ParsedSms` live in `:core:model`
