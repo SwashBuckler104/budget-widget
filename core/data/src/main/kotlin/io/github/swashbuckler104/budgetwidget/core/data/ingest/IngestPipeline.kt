@@ -3,6 +3,7 @@ package io.github.swashbuckler104.budgetwidget.core.data.ingest
 import androidx.room.withTransaction
 import io.github.swashbuckler104.budgetwidget.core.data.MerchantKeyNormalizer
 import io.github.swashbuckler104.budgetwidget.core.data.WallClock
+import io.github.swashbuckler104.budgetwidget.core.data.sort.AutoSortSetting
 import io.github.swashbuckler104.budgetwidget.core.database.BudgetDatabase
 import io.github.swashbuckler104.budgetwidget.core.database.entity.AccountEntity
 import io.github.swashbuckler104.budgetwidget.core.database.entity.TransactionEntity
@@ -39,7 +40,8 @@ sealed interface IngestOutcome {
     /** Not a known bank sender: nothing was stored. */
     data object NotFinancial : IngestOutcome
 
-    data class Inserted(val id: Long, val duplicateOfId: Long?) : IngestOutcome
+    /** [autoSorted]: categorized from a merchant rule confirmed 3+ times (auto-sort setting). */
+    data class Inserted(val id: Long, val duplicateOfId: Long?, val autoSorted: Boolean = false) : IngestOutcome
 
     /** The same SMS was already stored (same `txnHash`): a no-op. */
     data object AlreadyStored : IngestOutcome
@@ -59,6 +61,7 @@ class IngestPipeline @Inject constructor(
     private val parser: SmsParser,
     private val db: BudgetDatabase,
     private val clock: WallClock,
+    private val autoSort: AutoSortSetting,
 ) {
     private val mutex = Mutex()
 
@@ -66,10 +69,11 @@ class IngestPipeline @Inject constructor(
         // Step 1: never parse or persist messages from senders that aren't banks.
         if (!parser.isKnownBankSender(sms.sender)) return@withContext IngestOutcome.NotFinancial
         val result = parser.parse(sms)
+        val autoSortEnabled = autoSort.enabled()
         mutex.withLock {
             db.withTransaction {
                 when (result) {
-                    is SmsParseResult.Transaction -> store(result.parsed, origin)
+                    is SmsParseResult.Transaction -> store(result.parsed, origin, autoSortEnabled)
 
                     is SmsParseResult.BalanceUpdate -> {
                         val accountId = accountFor(result.bankName, result.accountLast4, AccountKind.BANK)
@@ -95,7 +99,7 @@ class IngestPipeline @Inject constructor(
         }
     }
 
-    private suspend fun store(parsed: ParsedSms, origin: IngestOrigin): IngestOutcome {
+    private suspend fun store(parsed: ParsedSms, origin: IngestOrigin, autoSortEnabled: Boolean): IngestOutcome {
         val accountId =
             accountFor(parsed.bankName, parsed.accountLast4, if (parsed.isCard) AccountKind.CARD else AccountKind.BANK)
         val now = clock.nowMillis()
@@ -137,7 +141,21 @@ class IngestPipeline @Inject constructor(
             bankName = parsed.bankName,
         )
         original?.let { db.transactionDao().setDuplicateOf(id, it.id) }
-        return IngestOutcome.Inserted(id, original?.id)
+
+        // Step 6: auto-sort well-known merchants, but never a possible duplicate (it needs a look).
+        val autoSorted =
+            autoSortEnabled && original == null &&
+                autoSortFromRule(id, MerchantKeyNormalizer.normalize(parsed.merchant), now)
+        return IngestOutcome.Inserted(id, original?.id, autoSorted)
+    }
+
+    private suspend fun autoSortFromRule(id: Long, merchantKey: String?, now: Long): Boolean {
+        val rule = merchantKey?.let { db.merchantRuleDao().get(it) } ?: return false
+        if (rule.confirmCount < AUTO_SORT_MIN_CONFIRMATIONS) return false
+        val category = db.categoryDao().get(rule.categoryId) ?: return false
+        if (category.archived || db.categoryDao().childIds(category.id).isNotEmpty()) return false
+        db.transactionDao().categorize(id, category.id, note = null, auto = true, now = now)
+        return true
     }
 
     private suspend fun accountFor(bankName: String, last4: String?, kind: AccountKind): Long {
@@ -153,5 +171,8 @@ class IngestPipeline @Inject constructor(
     companion object {
         /** SCOPE.md F2: same amount and direction within 10 minutes. */
         val DUPLICATE_WINDOW = 10.minutes
+
+        /** SCOPE.md F8: "merchants I've confirmed 3+ times". */
+        const val AUTO_SORT_MIN_CONFIRMATIONS = 3
     }
 }

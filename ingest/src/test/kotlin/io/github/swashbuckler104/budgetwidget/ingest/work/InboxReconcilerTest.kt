@@ -102,7 +102,7 @@ class InboxReconcilerTest {
         assertThat(checkpoint.get()).isNull()
     }
 
-    private fun pipeline() = IngestPipeline(PennyWiseSmsParser(), db) { now }
+    private fun pipeline() = IngestPipeline(PennyWiseSmsParser(), db, { now }) { false }
 
     private fun reconciler(scope: TestScope): Pair<InboxReconciler, IngestCheckpointStore> {
         val store = PreferenceDataStoreFactory.create(scope = scope.backgroundScope) {

@@ -18,6 +18,13 @@ class TransactionRepository @Inject constructor(
     }
 
     fun observeUnparsedCount(): Flow<Int> = unparsedSmsDao.observeCount()
+
+    /** The inbox: every PENDING transaction, oldest first (SCOPE.md §3). */
+    fun observePending(): Flow<List<Transaction>> = transactionDao.observePending().map { rows ->
+        rows.map { it.toModel() }
+    }
+
+    fun observeTransaction(id: Long): Flow<Transaction?> = transactionDao.observeWithAccount(id).map { it?.toModel() }
 }
 
 private fun TransactionWithAccount.toModel() = with(transaction) {
@@ -35,5 +42,9 @@ private fun TransactionWithAccount.toModel() = with(transaction) {
         status = status,
         isBackfill = isBackfill,
         duplicateOfId = duplicateOfId,
+        merchantKey = merchantKey,
+        categoryId = categoryId,
+        autoCategorized = autoCategorized,
+        note = note,
     )
 }
