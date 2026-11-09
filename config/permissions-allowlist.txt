@@ -1,0 +1,6 @@
+# Every permission the built APK may request (SCOPE.md §7). scripts/check-permissions.sh fails
+# on anything else. Adding a line is a reviewed, deliberate change: give the reason next to it.
+# ${applicationId} is replaced with the APK's package name.
+
+# androidx.core: protects receivers registered with RECEIVER_NOT_EXPORTED on API < 33.
+${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
