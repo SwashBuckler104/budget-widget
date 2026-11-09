@@ -4,3 +4,12 @@
 
 # androidx.core: protects receivers registered with RECEIVER_NOT_EXPORTED on API < 33.
 ${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+
+# SCOPE.md F2: the real-time receiver and the inbox reconcile/backfill scan. Runtime-granted.
+android.permission.RECEIVE_SMS
+android.permission.READ_SMS
+
+# WorkManager (ADR-0013). Expedited ingest work runs as a foreground service on API 26-30.
+android.permission.FOREGROUND_SERVICE
+# WorkManager holds short wake locks while workers run. Normal permission, no user data.
+android.permission.WAKE_LOCK
