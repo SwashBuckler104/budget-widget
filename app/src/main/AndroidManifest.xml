@@ -26,6 +26,15 @@
             </intent-filter>
         </activity>
 
+        <!-- Own task and hidden from recents: it opens over other apps from notifications and widgets. -->
+        <activity
+            android:name=".QuickSortActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:taskAffinity=""
+            android:theme="@style/Theme.BudgetWidget.QuickSort"
+            android:windowSoftInputMode="adjustResize" />
+
         <!-- WorkManager is initialized on demand from BudgetWidgetApp (Hilt worker factory). -->
         <provider
             android:name="androidx.startup.InitializationProvider"

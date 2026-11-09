@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.bw.android.application)
     alias(libs.plugins.bw.android.compose)
     alias(libs.plugins.bw.hilt)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -37,5 +38,7 @@ dependencies {
 
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.hilt.work)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.core.ktx)
 }

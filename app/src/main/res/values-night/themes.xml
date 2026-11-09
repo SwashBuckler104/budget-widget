@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.BudgetWidget" parent="android:Theme.Material.NoActionBar" />
+
+    <!-- Quick-Sort sheet over whatever is on screen (QuickSortActivity). -->
+    <style name="Theme.BudgetWidget.QuickSort">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
 </resources>
