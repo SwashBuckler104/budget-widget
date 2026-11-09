@@ -1,0 +1,64 @@
+# Entries are added by the milestone that first uses them (docs/DECISIONS.md, ADR-0005).
+[versions]
+androidGradlePlugin = "9.5.1"
+kotlin = "2.4.21"
+ksp = "2.3.13"
+hilt = "2.60.1"
+spotless = "8.11.0"
+ktlint = "1.8.0"
+composeRules = "0.6.8"
+
+androidxActivity = "1.13.0"
+androidxComposeBom = "2026.09.00"
+androidxCore = "1.19.1"
+androidxLifecycle = "2.11.0"
+
+# Must match upstream parser-core (third_party/pennywise/parser-core/build.gradle.kts).
+# Bump only together with the submodule; see docs/PARSER_UPGRADE.md.
+kotlinxDatetime = "0.7.1"
+junitJupiter = "6.1.3"
+
+[libraries]
+androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "androidxActivity" }
+androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "androidxComposeBom" }
+androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
+androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+androidx-lifecycle-runtime = { group = "androidx.lifecycle", name = "lifecycle-runtime", version.ref = "androidxLifecycle" }
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "androidxCore" }
+hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
+hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
+kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version.ref = "kotlinxDatetime" }
+junit-jupiter = { group = "org.junit.jupiter", name = "junit-jupiter", version.ref = "junitJupiter" }
+junit-platform-launcher = { group = "org.junit.platform", name = "junit-platform-launcher", version.ref = "junitJupiter" }
+
+# Only used to resolve the ktlint rule set (Spotless downloads it, it is not on any classpath).
+compose-rules-ktlint = { group = "io.nlopez.compose.rules", name = "ktlint", version.ref = "composeRules" }
+
+# Gradle plugins, used by build-logic only.
+android-gradlePlugin = { group = "com.android.tools.build", name = "gradle", version.ref = "androidGradlePlugin" }
+kotlin-gradlePlugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
+compose-gradlePlugin = { group = "org.jetbrains.kotlin", name = "compose-compiler-gradle-plugin", version.ref = "kotlin" }
+ksp-gradlePlugin = { group = "com.google.devtools.ksp", name = "symbol-processing-gradle-plugin", version.ref = "ksp" }
+hilt-gradlePlugin = { group = "com.google.dagger", name = "hilt-android-gradle-plugin", version.ref = "hilt" }
+spotless-gradlePlugin = { group = "com.diffplug.spotless", name = "spotless-plugin-gradle", version.ref = "spotless" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
+android-library = { id = "com.android.library", version.ref = "androidGradlePlugin" }
+android-lint = { id = "com.android.lint", version.ref = "androidGradlePlugin" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+
+# Convention plugins (build-logic/convention).
+bw-android-application = { id = "bw.android.application" }
+bw-android-library = { id = "bw.android.library" }
+bw-android-compose = { id = "bw.android.compose" }
+bw-android-feature = { id = "bw.android.feature" }
+bw-hilt = { id = "bw.hilt" }
+bw-jvm-library = { id = "bw.jvm.library" }
+bw-spotless = { id = "bw.spotless" }
