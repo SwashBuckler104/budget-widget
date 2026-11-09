@@ -1,0 +1,3 @@
+[submodule "third_party/pennywise"]
+	path = third_party/pennywise
+	url = https://github.com/sarim2000/pennywiseai-tracker
