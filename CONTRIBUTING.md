@@ -35,7 +35,8 @@ scripts/check-module-boundaries.sh
 
 ## Reporting a bank SMS the app doesn't understand
 
-Use the **Bank SMS format** issue template. **Anonymize first:** replace names, account and card
+Use the **Bank SMS format** issue template. Maintainers turn each report into a golden test case in
+`ingest/src/test/resources/golden/` (format in its README). **Anonymize first:** replace names, account and card
 digits, UPI IDs, reference numbers and balances with fake values of the same shape (for example,
 keep `XX1234` as `XX` plus 4 digits). Keep the sender ID (such as `AD-HDFCBK`) and the wording
 exactly as they are.

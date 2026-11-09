@@ -49,3 +49,30 @@ deliberate deviation. Newest at the bottom. Status is Accepted unless stated.
 
 ## ADR-0012: Release signing only from the environment
 - **Decision:** `:app` signs release builds only when `KEYSTORE_PATH` is set, and then requires `KEYSTORE_PASSWORD`, `KEY_ALIAS` and `KEY_PASSWORD`. In CI these come from secrets (`release.yml`). Without them, `assembleRelease` produces an unsigned APK, so anyone can build. Keystores are gitignored.
+
+## ADR-0013: WorkManager permissions (no boot receiver, no network state)
+- **Context:** WorkManager merges `RECEIVE_BOOT_COMPLETED`, `ACCESS_NETWORK_STATE`, `WAKE_LOCK` and `FOREGROUND_SERVICE`. SCOPE.md forbids the first.
+- **Decision:** `:ingest`'s manifest removes `RECEIVE_BOOT_COMPLETED` and `ACCESS_NETWORK_STATE` (we never use network constraints). It keeps `WAKE_LOCK`, which WorkManager uses while workers run, and `FOREGROUND_SERVICE`, which expedited work needs on API 26-30.
+- **Consequence:** after a reboot, scheduled work comes back on the next process start. An incoming SMS starts the process, and so does opening the app. `BudgetWidgetApp.onCreate` re-arms the periodic scan and runs a reconcile, which catches up from the checkpoint. Nothing is lost; it may arrive later.
+
+## ADR-0014: `SmsParser` and `ParsedSms` live in `:core:model`
+- **Context:** SCOPE.md §5 puts the pipeline in `:core:data` and the parser adapter in `:ingest`, and `:core:data` must not depend on `:ingest`.
+- **Decision:** the interface and our result types (`RawSms`, `SmsParser`, `SmsParseResult`, `ParsedSms`) are plain Kotlin in `:core:model`. `:ingest` implements them with PennyWise (`PennyWiseSmsParser`, `ParsedTransactionMapper`) and binds them with Hilt. `:ingest` remains the only module that sees `com.pennywiseai.*`.
+
+## ADR-0015: Ingestion details the spec leaves open
+- **Only bank senders reach WorkManager.** `SmsReceiver` checks `isKnownBankSender` before enqueuing, because WorkManager persists input data. Personal SMS never touch disk (hard constraint 4).
+- **Parser exceptions become `PARSER_ERROR` unparsed entries.** Otherwise one odd SMS would fail the reconcile scan on every run and stall the checkpoint.
+- **First scan without a checkpoint looks back 1 day.** Older history is imported only through an explicit backfill, whose rows are flagged `isBackfill`.
+- **A merchant that is the user's own account or card is dropped** ("A/c XX8812", "your ... Card ending 6788"). Several upstream formats return one (docs/upstream/0003). Showing "Unknown merchant" is better than training merchant rules on an account number.
+- **The checkpoint never moves past "now",** so an SMS dated in the future can't make later scans skip messages.
+- **The table is named `transactions`,** because `TRANSACTION` is an SQL keyword. All other SCOPE.md §5 tables keep their names and exist from schema version 1.
+
+## ADR-0016: Test stack for Android modules
+- **Decision:** our Android modules use JUnit 4, Truth and Robolectric 4.17, which runs only on JUnit 4. Room, DataStore and the pipeline are tested against real in-memory implementations rather than mocks. `:parser-core` keeps upstream's JUnit Jupiter (ADR-0002).
+- **Robolectric on SDK 36** needs `--add-exports=java.base/jdk.internal.access=ALL-UNNAMED`, set in the library convention.
+- **Gradle's "no tests discovered" guard** stays on for every module that has a `src/test` directory. It is off only where Hilt generates test sources but no tests exist yet.
+
+## ADR-0017: Narrow upstream's bank-sender detection
+- **Context:** upstream parser-core covers banks in many countries, and some match senders loosely. `EverestBankParser` (Nepal) claims every 7-10 digit sender, which is how many Indian phones show a contact's number. During M1 end-to-end testing, a personal SMS from a numeric sender landed in the unparsed list with its body. That violates hard constraint 4.
+- **Decision:** `PennyWiseSmsParser` treats a sender as a bank only if it is not a phone number (`+` and digits, ignoring spaces, dashes and parentheses) and at least one *INR* parser claims it. Parsing uses only those parsers, in upstream's order. Indian banks must send from registered alphanumeric headers, so no real bank SMS is lost. Foreign-currency bank SMS are now ignored rather than logged as "unsupported currency": v1 is INR-only, and not storing them is the privacy-preserving choice.
+- **Upstream:** reported as a draft in `docs/upstream/0004-everest-numeric-senders.md`. Pinned by `PennyWiseSmsParserTest` and a `NOT_BANK` golden case.
