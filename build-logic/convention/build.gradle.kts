@@ -23,6 +23,7 @@ dependencies {
     compileOnly(libs.kotlin.gradlePlugin)
     compileOnly(libs.compose.gradlePlugin)
     compileOnly(libs.ksp.gradlePlugin)
+    compileOnly(libs.room.gradlePlugin)
     compileOnly(libs.spotless.gradlePlugin)
 }
 
@@ -48,6 +49,10 @@ gradlePlugin {
         register("androidFeature") {
             id = libs.plugins.bw.android.feature.get().pluginId
             implementationClass = "budgetwidget.buildlogic.AndroidFeatureConventionPlugin"
+        }
+        register("androidRoom") {
+            id = libs.plugins.bw.android.room.get().pluginId
+            implementationClass = "budgetwidget.buildlogic.AndroidRoomConventionPlugin"
         }
         register("hilt") {
             id = libs.plugins.bw.hilt.get().pluginId
