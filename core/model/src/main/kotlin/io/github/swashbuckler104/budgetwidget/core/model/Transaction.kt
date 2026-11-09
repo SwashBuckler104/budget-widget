@@ -35,4 +35,8 @@ data class Transaction(
     val status: TransactionStatus,
     val isBackfill: Boolean,
     val duplicateOfId: Long?,
+    val merchantKey: String? = null,
+    val categoryId: Long? = null,
+    val autoCategorized: Boolean = false,
+    val note: String? = null,
 )
