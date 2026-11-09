@@ -52,7 +52,7 @@ deliberate deviation. Newest at the bottom. Status is Accepted unless stated.
 
 ## ADR-0013: WorkManager permissions (no boot receiver, no network state)
 - **Context:** WorkManager merges `RECEIVE_BOOT_COMPLETED`, `ACCESS_NETWORK_STATE`, `WAKE_LOCK` and `FOREGROUND_SERVICE`. SCOPE.md forbids the first.
-- **Decision:** `:ingest`'s manifest removes `RECEIVE_BOOT_COMPLETED` and `ACCESS_NETWORK_STATE` (we never use network constraints). It keeps `WAKE_LOCK`, which WorkManager uses while workers run, and `FOREGROUND_SERVICE`, which expedited work needs on API 26-30.
+- **Decision:** the app manifest removes `RECEIVE_BOOT_COMPLETED` and `ACCESS_NETWORK_STATE` (only the app's merge sees WorkManager's entries) (we never use network constraints). It keeps `WAKE_LOCK`, which WorkManager uses while workers run, and `FOREGROUND_SERVICE`, which expedited work needs on API 26-30.
 - **Consequence:** after a reboot, scheduled work comes back on the next process start. An incoming SMS starts the process, and so does opening the app. `BudgetWidgetApp.onCreate` re-arms the periodic scan and runs a reconcile, which catches up from the checkpoint. Nothing is lost; it may arrive later.
 
 ## ADR-0014: `SmsParser` and `ParsedSms` live in `:core:model`
@@ -76,3 +76,24 @@ deliberate deviation. Newest at the bottom. Status is Accepted unless stated.
 - **Context:** upstream parser-core covers banks in many countries, and some match senders loosely. `EverestBankParser` (Nepal) claims every 7-10 digit sender, which is how many Indian phones show a contact's number. During M1 end-to-end testing, a personal SMS from a numeric sender landed in the unparsed list with its body. That violates hard constraint 4.
 - **Decision:** `PennyWiseSmsParser` treats a sender as a bank only if it is not a phone number (`+` and digits, ignoring spaces, dashes and parentheses), not a TRAI promotional header (`XX-HEADER-P`), and at least one *INR* parser claims it. On a real phone, 11 of 113 imported "transactions" in 30 days were Kotak card offers from `KOTAKB-P` (docs/upstream/0005). Parsing uses only those parsers, in upstream's order. Indian banks must send from registered alphanumeric headers, so no real bank SMS is lost. Foreign-currency bank SMS are now ignored rather than logged as "unsupported currency": v1 is INR-only, and not storing them is the privacy-preserving choice.
 - **Upstream:** reported as a draft in `docs/upstream/0004-everest-numeric-senders.md`. Pinned by `PennyWiseSmsParserTest` and a `NOT_BANK` golden case.
+
+## ADR-0018: Categories, suggestions and auto-sort (M2)
+- **Seed set:** the owner's list (SCOPE.md "Seed categories"). It replaces the original. Seeds are inserted once; the inserted version is stored in settings, so seeds the user deletes or renames are never re-created.
+- **Self transfers have two legs:** "Self Transfer" exists under Financial Expenses (outgoing) and under Income (incoming), so the two SMS of a transfer between your own accounts cancel out. Suggestions pick the right leg by direction.
+- **Investments are a transfer kind:** money moved to your own investments isn't spending, and money can come back from them.
+- **Stable seed keys:** `category.seedKey` (schema v2, Room auto-migration with `MigrationTest`) identifies seeds across renames. Type hints and default suggestions use it.
+- **Icons are one emoji,** limited to Emoji 5.0 in the seeds and the editor grid. That keeps them renderable on Android 8 (minSdk) in widgets and notifications, which can't use EmojiCompat, and needs no icon assets.
+- **Suggestion order** (SCOPE.md F8), with one addition:
+  - the merchant's rule;
+  - the merchant's history;
+  - **the transaction type's hint** (SCOPE.md F2 table: transfer, investment);
+  - the 60-day ±50% amount band;
+  - global usage;
+  - seed defaults;
+  - then remaining leaves in display order.
+  Only active leaves whose kind fits the direction are suggested. The full picker shows every active leaf, so any choice stays possible.
+- **Sorting rules:** a transaction can only point at an active leaf. With "Remember" on (the default), the merchant rule learns: same category increments `confirmCount`, a different one resets it to 1.
+- **Auto-sort** (pipeline step 6, setting off by default) applies rules confirmed 3+ times, never to a possible cross-bank duplicate. The toggle UI comes with Settings (M8).
+- **Delete vs archive:** a category is hard-deleted only when no transaction uses it or its subcategories. Otherwise the UI offers archive. Archiving a category archives its subcategories.
+- **Reorder:** drag handles for categories, plus "Move up/down" in the menu and as TalkBack actions, for subcategories and accessibility.
+- **Quick-Sort** is a transparent `QuickSortActivity` (own task, excluded from recents) hosting a `ModalBottomSheet`. Opened with a transaction id it sorts that one and closes; without one it walks the inbox oldest first, and Skip moves an item to the back.

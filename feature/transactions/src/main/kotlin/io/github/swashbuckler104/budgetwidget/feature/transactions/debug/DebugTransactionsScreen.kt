@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -32,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.swashbuckler104.budgetwidget.core.model.Category
 import io.github.swashbuckler104.budgetwidget.core.model.Direction
 import io.github.swashbuckler104.budgetwidget.core.model.Transaction
 import io.github.swashbuckler104.budgetwidget.core.model.formatInr
@@ -46,7 +48,11 @@ private const val BACKFILL_DAYS = 30
 
 /** M1 acceptance screen: every stored transaction, newest first, plus manual sync controls. */
 @Composable
-fun DebugTransactionsRoute(modifier: Modifier = Modifier, viewModel: DebugTransactionsViewModel = hiltViewModel()) {
+fun DebugTransactionsRoute(
+    onOpenQuickSort: (transactionId: Long?) -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: DebugTransactionsViewModel = hiltViewModel(),
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var granted by remember {
@@ -67,6 +73,7 @@ fun DebugTransactionsRoute(modifier: Modifier = Modifier, viewModel: DebugTransa
         onRequestSms = { launcher.launch(SMS_PERMISSIONS) },
         onSyncNow = viewModel::syncNow,
         onBackfill = { viewModel.backfill(BACKFILL_DAYS) },
+        onOpenQuickSort = onOpenQuickSort,
         modifier = modifier,
     )
 }
@@ -78,6 +85,7 @@ internal fun DebugTransactionsScreen(
     onRequestSms: () -> Unit,
     onSyncNow: () -> Unit,
     onBackfill: () -> Unit,
+    onOpenQuickSort: (transactionId: Long?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(modifier = modifier.fillMaxSize()) { innerPadding ->
@@ -106,6 +114,18 @@ internal fun DebugTransactionsScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    if (state.pendingCount > 0) {
+                        Button(onClick = { onOpenQuickSort(null) }) {
+                            Text(
+                                stringResource(R.string.debug_sort_inbox) + " · " +
+                                    pluralStringResource(
+                                        R.plurals.quicksort_remaining,
+                                        state.pendingCount,
+                                        state.pendingCount,
+                                    ),
+                            )
+                        }
+                    }
                     if (smsGranted) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(onClick = onSyncNow) { Text(stringResource(R.string.debug_sync_now)) }
@@ -122,7 +142,11 @@ internal fun DebugTransactionsScreen(
             if (!state.loading && state.transactions.isEmpty()) {
                 item { Text(stringResource(R.string.debug_empty), style = MaterialTheme.typography.bodyLarge) }
             }
-            items(state.transactions, key = { it.id }) { TransactionRow(it) }
+            items(state.transactions, key = { it.id }) { tx ->
+                TransactionRow(tx, category = tx.categoryId?.let(state.categories::get), onClick = {
+                    onOpenQuickSort(tx.id)
+                })
+            }
         }
     }
 }
@@ -130,7 +154,12 @@ internal fun DebugTransactionsScreen(
 private val timeFormat: DateTimeFormatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
 
 @Composable
-private fun TransactionRow(transaction: Transaction, modifier: Modifier = Modifier) {
+private fun TransactionRow(
+    transaction: Transaction,
+    category: Category?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val sign = if (transaction.direction == Direction.IN) "+" else "-"
     val amountColor = if (transaction.direction ==
         Direction.IN
@@ -142,13 +171,19 @@ private fun TransactionRow(transaction: Transaction, modifier: Modifier = Modifi
     val account = listOfNotNull(transaction.bankName, transaction.accountLast4?.let { "··$it" }).joinToString(" ")
     val time = timeFormat.format(Instant.ofEpochMilli(transaction.occurredAt).atZone(ZoneId.systemDefault()))
     val flags = buildList {
-        add(transaction.status.name.lowercase())
+        add(category?.let { "${it.emoji} ${it.name}" } ?: transaction.status.name.lowercase())
+        if (transaction.autoCategorized) add(stringResource(R.string.debug_flag_auto))
         transaction.parserType?.let { add(it.name.lowercase()) }
         if (transaction.isCard) add(stringResource(R.string.debug_flag_card))
         if (transaction.isBackfill) add(stringResource(R.string.debug_flag_backfill))
         transaction.duplicateOfId?.let { add(stringResource(R.string.debug_flag_duplicate, it)) }
     }.joinToString(" · ")
-    Column(modifier = modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 4.dp),
+    ) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(
                 transaction.merchantDisplay ?: stringResource(R.string.debug_unknown_merchant),

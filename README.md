@@ -4,9 +4,9 @@
 it in one tap from a notification, a home-screen widget or the app, and you "close the day"
 before midnight to keep your streak.
 
-> **Status:** early development (milestone M1, ingestion). The app reads bank SMS and lists the
-> transactions on a debug screen; sorting, notifications and widgets come next. See
-> [docs/SCOPE.md](docs/SCOPE.md) for the v1.0 plan.
+> **Status:** early development (milestone M2, categories). The app reads bank SMS, lets you sort
+> each transaction in one tap from the Quick-Sort sheet, and learns merchants. Notifications and
+> widgets come next. See [docs/SCOPE.md](docs/SCOPE.md) for the v1.0 plan.
 
 <!-- Screenshots: added in M8 (fastlane/metadata/android/en-US/images/phoneScreenshots/). -->
 

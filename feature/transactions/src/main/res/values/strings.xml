@@ -20,4 +20,20 @@
     <string name="debug_flag_card">card</string>
     <string name="debug_flag_backfill">backfill</string>
     <string name="debug_flag_duplicate">same payment as #%1$d?</string>
+    <plurals name="quicksort_remaining">
+        <item quantity="one">%1$d to sort</item>
+        <item quantity="other">%1$d to sort</item>
+    </plurals>
+    <string name="quicksort_suggested">Suggested</string>
+    <string name="quicksort_show_all">All categories</string>
+    <string name="quicksort_hide_all">Hide categories</string>
+    <string name="quicksort_note">Note (optional)</string>
+    <string name="quicksort_remember">Remember for %1$s</string>
+    <string name="quicksort_ignore">Ignore</string>
+    <string name="quicksort_skip">Skip</string>
+    <string name="quicksort_overdue">Overdue</string>
+    <string name="quicksort_all_sorted">All sorted ✓</string>
+    <string name="quicksort_done">Done</string>
+    <string name="debug_sort_inbox">Sort inbox</string>
+    <string name="debug_flag_auto">auto</string>
 </resources>

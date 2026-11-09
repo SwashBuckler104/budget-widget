@@ -167,20 +167,19 @@ Built with **Jetpack Glance** (`GlanceAppWidget`, `GlanceTheme` with dynamic col
 - About: version, license (AGPL-3.0), open-source credits (PennyWise parser-core), privacy statement, "No internet permission" badge.
 
 ### Seed categories (editable)
-- **Food & Dining:** Groceries, Restaurants, Food delivery, Tea & snacks
-- **Transport:** Fuel, Cab & auto, Public transport, Parking & tolls
-- **Shopping:** Clothing, Electronics, Household, Online shopping
-- **Bills & Utilities:** Electricity, Mobile & internet, Rent, Gas & water, Subscriptions
-- **Health:** Medicines, Doctor & lab, Insurance
-- **Education**
-- **Entertainment:** Movies & events, Games & apps
-- **Personal & Family:** Gifts, Personal care, Kids
-- **Travel:** Stay, Flights & trains
-- **EMI & Loans**
-- **Investments**
-- **Transfers:** Self transfer, To family, To friends
-- **Income:** Salary, Refund, Cashback, Interest, Other income
-- **Miscellaneous**
+Chosen by the owner on 2026-11-09 (replaces the original list; docs/DECISIONS.md ADR-0018).
+- **Food & Drinks:** Groceries; Restaurant, Fast-food; Drinks, Alcohol
+- **Shopping:** Clothes, Shoes & Jewelry; Drug-store, Chemist; Electronics, Accessories; Gifts, Joy; Health & Beauty; Home, Garden; Kids; Pets, Animals; Stationery, Tools
+- **Housing:** Electricity, Utilities; Maintenance, Repairs; Rent
+- **Transportation:** Trips; Flight; Public transport
+- **Vehicle:** Fuel; Vehicle insurance; Vehicle maintenance; Vehicle accessories
+- **Life & Entertainment:** Gym, Fitness; Books, Audio, Subscription; Sports; Education, Development; TV, Streaming; AI Subscription; Wellness, Beauty
+- **Communication, PC:** Internet; Phone, Cell phone; Software, Apps, Games
+- **Financial Expenses:** Fines; Insurances; Loans, Interest; Taxes; Self Transfer (outgoing leg)
+- **Investments** (transfer type): Financial investments (SIP, bonds, etc.); Realty; Savings (emergency fund)
+- **Income:** Salary; Freelancing; Other; Self Transfer (incoming leg)
+
+Users can add their own main categories and subcategories.
 
 ---
 

@@ -17,6 +17,10 @@ import javax.inject.Singleton
 @Retention(AnnotationRetention.BINARY)
 annotation class IngestPreferences
 
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class SettingsPreferences
+
 @Module
 @InstallIn(SingletonComponent::class)
 internal object DataStoreModule {
@@ -25,4 +29,10 @@ internal object DataStoreModule {
     @IngestPreferences
     fun ingestPreferences(@ApplicationContext context: Context): DataStore<Preferences> =
         PreferenceDataStoreFactory.create { context.preferencesDataStoreFile("ingest") }
+
+    @Provides
+    @Singleton
+    @SettingsPreferences
+    fun settingsPreferences(@ApplicationContext context: Context): DataStore<Preferences> =
+        PreferenceDataStoreFactory.create { context.preferencesDataStoreFile("settings") }
 }

@@ -64,7 +64,7 @@ The package root is `budgetwidget.packageRoot` in `gradle.properties`; namespace
 - `libandroidx.graphics.path.so` ships pre-stripped. `keepDebugSymbols` silences AGP's "unable to strip" warning (no NDK needed).
 - AGP auto-installs missing SDK packages (platform 37, build-tools 36.0.0) on first build.
 - setup-gradle v6 defaults to a proprietary cache provider; we use `cache-provider: basic` (ADR-0009).
-- WorkManager merges `RECEIVE_BOOT_COMPLETED` and `ACCESS_NETWORK_STATE`; `:ingest` removes both (ADR-0013). Any new dependency's permissions need the same explicit decision plus an allowlist line.
+- WorkManager merges `RECEIVE_BOOT_COMPLETED` and `ACCESS_NETWORK_STATE`; the app manifest removes both (ADR-0013; a library manifest cannot, it never sees them). Any new dependency's permissions need the same explicit decision plus an allowlist line.
 - **Robolectric on SDK 36** needs `--add-exports=java.base/jdk.internal.access=ALL-UNNAMED` (set in the library convention).
 - **Upstream sender matching is loose** (Everest Bank claims every 7-10 digit number). `PennyWiseSmsParser` filters to non-phone, INR senders (ADR-0017); keep that filter.
 - **Golden SMS** live in `ingest/src/test/resources/golden/` (format in its README). Known upstream bugs are pinned with `merchant-upstream-bug`; drafts are in `docs/upstream/`.

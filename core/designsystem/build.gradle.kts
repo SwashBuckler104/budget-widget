@@ -8,4 +8,7 @@ dependencies {
     api(platform(libs.androidx.compose.bom))
     api(libs.androidx.compose.material3)
     api(libs.androidx.compose.ui)
+    api(libs.androidx.compose.material.icons.extended)
+    // Model-aware shared components (category chips and picker).
+    api(projects.core.model)
 }

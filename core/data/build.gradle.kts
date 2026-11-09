@@ -11,4 +11,5 @@ dependencies {
     api(libs.kotlinx.coroutines.core)
 
     testImplementation(libs.turbine)
+    testImplementation(libs.androidx.datastore.preferences)
 }

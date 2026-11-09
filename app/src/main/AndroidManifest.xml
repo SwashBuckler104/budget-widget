@@ -4,6 +4,17 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Merged in by WorkManager and removed on purpose (docs/DECISIONS.md, ADR-0013): no boot
+         receiver (SCOPE.md hard constraint; the next SMS or app start reschedules work and the inbox
+         scan catches up), and no network state (we never use network constraints). They must be
+         removed here, in the app manifest: only the app's merge sees WorkManager's entries. -->
+    <uses-permission
+        android:name="android.permission.RECEIVE_BOOT_COMPLETED"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.ACCESS_NETWORK_STATE"
+        tools:node="remove" />
+
     <!-- allowBackup=false + dataExtractionRules: financial data must not leave the phone through
          Android cloud backup or device transfer. Users back up via the in-app JSON export. -->
     <application
@@ -25,6 +36,15 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Own task and hidden from recents: it opens over other apps from notifications and widgets. -->
+        <activity
+            android:name=".QuickSortActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:taskAffinity=""
+            android:theme="@style/Theme.BudgetWidget.QuickSort"
+            android:windowSoftInputMode="adjustResize" />
 
         <!-- WorkManager is initialized on demand from BudgetWidgetApp (Hilt worker factory). -->
         <provider

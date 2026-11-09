@@ -6,6 +6,9 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
 import io.github.swashbuckler104.budgetwidget.core.database.BudgetDatabase
+import io.github.swashbuckler104.budgetwidget.core.database.entity.CategoryEntity
+import io.github.swashbuckler104.budgetwidget.core.database.entity.MerchantRuleEntity
+import io.github.swashbuckler104.budgetwidget.core.model.CategoryKind
 import io.github.swashbuckler104.budgetwidget.core.model.Direction
 import io.github.swashbuckler104.budgetwidget.core.model.ParserType
 import io.github.swashbuckler104.budgetwidget.core.model.TransactionStatus
@@ -27,6 +30,7 @@ import org.junit.runner.RunWith
 class IngestPipelineTest {
     private lateinit var db: BudgetDatabase
     private val parser = FakeParser()
+    private var autoSort = false
     private lateinit var pipeline: IngestPipeline
 
     @Before
@@ -36,7 +40,7 @@ class IngestPipelineTest {
                 ApplicationProvider.getApplicationContext<Context>(),
                 BudgetDatabase::class.java,
             ).build()
-        pipeline = IngestPipeline(parser, db) { NOW }
+        pipeline = IngestPipeline(parser, db, { NOW }) { autoSort }
     }
 
     @After
@@ -121,6 +125,48 @@ class IngestPipelineTest {
         repeat(210) { i -> pipeline.ingest(RawSms(BANK, "promo $i", 10L + i), IngestOrigin.RECONCILE) }
         assertThat(db.unparsedSmsDao().count()).isEqualTo(200)
         assertThat(db.transactionDao().observeAllWithAccount().first()).isEmpty()
+    }
+
+    @Test
+    fun `auto-sort uses rules confirmed 3+ times, only when enabled, never for possible duplicates`() = runTest {
+        val food = db.categoryDao().insert(
+            CategoryEntity(
+                parentId = null,
+                name = "Food",
+                iconKey = "🍽️",
+                colorArgb = 0,
+                kind = CategoryKind.EXPENSE,
+                sortOrder = 0,
+            ),
+        )
+        db.merchantRuleDao().upsert(MerchantRuleEntity("swiggy food", food, 3, 0))
+
+        parser.next = txn(hash = "off", merchant = "swiggy.food@paytm")
+        val off = pipeline.ingest(RawSms(BANK, "a", 1), IngestOrigin.REALTIME) as IngestOutcome.Inserted
+        assertThat(off.autoSorted).isFalse()
+
+        autoSort = true
+        parser.next = txn(hash = "on", merchant = "swiggy.food@paytm", bank = "Axis Bank", at = 100_000_000)
+        val on = pipeline.ingest(RawSms(BANK, "b", 2), IngestOrigin.REALTIME) as IngestOutcome.Inserted
+        assertThat(on.autoSorted).isTrue()
+        with(db.transactionDao().get(on.id)!!) {
+            assertThat(status).isEqualTo(TransactionStatus.CATEGORIZED)
+            assertThat(categoryId).isEqualTo(food)
+            assertThat(autoCategorized).isTrue()
+        }
+
+        // Same amount from another bank within 10 minutes: a possible duplicate stays PENDING.
+        parser.next =
+            txn(hash = "dup", merchant = "swiggy.food@paytm", bank = "Slice", last4 = null, at = 100_000_000 + 60_000)
+        val dup = pipeline.ingest(RawSms(BANK, "c", 3), IngestOrigin.REALTIME) as IngestOutcome.Inserted
+        assertThat(dup.duplicateOfId).isEqualTo(on.id)
+        assertThat(dup.autoSorted).isFalse()
+
+        db.merchantRuleDao().upsert(MerchantRuleEntity("swiggy food", food, 2, 0))
+        parser.next = txn(hash = "weak", merchant = "swiggy.food@paytm", at = 900_000_000)
+        assertThat(
+            (pipeline.ingest(RawSms(BANK, "d", 4), IngestOrigin.REALTIME) as IngestOutcome.Inserted).autoSorted,
+        ).isFalse()
     }
 
     private class FakeParser : SmsParser {

@@ -22,8 +22,10 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
                     includeInApk = false
                     includeInBundle = false
                 }
-                // Ships pre-stripped from Maven; without the NDK AGP would warn it cannot strip it again.
-                packaging.jniLibs.keepDebugSymbols += "**/libandroidx.graphics.path.so"
+                // These ship pre-stripped from Maven (Compose graphics, DataStore 1.3's multi-process
+                // counter); without the NDK AGP would warn that it cannot strip them again.
+                packaging.jniLibs.keepDebugSymbols +=
+                    setOf("**/libandroidx.graphics.path.so", "**/libdatastore_shared_counter.so")
                 buildTypes.getByName("release") {
                     isMinifyEnabled = true
                     isShrinkResources = true

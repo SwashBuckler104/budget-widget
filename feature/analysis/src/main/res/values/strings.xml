@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="analysis_title">Analysis</string>
+    <plurals name="analysis_inbox_banner">
+        <item quantity="one">%1$d to sort</item>
+        <item quantity="other">%1$d to sort</item>
+    </plurals>
+    <string name="analysis_inbox_action">Tap to sort them now</string>
+    <string name="analysis_coming">Spending charts arrive in a later version.</string>
+</resources>
