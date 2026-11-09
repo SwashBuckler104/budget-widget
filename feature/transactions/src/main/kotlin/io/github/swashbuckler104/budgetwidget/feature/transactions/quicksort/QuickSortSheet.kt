@@ -87,8 +87,11 @@ internal fun QuickSortContent(
     if (state.loading) return
     if (state.finished || transaction == null) {
         // A single opened transaction closes as soon as it's sorted; the inbox shows a done state.
-        if (transaction != null || state.remaining > 0) LaunchedEffect(Unit) { currentOnClose() }
-        AllSorted(onClose, modifier)
+        if (state.singleTransaction) {
+            LaunchedEffect(Unit) { currentOnClose() }
+        } else {
+            AllSorted(onClose, modifier)
+        }
         return
     }
     // Per-transaction inputs reset when the next transaction comes up.

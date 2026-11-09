@@ -2,6 +2,7 @@ package io.github.swashbuckler104.budgetwidget.feature.transactions.quicksort
 
 import android.content.Context
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -17,8 +18,11 @@ import io.github.swashbuckler104.budgetwidget.core.model.CategoryKind
 import io.github.swashbuckler104.budgetwidget.core.model.Direction
 import io.github.swashbuckler104.budgetwidget.core.model.TransactionSource
 import io.github.swashbuckler104.budgetwidget.core.model.TransactionStatus
+import java.time.LocalDate
+import java.time.ZoneId
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -35,7 +39,10 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class QuickSortViewModelTest {
     private lateinit var db: BudgetDatabase
-    private val now = 10 * DAY
+    private val viewModels = mutableListOf<QuickSortViewModel>()
+
+    // Local noon, so "a minute ago" and "now" share a local date in every time zone (CI runs in UTC).
+    private val now = LocalDate.of(2026, 11, 9).atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
     @Before
     fun setUp() {
@@ -49,11 +56,15 @@ class QuickSortViewModelTest {
 
     @After
     fun tearDown() {
+        // Stop the ViewModels' database flows before closing the database (else connections leak).
+        viewModels.forEach { it.viewModelScope.cancel() }
         db.close()
         Dispatchers.resetMain()
     }
 
-    private fun viewModel(transactionId: Long? = null) = QuickSortViewModel(
+    private fun viewModel(transactionId: Long? = null) = newViewModel(transactionId).also { viewModels += it }
+
+    private fun newViewModel(transactionId: Long?) = QuickSortViewModel(
         SavedStateHandle(transactionId?.let { mapOf(QuickSortViewModel.ARG_TRANSACTION_ID to it) }.orEmpty()),
         TransactionRepository(db.transactionDao(), db.unparsedSmsDao()),
         CategoryRepository(db),
