@@ -1,0 +1,58 @@
+# slice (sender SLICEIT / SLCEIT / SLCBNK).
+name: UPI sent to a merchant
+sender: JK-SLICEIT
+body: Sent Rs.240 to CHAI POINT (UPI transaction success). Sent from slice.
+type: EXPENSE
+amount: 240
+direction: OUT
+merchant: CHAI POINT
+last4: -
+---
+name: Debited from slice account via UPI
+sender: AD-SLCEIT-S
+body: Rs.180 debited from your slice account via UPI. Txn ID 6309988776.
+type: EXPENSE
+amount: 180
+direction: OUT
+last4: -
+---
+name: slice SFB credit card spend
+sender: VA-SLCBNK-S
+body: Rs. 356 spent on your credit card xx8820 at Sample Store on 05-Nov-26 (UPI Ref: 630155667788). Not you? Call 080-0000-0000 - slice
+type: CREDIT
+amount: 356
+direction: OUT
+merchant: Sample Store
+last4: 8820
+card: true
+---
+name: Legacy slice card transaction
+sender: AD-SLCEIT-S
+body: Your slice credit card transaction of RS. 2499.50 on amazon.in is successful. If not you, call 08048329999 - slice
+type: CREDIT
+amount: 2499.50
+direction: OUT
+merchant: amazon.in
+card: true
+---
+name: Cashback credited
+sender: AD-SLCEIT-S
+body: Rs.75 credited to your slice account as cashback.
+type: INCOME
+amount: 75
+direction: IN
+---
+name: Card repayment is not income
+sender: JK-SLCBNK-T
+body: Repayment of Rs.3,120 received for the slice credit card. The amount has been credited to your card account - slice
+type: UNPARSED
+---
+name: OTP is not a transaction
+sender: AD-SLCEIT-S
+body: Your OTP for slice transaction is 482910. Do not share.
+type: UNPARSED
+---
+name: Declined transaction is not stored
+sender: AD-SLCEIT-S
+body: Your slice credit card transaction of RS. 2499.50 on amazon.in was declined.
+type: UNPARSED

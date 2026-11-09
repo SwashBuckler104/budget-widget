@@ -1,0 +1,64 @@
+# Kotak Mahindra Bank (parser bank name "Kotak Bank").
+name: UPI to a Paytm QR merchant
+sender: JD-KOTAKB-S
+body: Sent Rs.42.00 from Kotak Bank AC X4821 to paytmqr281105050101k27bzdmxqp@paytm on 03-11-26.UPI Ref 6301928374. Not you, https://kotak.com/KBANKT/Fraud
+type: EXPENSE
+amount: 42.00
+direction: OUT
+merchant: Paytm
+last4: 4821
+---
+name: UPI to a PhonePe QR merchant
+sender: JD-KOTAKB-S
+body: Sent Rs.180.00 from Kotak Bank AC X4821 to phonepeqr918273645abc@ybl on 04-11-26.UPI Ref 6301928375. Not you, https://kotak.com/KBANKT/Fraud
+type: EXPENSE
+amount: 180.00
+direction: OUT
+merchant: PhonePe
+last4: 4821
+---
+name: UPI received from a person
+sender: JD-KOTAKB-S
+body: Received Rs.750.00 in your Kotak Bank AC X4821 from priya.k@oksbi on 05-11-26.UPI Ref 6301928376. Not you, https://kotak.com/KBANKT/Fraud
+type: INCOME
+amount: 750.00
+direction: IN
+merchant: priya.k
+last4: 4821
+---
+name: Plain debit with balance
+sender: JD-KOTAKB-S
+body: Rs.2500.00 debited from your Kotak Bank AC X4821 on 06-11-26. Avl Bal Rs.18250.40
+type: EXPENSE
+amount: 2500.00
+direction: OUT
+merchant: -
+last4: 4821
+balance: 18250.40
+---
+name: Short-format UPI to a person (KOTAKD sender)
+sender: VM-KOTAKD-S
+body: Sent Rs.65.00 from XXXXXX7310 to SURESH PATEL on 07/11/2026. UPI ref no. 649911223344. Not you? Tap https://kotk.in/KOTAKD/Ab3Xy9 to report -Kotak
+type: EXPENSE
+amount: 65.00
+direction: OUT
+merchant: SURESH PATEL
+last4: 7310
+---
+name: Credit card spend with available limit
+sender: TX-KOTAKB-S
+body: INR 45 spent on Kotak Credit Card x9042 on 08-NOV-2026 at UPI-639912345678-CORN. Avl limit INR 61200.50 Fraud? https://www.kotak.bank.in/KBANKT/querytxn
+type: CREDIT
+amount: 45
+direction: OUT
+merchant: CORN
+last4: 9042
+card: true
+---
+name: Cashback credit that says "sent" stays income
+sender: JD-KOTAKB-S
+body: Cashback of Rs.25.00 has been sent to your Kotak Bank A/c x4821. Credited on 09-11-26. UPI Ref 6301928377
+type: INCOME
+amount: 25.00
+direction: IN
+last4: 4821
