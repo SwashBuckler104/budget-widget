@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="categories_title">Categories</string>
+    <string name="categories_new">New category</string>
+    <string name="categories_show_archived">Show archived categories</string>
+    <string name="categories_archived_label">Archived</string>
+    <string name="categories_reorder">Reorder %1$s</string>
+    <string name="categories_expand">Show subcategories of %1$s</string>
+    <string name="categories_collapse">Hide subcategories of %1$s</string>
+    <string name="categories_more">More options for %1$s</string>
+    <string name="categories_edit">Edit</string>
+    <string name="categories_add_sub">Add subcategory</string>
+    <string name="categories_rules">Merchant rules</string>
+    <string name="categories_move_up">Move up</string>
+    <string name="categories_move_down">Move down</string>
+    <string name="categories_archive">Archive</string>
+    <string name="categories_unarchive">Unarchive</string>
+    <string name="categories_delete">Delete</string>
+    <string name="categories_cancel">Cancel</string>
+    <string name="categories_save">Save</string>
+    <string name="categories_undo">Undo</string>
+    <string name="categories_kind_expense">Expense</string>
+    <string name="categories_kind_income">Income</string>
+    <string name="categories_kind_transfer">Transfer</string>
+    <plurals name="categories_subcategory_count">
+        <item quantity="one">%1$d subcategory</item>
+        <item quantity="other">%1$d subcategories</item>
+    </plurals>
+    <plurals name="categories_rule_count">
+        <item quantity="one">%1$d merchant rule</item>
+        <item quantity="other">%1$d merchant rules</item>
+    </plurals>
+    <string name="categories_delete_title">Delete %1$s?</string>
+    <string name="categories_delete_body">Its subcategories and merchant rules are deleted too. Categories that transactions use can only be archived.</string>
+    <plurals name="categories_in_use">
+        <item quantity="one">%1$s is used by %2$d transaction. Archive it instead?</item>
+        <item quantity="other">%1$s is used by %2$d transactions. Archive it instead?</item>
+    </plurals>
+    <string name="categories_archived_message">%1$s archived. It no longer appears when sorting.</string>
+    <string name="categories_editor_new">New category</string>
+    <string name="categories_editor_new_sub">New subcategory</string>
+    <string name="categories_editor_edit">Edit category</string>
+    <string name="categories_editor_in">In %1$s</string>
+    <string name="categories_editor_name">Name</string>
+    <string name="categories_editor_icon">Icon</string>
+    <string name="categories_editor_custom_emoji">Or type any emoji</string>
+    <string name="categories_editor_color">Color</string>
+    <string name="categories_editor_color_n">Color %1$d</string>
+    <string name="categories_editor_kind">Type</string>
+    <string name="categories_editor_inherits">Subcategories use their category\'s color and type.</string>
+    <string name="categories_error_blank">Enter a name.</string>
+    <string name="categories_error_duplicate">That name is already used here.</string>
+    <string name="categories_error_long">Use 40 characters or fewer.</string>
+    <string name="categories_error_emoji">Pick an icon.</string>
+    <string name="categories_error_depth">Subcategories can\'t have subcategories.</string>
+    <string name="categories_error_missing">This category no longer exists.</string>
+    <string name="categories_rules_title">%1$s %2$s: merchant rules</string>
+    <string name="categories_rules_empty">No rules yet. Sorting a transaction with "Remember" on adds one.</string>
+    <plurals name="categories_rule_confirmed">
+        <item quantity="one">Confirmed %1$d time</item>
+        <item quantity="other">Confirmed %1$d times</item>
+    </plurals>
+    <string name="categories_rule_move">Move rule for %1$s</string>
+    <string name="categories_rule_delete">Delete rule for %1$s</string>
+    <string name="categories_rule_move_title">Move %1$s to</string>
+</resources>
