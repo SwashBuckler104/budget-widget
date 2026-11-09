@@ -1,0 +1,46 @@
+# State Bank of India and SBI Card.
+name: Debit card spend
+sender: ATMSBI
+body: Dear Customer, transaction number 5521 for Rs.412.00 by SBI Debit Card 7781 done at merchant on 03Nov26 at 19:12:44. Your updated available balance is Rs.25000.00. If not done by you, forward this SMS to 7400165218/ call 1800111109/9449112211 to block card. GOI helpline for cyber fraud 1930.
+type: EXPENSE
+amount: 412.00
+direction: OUT
+last4: 7781
+---
+name: Plain account debit
+sender: ATMSBI
+body: Rs.1200 debited from A/c X5503 on 04Nov26. Avl Bal Rs.23800.00
+type: EXPENSE
+amount: 1200
+direction: OUT
+# Upstream returns "A/c X5503" here; the mapper drops own-account merchants.
+merchant: -
+last4: 5503
+---
+name: SBI Card spend
+sender: SBICRD
+body: Rs.649.00 spent on your SBI Credit Card ending with 2290 on 05Nov26. Your available limit is Rs.54,351.00. If not done by you, call 39 02 02 02.
+type: CREDIT
+amount: 649.00
+direction: OUT
+last4: 2290
+card: true
+---
+name: SBI Card spend in Unicode "math sans" letters
+sender: SBI CARDS AND PAYMENT SERVICES
+body: Rs.130.00 𝗌𝗉𝖾𝗇𝗍 𝗈𝗇 𝗒𝗈𝗎𝗋 𝖲𝖡𝖨 𝖢𝗋𝖾𝖽𝗂𝗍 𝖢𝖺𝗋𝖽 𝖾𝗇𝖽𝗂𝗇𝗀 2290 at SUPREMEGOURMET on 06/11/26. 𝖳𝗋𝗑𝗇. 𝗇𝗈𝗍 𝖽𝗈𝗇𝖾 𝖻𝗒 𝗒𝗈𝗎? 𝖱𝖾𝗉𝗈𝗋𝗍 𝖺𝗍 https://sbicard.com/Dispute
+type: CREDIT
+amount: 130.00
+direction: OUT
+merchant: SUPREMEGOURMET
+last4: 2290
+card: true
+---
+name: SBI Card bill payment credited
+sender: SBICRD
+body: Your payment of Rs.5,210.75 has been credited to your SBI Credit Card ending with 2290. Your available limit is Rs.59,561.75.
+type: INCOME
+amount: 5210.75
+direction: IN
+last4: 2290
+card: true

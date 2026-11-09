@@ -15,7 +15,9 @@ scripts/check-permissions.sh app/build/outputs/apk/{debug/app-debug,release/app-
 scripts/check-module-boundaries.sh
 ```
 Local toolchain (no sudo): JDK 21 at `~/.local/jdks/jdk-21.0.13+9` (set via `org.gradle.java.home`
-in `~/.gradle/gradle.properties`), SDK at `~/Android/Sdk` (`local.properties`). No emulator yet.
+in `~/.gradle/gradle.properties`), SDK at `~/Android/Sdk` (`local.properties`). Emulator AVD `bw36`
+(API 36, `emulator -avd bw36`; the API 36 image forces 2.5 GB RAM). `adb emu sms send AD-HDFCBK "..."`
+injects bank SMS, and the image is rootable (`adb root`, `sqlite3` on the device).
 
 ## Modules
 | Module | Role |
@@ -62,4 +64,7 @@ The package root is `budgetwidget.packageRoot` in `gradle.properties`; namespace
 - `libandroidx.graphics.path.so` ships pre-stripped. `keepDebugSymbols` silences AGP's "unable to strip" warning (no NDK needed).
 - AGP auto-installs missing SDK packages (platform 37, build-tools 36.0.0) on first build.
 - setup-gradle v6 defaults to a proprietary cache provider; we use `cache-provider: basic` (ADR-0009).
-- WorkManager (M1) merges `RECEIVE_BOOT_COMPLETED`, `WAKE_LOCK`, `ACCESS_NETWORK_STATE` and `FOREGROUND_SERVICE`. Decide each one explicitly, and extend the allowlist in the same commit.
+- WorkManager merges `RECEIVE_BOOT_COMPLETED` and `ACCESS_NETWORK_STATE`; `:ingest` removes both (ADR-0013). Any new dependency's permissions need the same explicit decision plus an allowlist line.
+- **Robolectric on SDK 36** needs `--add-exports=java.base/jdk.internal.access=ALL-UNNAMED` (set in the library convention).
+- **Upstream sender matching is loose** (Everest Bank claims every 7-10 digit number). `PennyWiseSmsParser` filters to non-phone, INR senders (ADR-0017); keep that filter.
+- **Golden SMS** live in `ingest/src/test/resources/golden/` (format in its README). Known upstream bugs are pinned with `merchant-upstream-bug`; drafts are in `docs/upstream/`.

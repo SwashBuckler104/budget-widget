@@ -1,0 +1,50 @@
+# Axis Bank.
+name: Credit card spend, multi-line format
+sender: AX-AXISBK-S
+body: Spent INR 286\nAxis Bank Card no. XX2207\n03-11-26 13:12:40 IST\nSwiggy Limi\nAvl Limit: INR 84210.15\nNot you? SMS BLOCK 2207 to 919951860002
+type: CREDIT
+amount: 286
+direction: OUT
+merchant: Swiggy
+last4: 2207
+card: true
+---
+name: Credit card spend, short multi-line format
+sender: CP-AXISBK-S
+body: Spent\nCard no. XX2207\nINR 418\n04-11-26 19:40:02\nBlinkit\nAvl Lmt INR 83792.15\nSMS BLOCK 2207 to 919951860002, if not you - Axis Bank
+type: CREDIT
+amount: 418
+direction: OUT
+merchant: Blinkit
+last4: 2207
+card: true
+---
+name: Credit card spend, single line
+sender: AX-AXISBK-S
+body: Spent INR 1150 using Axis Bank Credit Card no. XX2207 on 05-11-26 11:07:10 IST at BLINKIT. Avl limit: INR 82642.15. Not you? SMS BLOCK 2207 to +919951860002.
+type: CREDIT
+amount: 1150
+direction: OUT
+merchant: BLINKIT
+last4: 2207
+card: true
+---
+name: Debit card spend with balance
+sender: JD-AXISBK-S
+body: INR 740.00 debited from A/c no. XX604418 on MERCHANT ABC 06-11-2026 20:38:23 IST. Avl bal: INR 22410.60. Not you? SMS BLOCKCARD XX0091 to +919951860002 - Axis Bank
+type: EXPENSE
+amount: 740.00
+direction: OUT
+merchant: MERCHANT ABC
+last4: 4418
+balance: 22410.60
+---
+name: ATM withdrawal
+sender: JD-AXISBK-S
+body: INR 3000.00 debited from A/c no. XX604418 on AXIS BANK L 07-11-2026 16:06:39 IST. Avl bal: INR 19410.60. Not you? SMS BLOCKCARD XX0091 to +919951860002 - Axis Bank
+type: EXPENSE
+amount: 3000.00
+direction: OUT
+merchant: ATM
+last4: 4418
+balance: 19410.60

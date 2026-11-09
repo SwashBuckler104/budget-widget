@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ingest_sync_channel">Reading bank SMS</string>
+    <string name="ingest_sync_title">Reading a bank SMS</string>
+</resources>

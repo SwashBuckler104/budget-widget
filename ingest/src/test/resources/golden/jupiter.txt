@@ -1,0 +1,22 @@
+# Jupiter (Edge CSB RuPay credit card, sender JTEDGE). Jupiter savings accounts send
+# Federal Bank SMS (see federal.txt). Upstream has one format here; add real ones as they appear.
+name: Edge CSB credit card debit via UPI
+sender: VK-JTEDGE-S
+body: Rs.25.00 debited to your Edge CSB Bank RuPay Credit Card ending 6788 on 11/2/26, 6:39 PM - (UPI Ref no.702711160776). To dispute, call 8655055086.
+type: CREDIT
+amount: 25.00
+direction: OUT
+# Upstream returns "your Edge CSB Bank RuPay Credit Card ending 6788"; dropped by the mapper.
+merchant: -
+last4: 6788
+card: true
+---
+name: Edge CSB credit card debit, larger amount
+sender: VK-JTEDGE-S
+body: Rs.1,240.00 debited to your Edge CSB Bank RuPay Credit Card ending 3315 on 11/4/26, 9:05 AM - (UPI Ref no.702799887766). To dispute, call 8655055086.
+type: CREDIT
+amount: 1240.00
+direction: OUT
+merchant: -
+last4: 3315
+card: true

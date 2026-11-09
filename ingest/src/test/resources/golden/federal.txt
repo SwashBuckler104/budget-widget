@@ -1,0 +1,58 @@
+# Federal Bank. Jupiter savings accounts are Federal Bank accounts, so their SMS land here too.
+name: UPI debit to a person's VPA
+sender: AD-FEDBNK
+body: Rs 320.00 debited via UPI on 02-11-2026 09:12:45 to VPA ravi.m42@okaxis.Ref No 630112233445.Small txns?Use UPI Lite!-Federal Bank
+type: EXPENSE
+amount: 320.00
+direction: OUT
+merchant: ravi.m42@okaxis
+# Upstream bug: brand names are matched as substrings of the VPA ("ravi" contains "vi").
+# Remove this line once fixed upstream; see docs/upstream/0002-federal-vpa-substring-merchants.md.
+merchant-upstream-bug: Vi
+card: false
+---
+name: UPI debit to Swiggy
+sender: AD-FEDBNK
+body: Rs 612.50 debited via UPI on 03-11-2026 20:41:10 to VPA swiggy.food@paytm.Ref No 630112233446.Small txns?Use UPI Lite!-Federal Bank
+type: EXPENSE
+amount: 612.50
+direction: OUT
+merchant: Swiggy
+---
+name: IMPS credit with balance
+sender: AD-FEDBNK
+body: Rs 4200.00 credited to your A/c XX3071 via IMPS on 04NOV2026 11:05:30 IMPS Ref no 630112233447 Bal:Rs 31840.25 -Federal Bank
+type: INCOME
+amount: 4200.00
+direction: IN
+merchant: IMPS Credit
+last4: 3071
+balance: 31840.25
+---
+name: "You've received" from a person
+sender: AD-FEDBNK
+body: Asha, you've received INR 12,750.00 in your Account XXXXXXXX3071. Woohoo! It was sent by RAHUL VERMA on November 5, 2026. -Federal Bank
+type: INCOME
+amount: 12750.00
+direction: IN
+merchant: RAHUL VERMA
+last4: 3071
+---
+name: E-mandate debit card payment
+sender: AD-FEDBNK
+body: Hi, payment of INR 149.00 for Netflix via e-mandate ID: NX123ABC456 on Federal Bank Debit Card 6624 is processed successfully. To manage, visit: https://www.sihub.in/managesi/federal T&CA - Federal Bank
+type: EXPENSE
+amount: 149.00
+direction: OUT
+last4: 6624
+card: true
+---
+name: Credit card spend
+sender: AD-FEDBNK
+body: INR 899.00 spent on your credit card ending with 5190 at AMAZON on 06-11-2026 18:22:05. Available limit Rs.41100.00 -Federal Bank
+type: CREDIT
+amount: 899.00
+direction: OUT
+merchant: AMAZON
+last4: 5190
+card: true

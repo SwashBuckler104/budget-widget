@@ -1,0 +1,63 @@
+# HDFC Bank.
+name: UPI debit
+sender: CP-HDFCBK-S
+body: Rs.350.00 debited from A/c XX8812 on 03-Nov-26 to grocer@upi (UPI Ref No 630199887766)
+type: EXPENSE
+amount: 350.00
+direction: OUT
+# Upstream returns "A/c XX8812" (the user's account) instead of "grocer@upi"; our mapper drops
+# own-account merchants. See docs/upstream/0003-own-account-as-merchant.md.
+merchant: -
+last4: 8812
+---
+name: Sent from account with asterisk mask
+sender: HDFCBK
+body: Sent Rs.2400.00 From HDFC Bank A/C *8812 To TEST MERCHANT PVT LTD On 04/11/26 Ref 630199887767 Not You? Call 18005556789/SMS BLOCK UPI to 7305556789
+type: EXPENSE
+amount: 2400.00
+direction: OUT
+merchant: TEST MERCHANT
+last4: 8812
+---
+name: NEFT salary credit with balance
+sender: CP-HDFCBK-S
+body: Update! INR 45000.00 deposited in HDFC Bank A/c XX8812 on 01-NOV-26 for NEFT Cr-CITI0100000-ACME TECHNOLOGIES-PERSON NAME-CITIN63019988776.Avl bal INR 61250.00. Cheque deposits in A/C are subject to clearing
+type: INCOME
+amount: 45000.00
+direction: IN
+merchant: ACME TECHNOLOGIES
+last4: 8812
+balance: 61250.00
+---
+name: NetBanking payment
+sender: VM-HDFCBK-S
+body: Payment Successful! Rs. 1899.00 from A/c ****8812 to ACMEPAYMENTS via HDFC Bank NetBanking. Not you?Call 18002586161
+type: EXPENSE
+amount: 1899.00
+direction: OUT
+merchant: ACMEPAYMENTS
+last4: 8812
+---
+name: Credit card transaction reversed is income
+sender: VM-HDFCBK-S
+body: Transaction Reversed!On HDFC Bank CREDIT Card xx4407 Amt: Rs.499.00 By AMAZON                000 On 2026-11-05:10:20:26
+type: INCOME
+amount: 499.00
+direction: IN
+merchant: AMAZON
+last4: 4407
+---
+name: Bill alert is not a transaction
+sender: CP-HDFCBK-S
+body: New Bill Alert:\nYour XUBA00000TST1A Bill 6301998877 of Rs.1500.00 is due on 15-Nov-2026. To pay, login to HDFC Bank Net/Mobile Banking>BillPay\nT&C. Ignore if paid
+type: UNPARSED
+---
+name: Personal SMS is never parsed
+sender: +919812345678
+body: Rs 500 sent to you, dinner was great!
+type: NOT_BANK
+---
+name: Debit-looking SMS from a 10-digit contact number is personal
+sender: 9812345678
+body: Rs.500.00 debited from A/c XX8812 on 09-Nov-26 to grocer@upi (UPI Ref No 630100000500)
+type: NOT_BANK
