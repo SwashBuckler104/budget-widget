@@ -11,6 +11,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
+import io.github.swashbuckler104.budgetwidget.core.data.category.CategoryRepository
 import io.github.swashbuckler104.budgetwidget.core.data.inbox.InboxEvents
 import io.github.swashbuckler104.budgetwidget.core.data.inbox.InboxWidgets
 import io.github.swashbuckler104.budgetwidget.core.data.inbox.QuickSortLauncher
@@ -21,6 +22,7 @@ import io.github.swashbuckler104.budgetwidget.core.data.suggest.SuggestionEngine
 import io.github.swashbuckler104.budgetwidget.core.database.BudgetDatabase
 import io.github.swashbuckler104.budgetwidget.core.database.entity.AccountEntity
 import io.github.swashbuckler104.budgetwidget.core.database.entity.CategoryEntity
+import io.github.swashbuckler104.budgetwidget.core.database.entity.MerchantRuleEntity
 import io.github.swashbuckler104.budgetwidget.core.database.entity.TransactionEntity
 import io.github.swashbuckler104.budgetwidget.core.datastore.SettingsStore
 import io.github.swashbuckler104.budgetwidget.core.model.AccountKind
@@ -86,6 +88,7 @@ class TransactionNotifierTest {
             context,
             repo,
             SuggestionEngine(db, clock),
+            CategoryRepository(db),
             settings,
             TransactionNotificationFactory(context, launcher),
             clock,
@@ -101,23 +104,33 @@ class TransactionNotifierTest {
         )
     }
 
-    private suspend fun category(name: String, archived: Boolean = false) = db.categoryDao().insert(
+    private var categoriesCreated = 0
+
+    /** The first three categories get the daily seed keys, so they are the payment buttons. */
+    private suspend fun category(
+        name: String,
+        archived: Boolean = false,
+        kind: CategoryKind = CategoryKind.EXPENSE,
+        seedKey: String? = DAILY_SEED_KEYS.getOrNull(categoriesCreated),
+    ) = db.categoryDao().insert(
         CategoryEntity(
             parentId = null,
             name = name,
             iconKey = "🍔",
             colorArgb = 0,
-            kind = CategoryKind.EXPENSE,
+            kind = kind,
             sortOrder = 0,
             archived = archived,
+            seedKey = seedKey,
         ),
-    )
+    ).also { categoriesCreated++ }
 
     private suspend fun txn(
         hash: String,
         amount: Long = 450_00,
         merchant: String? = "Swiggy",
         duplicateOf: Long? = null,
+        direction: Direction = Direction.OUT,
     ): Long {
         if (account == 0L) {
             account = db.accountDao().insert(
@@ -129,8 +142,8 @@ class TransactionNotifierTest {
                 txnHash = hash,
                 source = TransactionSource.SMS,
                 amountPaise = amount,
-                direction = Direction.OUT,
-                parserType = ParserType.EXPENSE,
+                direction = direction,
+                parserType = if (direction == Direction.IN) ParserType.INCOME else ParserType.EXPENSE,
                 merchantRaw = merchant,
                 merchantDisplay = merchant,
                 merchantKey = merchant?.lowercase(),
@@ -178,6 +191,30 @@ class TransactionNotifierTest {
         assertThat(n.actions.map { it.title.toString() }).containsExactly("🍔 Food", "🍔 Fuel", "🍔 Rent").inOrder()
         assertThat(n.visibility).isEqualTo(Notification.VISIBILITY_PRIVATE)
         assertThat(n.publicVersion.title()).doesNotContain("450")
+    }
+
+    @Test
+    fun `payments always offer the daily categories, income keeps its suggestions`() = runTest {
+        wire()
+        val bus = category("Public transport", seedKey = "public_transport")
+        category("Groceries", seedKey = "groceries")
+        category("Restaurant", seedKey = "restaurants", archived = true)
+        category("Fuel", seedKey = null)
+        category("Salary", kind = CategoryKind.INCOME, seedKey = null)
+        // A learned rule for another category doesn't change the payment buttons.
+        db.merchantRuleDao().upsert(MerchantRuleEntity("swiggy", bus + 3, confirmCount = 5, lastUsedAt = 0))
+
+        val payment = txn("pay")
+        notifier.onPendingAdded(payment, IngestOrigin.REALTIME)
+        val buttons = transactionNotifications().single { it.tag == "txn:$payment" }.notification.actions
+        // Seed order (Groceries, Restaurant, Public transport), archived Restaurant skipped, then Ignore.
+        assertThat(buttons.map { it.title.toString() }).containsExactly("🍔 Groceries", "🍔 Public transport", "Ignore")
+            .inOrder()
+
+        val income = txn("salary", direction = Direction.IN)
+        notifier.onPendingAdded(income, IngestOrigin.REALTIME)
+        val incomeButtons = transactionNotifications().single { it.tag == "txn:$income" }.notification.actions
+        assertThat(incomeButtons.map { it.title.toString() }).contains("🍔 Salary")
     }
 
     @Test
