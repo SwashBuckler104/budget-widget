@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!-- Exported: the launcher's AppWidgetHost binds to it (SCOPE.md F4). -->
+        <receiver
+            android:name=".QuickSortWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_quicksort_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/quick_sort_widget_info" />
+        </receiver>
+    </application>
+</manifest>
