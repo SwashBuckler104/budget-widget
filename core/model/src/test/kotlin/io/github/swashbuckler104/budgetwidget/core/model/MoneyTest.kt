@@ -29,4 +29,20 @@ class MoneyTest {
         assertThat(formatInr(Long.MIN_VALUE)).isEqualTo("-₹92,23,37,20,36,85,47,758.08")
         assertThat(formatInr(Long.MAX_VALUE)).isEqualTo("₹92,23,37,20,36,85,47,758.07")
     }
+
+    @Test
+    fun `typed rupees parse to paise`() {
+        assertThat(parseInrToPaise("450")).isEqualTo(45_000)
+        assertThat(parseInrToPaise("₹ 1,200.5")).isEqualTo(1_20_050)
+        assertThat(parseInrToPaise("99.99")).isEqualTo(9_999)
+        assertThat(parseInrToPaise(".5")).isEqualTo(50)
+        assertThat(parseInrToPaise("12.")).isEqualTo(1_200)
+    }
+
+    @Test
+    fun `bad input does not parse`() {
+        listOf("", " ", "0", "0.00", "1.234", "1.2.3", "-5", "abc", "1e3", "1234567890123456").forEach {
+            assertThat(parseInrToPaise(it)).isNull()
+        }
+    }
 }
