@@ -108,6 +108,9 @@ class IngestPipeline @Inject constructor(
         val accountId =
             accountFor(parsed.bankName, parsed.accountLast4, if (parsed.isCard) AccountKind.CARD else AccountKind.BANK)
         val now = clock.nowMillis()
+        val merchantKey = MerchantKeyNormalizer.normalize(parsed.merchant)
+        // A name the user gave this merchant wins over the parser's text (SCOPE.md F7).
+        val alias = merchantKey?.let { db.merchantAliasDao().displayName(it) }
         val id = db.transactionDao().insertOrIgnore(
             TransactionEntity(
                 txnHash = parsed.txnHash,
@@ -116,8 +119,8 @@ class IngestPipeline @Inject constructor(
                 direction = parsed.direction,
                 parserType = parsed.parserType,
                 merchantRaw = parsed.merchant,
-                merchantDisplay = MerchantKeyNormalizer.display(parsed.merchant),
-                merchantKey = MerchantKeyNormalizer.normalize(parsed.merchant),
+                merchantDisplay = alias ?: MerchantKeyNormalizer.display(parsed.merchant),
+                merchantKey = merchantKey,
                 accountId = accountId,
                 occurredAt = parsed.occurredAt,
                 smsSender = parsed.sender,
@@ -150,7 +153,7 @@ class IngestPipeline @Inject constructor(
         // Step 6: auto-sort well-known merchants, but never a possible duplicate (it needs a look).
         val autoSorted =
             autoSortEnabled && original == null &&
-                autoSortFromRule(id, MerchantKeyNormalizer.normalize(parsed.merchant), now)
+                autoSortFromRule(id, merchantKey, now)
         return IngestOutcome.Inserted(id, original?.id, autoSorted)
     }
 

@@ -4,7 +4,9 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import io.github.swashbuckler104.budgetwidget.core.database.entity.TransactionEntity
+import io.github.swashbuckler104.budgetwidget.core.database.model.TransactionRow
 import io.github.swashbuckler104.budgetwidget.core.database.model.TransactionWithAccount
 import io.github.swashbuckler104.budgetwidget.core.model.Direction
 import io.github.swashbuckler104.budgetwidget.core.model.IgnoreReason
@@ -19,14 +21,46 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE id = :id")
     suspend fun get(id: Long): TransactionEntity?
 
+    /** Every transaction as a light row (no SMS body), newest first. */
     @Query(
         """
-        SELECT t.*, a.bankName AS bankName, a.last4 AS accountLast4
-        FROM transactions t LEFT JOIN account a ON a.id = t.accountId
+        SELECT $ROW_COLUMNS FROM transactions t LEFT JOIN account a ON a.id = t.accountId
         ORDER BY t.occurredAt DESC, t.id DESC
         """,
     )
-    fun observeAllWithAccount(): Flow<List<TransactionWithAccount>>
+    fun observeRows(): Flow<List<TransactionRow>>
+
+    @Query("SELECT * FROM transactions WHERE id IN (:ids)")
+    suspend fun getMany(ids: List<Long>): List<TransactionEntity>
+
+    /** A manual transaction (SMS ones go through [insertOrIgnore]). Returns the new row id. */
+    @Insert
+    suspend fun insert(transaction: TransactionEntity): Long
+
+    /** Puts rows back exactly as they were (undo). Existing rows only; see [insert] for deleted ones. */
+    @Update
+    suspend fun update(rows: List<TransactionEntity>)
+
+    /** Only manual transactions can be deleted; SMS ones are ignored instead (SCOPE.md F7). */
+    @Query("DELETE FROM transactions WHERE id = :id AND source = 'MANUAL'")
+    suspend fun deleteManual(id: Long): Int
+
+    /** "Keep both" on a possible cross-bank duplicate (SCOPE.md F2). */
+    @Query("UPDATE transactions SET duplicateOfId = NULL, updatedAt = :now WHERE id = :id")
+    suspend fun clearDuplicate(id: Long, now: Long): Int
+
+    /** Back to the inbox. `sortedAt` keeps its first value (closing a day is computed from it). */
+    @Query(
+        """
+        UPDATE transactions SET status = 'PENDING', ignoreReason = NULL, updatedAt = :now
+        WHERE id = :id AND status = 'IGNORED'
+        """,
+    )
+    suspend fun unignore(id: Long, now: Long): Int
+
+    /** "Apply to all from this merchant": renames every transaction with [merchantKey]. */
+    @Query("UPDATE transactions SET merchantDisplay = :displayName, updatedAt = :now WHERE merchantKey = :merchantKey")
+    suspend fun renameMerchant(merchantKey: String, displayName: String, now: Long): Int
 
     @Query("SELECT COUNT(*) FROM transactions")
     suspend fun count(): Int
@@ -184,5 +218,12 @@ interface TransactionDao {
     )
     suspend fun usageForDirection(direction: Direction): List<CategoryUsage>
 }
+
+/** Columns of [TransactionRow], for queries joining `transactions t` with `account a`. */
+internal const val ROW_COLUMNS = """
+    t.id, t.source, t.amountPaise, t.direction, t.parserType, t.merchantDisplay, t.merchantKey, t.accountId,
+    t.occurredAt, t.isCard, t.status, t.ignoreReason, t.categoryId, t.autoCategorized, t.isBackfill, t.note,
+    t.duplicateOfId, t.editedByUser, a.bankName AS bankName, a.last4 AS accountLast4
+"""
 
 data class CategoryUsage(val categoryId: Long, val uses: Int, val lastUsed: Long)

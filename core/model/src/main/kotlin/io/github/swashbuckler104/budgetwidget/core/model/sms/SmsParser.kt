@@ -39,4 +39,7 @@ enum class UnparsedReason {
 
     /** The parser threw. Recorded instead of crashing so one odd SMS can't stall the inbox scan. */
     PARSER_ERROR,
+
+    /** Parsed, but the user reported the amount as wrong from the edit sheet (SCOPE.md F7). */
+    WRONG_AMOUNT,
 }

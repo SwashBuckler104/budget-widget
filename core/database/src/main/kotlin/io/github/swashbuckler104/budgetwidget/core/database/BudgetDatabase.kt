@@ -8,12 +8,14 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import io.github.swashbuckler104.budgetwidget.core.database.dao.AccountDao
 import io.github.swashbuckler104.budgetwidget.core.database.dao.CategoryDao
 import io.github.swashbuckler104.budgetwidget.core.database.dao.DayCloseDao
+import io.github.swashbuckler104.budgetwidget.core.database.dao.MerchantAliasDao
 import io.github.swashbuckler104.budgetwidget.core.database.dao.MerchantRuleDao
 import io.github.swashbuckler104.budgetwidget.core.database.dao.TransactionDao
 import io.github.swashbuckler104.budgetwidget.core.database.dao.UnparsedSmsDao
 import io.github.swashbuckler104.budgetwidget.core.database.entity.AccountEntity
 import io.github.swashbuckler104.budgetwidget.core.database.entity.CategoryEntity
 import io.github.swashbuckler104.budgetwidget.core.database.entity.DayCloseEntity
+import io.github.swashbuckler104.budgetwidget.core.database.entity.MerchantAliasEntity
 import io.github.swashbuckler104.budgetwidget.core.database.entity.MerchantRuleEntity
 import io.github.swashbuckler104.budgetwidget.core.database.entity.TransactionEntity
 import io.github.swashbuckler104.budgetwidget.core.database.entity.UnparsedSmsEntity
@@ -30,14 +32,17 @@ import io.github.swashbuckler104.budgetwidget.core.database.entity.UnparsedSmsEn
         MerchantRuleEntity::class,
         DayCloseEntity::class,
         UnparsedSmsEntity::class,
+        MerchantAliasEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
     autoMigrations = [
         // 1 -> 2: category.seedKey (nullable) with a unique index.
         AutoMigration(from = 1, to = 2),
         // 2 -> 3: transactions.sortedAt (nullable), filled in for rows already sorted.
         AutoMigration(from = 2, to = 3, spec = BudgetDatabase.SortedAtSpec::class),
+        // 3 -> 4: merchant_alias table (names the user gave merchants).
+        AutoMigration(from = 3, to = 4),
     ],
 )
 abstract class BudgetDatabase : RoomDatabase() {
@@ -52,6 +57,8 @@ abstract class BudgetDatabase : RoomDatabase() {
     abstract fun merchantRuleDao(): MerchantRuleDao
 
     abstract fun dayCloseDao(): DayCloseDao
+
+    abstract fun merchantAliasDao(): MerchantAliasDao
 
     /** Rows sorted before v3 have no sort time; their last update is the best estimate. */
     class SortedAtSpec : AutoMigrationSpec {

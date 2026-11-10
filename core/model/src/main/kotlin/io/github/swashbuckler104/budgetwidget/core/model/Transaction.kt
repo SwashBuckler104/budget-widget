@@ -39,4 +39,29 @@ data class Transaction(
     val categoryId: Long? = null,
     val autoCategorized: Boolean = false,
     val note: String? = null,
+    val accountId: Long? = null,
+    val ignoreReason: IgnoreReason? = null,
+    val editedByUser: Boolean = false,
 )
+
+/** What the edit sheet shows beyond the list row: the original SMS (financial messages only). */
+data class TransactionDetail(
+    val transaction: Transaction,
+    val smsSender: String?,
+    val smsBody: String?,
+    val reference: String?,
+    val balanceAfterPaise: Long?,
+)
+
+/** A bank account, card or wallet, auto-created from SMS (SCOPE.md F2). */
+data class Account(
+    val id: Long,
+    val bankName: String,
+    val last4: String?,
+    val nickname: String?,
+    val kind: AccountKind,
+    val hidden: Boolean,
+) {
+    /** `Nickname`, or `HDFC Bank ··1234`. */
+    val label: String get() = nickname ?: listOfNotNull(bankName, last4?.let { "··$it" }).joinToString(" ")
+}

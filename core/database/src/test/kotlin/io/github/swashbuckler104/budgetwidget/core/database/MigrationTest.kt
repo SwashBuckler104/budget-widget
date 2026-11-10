@@ -76,6 +76,31 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun `3 to 4 adds an empty merchant_alias table and keeps transactions`() {
+        helper.createDatabase(DB, 3).use { db ->
+            db.execSQL(
+                """
+                INSERT INTO transactions (txnHash, status, updatedAt, source, amountPaise, direction, occurredAt,
+                  isCard, autoCategorized, isBackfill, editedByUser, createdAt)
+                VALUES ('a', 'PENDING', 1, 'SMS', 100, 'OUT', 1, 0, 0, 0, 0, 1)
+                """,
+            )
+        }
+
+        helper.runMigrationsAndValidate(DB, 4, true).use { db ->
+            db.query("SELECT COUNT(*) FROM transactions").use {
+                it.moveToFirst()
+                assertThat(it.getInt(0)).isEqualTo(1)
+            }
+            db.execSQL("INSERT INTO merchant_alias (merchantKey, displayName) VALUES ('swiggy', 'Swiggy')")
+            db.query("SELECT displayName FROM merchant_alias WHERE merchantKey = 'swiggy'").use {
+                it.moveToFirst()
+                assertThat(it.getString(0)).isEqualTo("Swiggy")
+            }
+        }
+    }
+
     private companion object {
         const val DB = "migration-test"
     }
