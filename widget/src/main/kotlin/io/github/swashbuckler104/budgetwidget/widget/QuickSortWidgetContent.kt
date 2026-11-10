@@ -59,7 +59,7 @@ internal fun QuickSortWidgetContent(snapshot: WidgetSnapshot, intents: WidgetInt
             .fillMaxSize()
             .appWidgetBackground()
             .background(GlanceTheme.colors.widgetBackground)
-            .cornerRadius(16.dp)
+            .cornerRadius(20.dp)
             .padding(10.dp),
     ) {
         val focus = snapshot.focus
@@ -83,10 +83,10 @@ private fun Compact(snapshot: WidgetSnapshot, intents: WidgetIntents) {
         modifier = GlanceModifier.fillMaxSize().clickableOrNot(open?.let { actionStartActivity(it) }),
     ) {
         if (snapshot.pending == 0) {
-            Label(res.getString(R.string.widget_sorted), size = 18.sp, bold = true)
+            Label(res.getString(R.string.widget_sorted), size = 18.sp, bold = true, color = GlanceTheme.colors.primary)
             if (snapshot.streak > 0) Label(streakText(snapshot.streak), size = 13.sp, muted = true)
         } else {
-            Label(snapshot.pending.toString(), size = 36.sp, bold = true)
+            Label(snapshot.pending.toString(), size = 40.sp, bold = true, color = GlanceTheme.colors.primary)
             Label(res.getQuantityString(R.plurals.widget_to_sort_label, snapshot.pending), size = 14.sp, muted = true)
             if (snapshot.overdue >
                 0
@@ -106,7 +106,8 @@ private fun Empty(snapshot: WidgetSnapshot, intents: WidgetIntents) {
         verticalAlignment = Alignment.CenterVertically,
         modifier = GlanceModifier.fillMaxSize().clickableOrNot(intents.app?.let { actionStartActivity(it) }),
     ) {
-        Label(res.getString(R.string.widget_all_sorted), size = 20.sp, bold = true)
+        Label(res.getString(R.string.widget_all_sorted), size = 22.sp, bold = true, color = GlanceTheme.colors.primary)
+        Spacer(GlanceModifier.height(4.dp))
         val today = res.getString(R.string.widget_today, formatInr(snapshot.todaySpentPaise))
         val line = if (snapshot.streak > 0) "$today · ${streakText(snapshot.streak)}" else today
         Label(line, size = 14.sp, muted = true)
@@ -127,6 +128,7 @@ private fun Short(snapshot: WidgetSnapshot, focus: Transaction, intents: WidgetI
                 LocalContext.current.getString(R.string.widget_more),
                 actionStartActivity(intents.transaction(focus.id)),
                 height = 40.dp,
+                primary = true,
             )
         }
     }
@@ -158,6 +160,7 @@ private fun Tall(snapshot: WidgetSnapshot, focus: Transaction, intents: WidgetIn
                 context.getString(R.string.widget_more),
                 actionStartActivity(intents.transaction(focus.id)),
                 height = 44.dp,
+                primary = true,
             )
             Arrow(focus, previous = false)
         }
@@ -170,9 +173,13 @@ private fun Header(snapshot: WidgetSnapshot, focus: Transaction, withArrows: Boo
     val res = LocalContext.current.resources
     val deadline = snapshot.hoursLeft?.let { res.getQuantityString(R.plurals.widget_hours_left, it, it) }
         ?: res.getString(R.string.widget_closes_midnight)
-    val text = res.getQuantityString(R.plurals.widget_to_sort, snapshot.pending, snapshot.pending) + " · " + deadline
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = GlanceModifier.fillMaxWidth()) {
-        Label(text, size = 12.sp, muted = true, maxLines = 1, modifier = GlanceModifier.defaultWeight())
+    val count = res.getQuantityString(R.plurals.widget_to_sort, snapshot.pending, snapshot.pending)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = GlanceModifier.fillMaxWidth().padding(horizontal = 4.dp),
+    ) {
+        Label(count, size = 13.sp, bold = true, color = GlanceTheme.colors.primary, maxLines = 1)
+        Label(" · $deadline", size = 12.sp, muted = true, maxLines = 1, modifier = GlanceModifier.defaultWeight())
         if (withArrows) {
             Arrow(focus, previous = true, compact = true)
             Arrow(focus, previous = false, compact = true)
@@ -185,13 +192,21 @@ private fun Header(snapshot: WidgetSnapshot, focus: Transaction, withArrows: Boo
 private fun Card(snapshot: WidgetSnapshot, focus: Transaction, intents: WidgetIntents) {
     val res = LocalContext.current.resources
     val incoming = focus.direction == Direction.IN
-    Column(modifier = GlanceModifier.fillMaxWidth().clickable(actionStartActivity(intents.transaction(focus.id)))) {
+    Column(
+        modifier = GlanceModifier
+            .fillMaxWidth()
+            .padding(top = 4.dp)
+            .cornerRadius(14.dp)
+            .background(GlanceTheme.colors.surface)
+            .clickable(actionStartActivity(intents.transaction(focus.id)))
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Label(
                 (if (incoming) "+" else "-") + formatInr(focus.amountPaise),
                 size = 18.sp,
                 bold = true,
-                color = if (incoming) GlanceTheme.colors.primary else GlanceTheme.colors.onSurface,
+                color = if (incoming) WidgetMoney.income else WidgetMoney.spend,
             )
             Spacer(GlanceModifier.width(8.dp))
             Label(
@@ -223,26 +238,35 @@ private fun RowScope.Chip(focus: Transaction, category: Category, height: Dp) {
     val action = actionRunCallback<SortChipAction>(
         actionParametersOf(WidgetKeys.transaction to focus.id, WidgetKeys.category to category.id),
     )
-    ChipBox(action, height, label) {
+    ChipBox(action, height, label, GlanceTheme.colors.secondaryContainer) {
         Label(category.emoji, size = 16.sp, maxLines = 1)
-        Label(shortLabel(category.name), size = 10.sp, maxLines = 1)
+        Label(shortLabel(category.name), size = 10.sp, maxLines = 1, color = GlanceTheme.colors.onSecondaryContainer)
     }
 }
 
+/** Footer actions: [primary] is the filled one (More), the rest are quiet (Ignore). */
 @Composable
-private fun RowScope.TextChip(text: String, action: Action, height: Dp) {
-    ChipBox(action, height, text) { Label(text, size = 13.sp, bold = true, maxLines = 1) }
+private fun RowScope.TextChip(text: String, action: Action, height: Dp, primary: Boolean = false) {
+    val background = if (primary) GlanceTheme.colors.primary else GlanceTheme.colors.surfaceVariant
+    val content = if (primary) GlanceTheme.colors.onPrimary else GlanceTheme.colors.onSurfaceVariant
+    ChipBox(action, height, text, background) { Label(text, size = 13.sp, bold = true, maxLines = 1, color = content) }
 }
 
 @Composable
-private fun RowScope.ChipBox(action: Action, height: Dp, description: String, content: @Composable () -> Unit) {
+private fun RowScope.ChipBox(
+    action: Action,
+    height: Dp,
+    description: String,
+    background: ColorProvider,
+    content: @Composable () -> Unit,
+) {
     Box(modifier = GlanceModifier.defaultWeight().height(height).padding(2.dp)) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalAlignment = Alignment.CenterVertically,
             modifier = GlanceModifier
                 .fillMaxSize()
-                .background(GlanceTheme.colors.secondaryContainer)
+                .background(background)
                 .cornerRadius(12.dp)
                 .clickable(action)
                 .semantics { contentDescription = description },

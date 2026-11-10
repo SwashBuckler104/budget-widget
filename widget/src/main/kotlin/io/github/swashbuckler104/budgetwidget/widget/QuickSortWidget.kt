@@ -8,7 +8,6 @@ import androidx.compose.ui.unit.dp
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.glance.GlanceId
-import androidx.glance.GlanceTheme
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.SizeMode
@@ -40,7 +39,7 @@ class QuickSortWidget : GlanceAppWidget() {
         provideContent {
             val current = currentState(CURRENT)
             val snapshot by produceState(initial, current) { loader.observe(current).collect { value = it } }
-            GlanceTheme { QuickSortWidgetContent(snapshot, intents) }
+            WidgetTheme { QuickSortWidgetContent(snapshot, intents) }
         }
     }
 

@@ -81,7 +81,8 @@ class QuickSortWidgetContentTest {
         setAppWidgetSize(DpSize(300.dp, 200.dp))
         provideComposable { QuickSortWidgetContent(snapshot(), intents) }
 
-        onNode(hasText("3 to sort · closes at midnight")).assertExists()
+        onNode(hasText("3 to sort")).assertExists()
+        onNode(hasText(" · closes at midnight")).assertExists()
         onNode(hasText("-₹450")).assertExists()
         onNode(hasText("Swiggy")).assertExists()
         chips.forEach { onNode(hasContentDescription("Sort as ${it.name}")).assertExists() }
@@ -99,7 +100,7 @@ class QuickSortWidgetContentTest {
         setAppWidgetSize(DpSize(300.dp, 120.dp))
         provideComposable { QuickSortWidgetContent(snapshot(hoursLeft = 2, overdue = true), intents) }
 
-        onNode(hasText("3 to sort · ~2 h left")).assertExists()
+        onNode(hasText(" · ~2 h left")).assertExists()
         onNode(hasText("Overdue")).assertExists()
         chips.take(4).forEach { onNode(hasContentDescription("Sort as ${it.name}")).assertExists() }
         onNode(hasContentDescription("Sort as Drug-store, Chemist")).assertDoesNotExist()
