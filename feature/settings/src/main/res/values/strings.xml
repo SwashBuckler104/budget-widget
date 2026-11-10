@@ -11,6 +11,13 @@
     <string name="settings_rupee_prefix">₹</string>
     <string name="settings_blocked">Notifications are blocked for this app</string>
     <string name="settings_allow">Allow</string>
+    <string name="settings_section_day">Close the day</string>
+    <string name="settings_nudge">Evening reminder</string>
+    <!-- %1$s: time, e.g. 9:00 PM. -->
+    <string name="settings_nudge_summary">At %1$s, if transactions are still waiting to be sorted</string>
+    <string name="settings_nudge_time">Reminder time</string>
+    <string name="settings_ok">OK</string>
+    <string name="settings_cancel">Cancel</string>
     <string name="settings_section_sorting">Sorting</string>
     <string name="settings_auto_sort">Auto-sort known merchants</string>
     <string name="settings_auto_sort_summary">Sort merchants you have confirmed 3 or more times without asking</string>

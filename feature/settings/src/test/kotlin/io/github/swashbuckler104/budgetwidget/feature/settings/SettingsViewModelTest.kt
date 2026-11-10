@@ -4,6 +4,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import io.github.swashbuckler104.budgetwidget.core.datastore.NotificationSettings
+import io.github.swashbuckler104.budgetwidget.core.datastore.NudgeSettings
 import io.github.swashbuckler104.budgetwidget.core.datastore.SettingsStore
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -58,6 +59,8 @@ class SettingsViewModelTest {
             viewModel.setMinAmount("250")
             viewModel.setMinAmount("abc")
             viewModel.setAutoSort(true)
+            viewModel.setNudgeEnabled(false)
+            viewModel.setNudgeTime(20, 30)
             cancelAndIgnoreRemainingEvents()
         }
         // The writes hop onto DataStore's own scope; let them land before reading back.
@@ -66,5 +69,6 @@ class SettingsViewModelTest {
             store.notifications.first(),
         ).isEqualTo(NotificationSettings(enabled = false, minAmountPaise = 250_00))
         assertThat(store.autoSortEnabled()).isTrue()
+        assertThat(store.nudge.first()).isEqualTo(NudgeSettings(enabled = false, minuteOfDay = 20 * 60 + 30))
     }
 }

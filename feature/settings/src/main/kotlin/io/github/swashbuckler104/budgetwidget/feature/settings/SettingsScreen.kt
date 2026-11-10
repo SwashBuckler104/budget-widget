@@ -4,9 +4,11 @@ import android.Manifest
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
+import android.text.format.DateFormat
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,6 +21,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -26,12 +29,16 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,6 +47,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -50,8 +58,10 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
-/** SCOPE.md F9. Grows with each milestone; M3 adds notifications. */
+/** SCOPE.md F9. Grows with each milestone: M3 notifications, M4 the evening reminder. */
 @Composable
 fun SettingsRoute(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: SettingsViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -87,6 +97,8 @@ fun SettingsRoute(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: 
             setNotificationsEnabled = viewModel::setNotificationsEnabled,
             setMinAmount = viewModel::setMinAmount,
             setAutoSort = viewModel::setAutoSort,
+            setNudgeEnabled = viewModel::setNudgeEnabled,
+            setNudgeTime = viewModel::setNudgeTime,
             allowNotifications = {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     rationaleBefore = rationale()
@@ -105,6 +117,8 @@ internal class SettingsActions(
     val setNotificationsEnabled: (Boolean) -> Unit,
     val setMinAmount: (String) -> Unit,
     val setAutoSort: (Boolean) -> Unit,
+    val setNudgeEnabled: (Boolean) -> Unit,
+    val setNudgeTime: (hour: Int, minute: Int) -> Unit,
     val allowNotifications: () -> Unit,
 )
 
@@ -157,6 +171,32 @@ internal fun SettingsScreen(
                 onChange = actions.setMinAmount,
             )
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            SectionHeader(stringResource(R.string.settings_section_day))
+            val nudge = state.nudge
+            val time = formatMinuteOfDay(nudge.minuteOfDay)
+            SwitchRow(
+                title = stringResource(R.string.settings_nudge),
+                summary = stringResource(R.string.settings_nudge_summary, time),
+                checked = nudge.enabled,
+                onCheckedChange = actions.setNudgeEnabled,
+            )
+            var picking by rememberSaveable { mutableStateOf(false) }
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_nudge_time)) },
+                supportingContent = { Text(time) },
+                modifier = Modifier.clickable(enabled = nudge.enabled, role = Role.Button) { picking = true },
+            )
+            if (picking) {
+                NudgeTimeDialog(
+                    minuteOfDay = nudge.minuteOfDay,
+                    onConfirm = { hour, minute ->
+                        actions.setNudgeTime(hour, minute)
+                        picking = false
+                    },
+                    onDismiss = { picking = false },
+                )
+            }
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             SectionHeader(stringResource(R.string.settings_section_sorting))
             SwitchRow(
                 title = stringResource(R.string.settings_auto_sort),
@@ -166,6 +206,38 @@ internal fun SettingsScreen(
             )
         }
     }
+}
+
+/** Local time in the user's 12/24-hour preference, e.g. "9:00 PM". */
+@Composable
+private fun formatMinuteOfDay(minuteOfDay: Int): String {
+    val context = LocalContext.current
+    val time = LocalTime.of(minuteOfDay / MINUTES_PER_HOUR, minuteOfDay % MINUTES_PER_HOUR)
+    val pattern = if (DateFormat.is24HourFormat(context)) "HH:mm" else "h:mm a"
+    // From the configuration, so a language change recomposes this text.
+    val locale = LocalConfiguration.current.locales[0]
+    return DateTimeFormatter.ofPattern(pattern, locale).format(time)
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun NudgeTimeDialog(minuteOfDay: Int, onConfirm: (hour: Int, minute: Int) -> Unit, onDismiss: () -> Unit) {
+    val picker = rememberTimePickerState(
+        initialHour = minuteOfDay / MINUTES_PER_HOUR,
+        initialMinute = minuteOfDay % MINUTES_PER_HOUR,
+        is24Hour = DateFormat.is24HourFormat(LocalContext.current),
+    )
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_nudge_time)) },
+        text = { TimePicker(state = picker) },
+        confirmButton = {
+            TextButton(onClick = {
+                onConfirm(picker.hour, picker.minute)
+            }) { Text(stringResource(R.string.settings_ok)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.settings_cancel)) } },
+    )
 }
 
 @Composable
@@ -264,3 +336,4 @@ private fun BlockedCard(onAllow: () -> Unit, modifier: Modifier = Modifier) {
 }
 
 private const val PAISE_PER_RUPEE = 100L
+private const val MINUTES_PER_HOUR = 60
