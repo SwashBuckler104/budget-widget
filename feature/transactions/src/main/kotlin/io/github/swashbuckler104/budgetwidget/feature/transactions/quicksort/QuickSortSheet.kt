@@ -185,7 +185,7 @@ private fun TransactionSummary(transaction: Transaction, overdue: Boolean, modif
             }
         }
         Text(
-            transaction.merchantDisplay ?: stringResource(R.string.debug_unknown_merchant),
+            transaction.merchantDisplay ?: stringResource(R.string.transactions_unknown_merchant),
             style = MaterialTheme.typography.titleMedium,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,

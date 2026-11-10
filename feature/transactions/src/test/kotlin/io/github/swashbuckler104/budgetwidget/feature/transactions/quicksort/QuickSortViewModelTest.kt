@@ -67,7 +67,7 @@ class QuickSortViewModelTest {
 
     private fun newViewModel(transactionId: Long?) = QuickSortViewModel(
         SavedStateHandle(transactionId?.let { mapOf(QuickSortViewModel.ARG_TRANSACTION_ID to it) }.orEmpty()),
-        TransactionRepository(db.transactionDao(), db.unparsedSmsDao()),
+        TransactionRepository(db.transactionDao(), db.unparsedSmsDao(), db.accountDao()),
         CategoryRepository(db),
         SuggestionEngine(db) { now },
         SortTransactionUseCase(db, { now }, InboxEvents(emptySet())),

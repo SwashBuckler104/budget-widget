@@ -1,25 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="debug_title">Transactions (debug)</string>
-    <plurals name="debug_transaction_count">
-        <item quantity="one">%1$d transaction</item>
-        <item quantity="other">%1$d transactions</item>
-    </plurals>
-    <plurals name="debug_unparsed_count">
-        <item quantity="one">%1$d unparsed bank SMS</item>
-        <item quantity="other">%1$d unparsed bank SMS</item>
-    </plurals>
-    <string name="debug_grant_sms">Allow SMS access</string>
-    <string name="debug_sync_now">Sync now</string>
-    <plurals name="debug_backfill">
-        <item quantity="one">Import last %1$d day</item>
-        <item quantity="other">Import last %1$d days</item>
-    </plurals>
-    <string name="debug_empty">No transactions yet. New bank SMS appear here automatically.</string>
-    <string name="debug_unknown_merchant">Unknown merchant</string>
-    <string name="debug_flag_card">card</string>
-    <string name="debug_flag_backfill">backfill</string>
-    <string name="debug_flag_duplicate">same payment as #%1$d?</string>
+    <!-- Quick-Sort sheet -->
     <plurals name="quicksort_remaining">
         <item quantity="one">%1$d to sort</item>
         <item quantity="other">%1$d to sort</item>
@@ -34,8 +15,121 @@
     <string name="quicksort_overdue">Overdue</string>
     <string name="quicksort_all_sorted">All sorted ✓</string>
     <string name="quicksort_done">Done</string>
-    <string name="debug_sort_inbox">Sort inbox</string>
-    <string name="debug_flag_auto">auto</string>
-    <string name="debug_settings">Settings</string>
     <string name="quicksort_possible_duplicate">Looks like the same payment reported by another bank</string>
+
+    <!-- Transactions tab -->
+    <string name="transactions_title">Transactions</string>
+    <string name="transactions_back">Back</string>
+    <string name="transactions_search">Search</string>
+    <string name="transactions_search_hint">Merchant, note or amount</string>
+    <string name="transactions_close_search">Close search</string>
+    <string name="transactions_more">More options</string>
+    <string name="transactions_settings">Settings</string>
+    <string name="transactions_sync_now">Check SMS now</string>
+    <plurals name="transactions_backfill">
+        <item quantity="one">Import last %1$d day</item>
+        <item quantity="other">Import last %1$d days</item>
+    </plurals>
+    <string name="transactions_add">Add</string>
+    <plurals name="transactions_inbox">
+        <item quantity="one">Inbox · %1$d to sort</item>
+        <item quantity="other">Inbox · %1$d to sort</item>
+    </plurals>
+    <string name="transactions_sort_all">Sort all</string>
+    <string name="transactions_sort_action">sort</string>
+    <string name="transactions_show_all">Show all %1$d</string>
+    <string name="transactions_show_less">Show less</string>
+    <string name="transactions_today">Today</string>
+    <string name="transactions_yesterday">Yesterday</string>
+    <string name="transactions_unknown_merchant">Unknown merchant</string>
+    <string name="transactions_to_sort">To sort</string>
+    <string name="transactions_ignored">Ignored</string>
+    <string name="transactions_auto">%1$s (auto)</string>
+    <string name="transactions_cash">Cash</string>
+    <string name="transactions_overdue">Overdue</string>
+    <string name="transactions_backfill">Imported</string>
+    <string name="transactions_duplicate">Looks like the same payment as %1$s at %2$s</string>
+    <string name="transactions_merge">Merge</string>
+    <string name="transactions_keep_both">Keep both</string>
+    <string name="transactions_select">select</string>
+    <plurals name="transactions_selected">
+        <item quantity="one">%1$d selected</item>
+        <item quantity="other">%1$d selected</item>
+    </plurals>
+    <string name="transactions_clear_selection">Clear selection</string>
+    <string name="transactions_select_all">Select all</string>
+    <string name="transactions_categorize">Categorize</string>
+    <plurals name="transactions_categorize_n">
+        <item quantity="one">Categorize %1$d transaction</item>
+        <item quantity="other">Categorize %1$d transactions</item>
+    </plurals>
+    <string name="transactions_ignore">Ignore</string>
+    <string name="transactions_restore">Back to inbox</string>
+    <string name="transactions_undo">Undo</string>
+    <string name="transactions_empty_title">No transactions yet</string>
+    <string name="transactions_empty_body">New bank SMS appear here automatically. Tap Add for cash.</string>
+    <string name="transactions_no_match">Nothing matches</string>
+    <string name="transactions_sms_body">Allow SMS access so bank messages turn into transactions. They are read on this phone only.</string>
+    <string name="transactions_sms_allow">Allow SMS access</string>
+    <plurals name="transactions_msg_sorted">
+        <item quantity="one">Sorted</item>
+        <item quantity="other">%1$d sorted</item>
+    </plurals>
+    <plurals name="transactions_msg_ignored">
+        <item quantity="one">Ignored</item>
+        <item quantity="other">%1$d ignored</item>
+    </plurals>
+    <string name="transactions_msg_merged">Merged: counted once</string>
+    <string name="transactions_msg_kept_both">Kept both</string>
+    <string name="transactions_msg_back_in_inbox">Back in the inbox</string>
+    <string name="transactions_msg_deleted">Deleted</string>
+    <string name="transactions_msg_saved">Saved</string>
+    <string name="transactions_msg_added">Added</string>
+    <string name="transactions_msg_reported">Added to the unparsed SMS list for a bug report</string>
+    <string name="transactions_msg_mismatch">That category doesn\'t fit this type</string>
+    <string name="transactions_msg_failed">Couldn\'t save. The category may have been archived.</string>
+
+    <!-- Filters -->
+    <string name="filter_status">Status</string>
+    <string name="filter_status_pending">To sort</string>
+    <string name="filter_status_sorted">Sorted</string>
+    <string name="filter_status_auto">Auto-sorted</string>
+    <string name="filter_status_ignored">Ignored</string>
+    <string name="filter_type">Type</string>
+    <string name="filter_money_out">Money out</string>
+    <string name="filter_money_in">Money in</string>
+    <string name="filter_category">Category</string>
+    <string name="filter_account">Account</string>
+    <string name="filter_dates">Dates</string>
+    <string name="filter_any">Any</string>
+    <string name="filter_any_time">Any time</string>
+    <string name="filter_clear">Clear filters</string>
+
+    <!-- Edit and add sheets -->
+    <string name="edit_title">Edit transaction</string>
+    <string name="edit_type">Type</string>
+    <string name="edit_type_expense">Expense</string>
+    <string name="edit_type_income">Income</string>
+    <string name="edit_type_transfer">Transfer</string>
+    <string name="edit_money_out">Money out</string>
+    <string name="edit_money_in">Money in</string>
+    <string name="edit_category">Category</string>
+    <string name="edit_choose_category">Choose a category</string>
+    <string name="edit_change">Change category</string>
+    <string name="edit_hide_categories">Hide categories</string>
+    <string name="edit_category_required">Choose a category of this type</string>
+    <string name="edit_merchant">Merchant</string>
+    <string name="edit_apply_to_all">Rename every transaction from this merchant</string>
+    <string name="edit_note">Note</string>
+    <string name="edit_remember">Remember for %1$s</string>
+    <string name="edit_amount">Amount</string>
+    <string name="edit_amount_invalid">Enter an amount above ₹0 with at most 2 decimals</string>
+    <string name="edit_original_sms">Original SMS</string>
+    <string name="edit_report_amount">Report wrong amount</string>
+    <string name="edit_delete">Delete</string>
+    <string name="edit_save">Save</string>
+    <string name="add_title">Add cash transaction</string>
+    <string name="add_when">When</string>
+    <string name="add_merchant">Merchant or description (optional)</string>
+    <string name="add_save">Add</string>
 </resources>
