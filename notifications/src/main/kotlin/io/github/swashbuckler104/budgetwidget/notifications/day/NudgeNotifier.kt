@@ -29,6 +29,8 @@ internal class NudgeNotifier @Inject constructor(
     /** Posts the nudge if anything that keeps today open is still waiting. */
     suspend fun nudge() = post(silent = false)
 
+    fun cancel() = manager.cancel(NUDGE_ID)
+
     /**
      * [silent] updates a nudge that is already up. The nudge stays until the inbox is clear (like
      * transaction notifications, it stands for work still waiting) and its count follows sorts.

@@ -78,6 +78,16 @@ class SettingsStore @Inject constructor(@SettingsPreferences private val dataSto
     }
 
     /**
+     * When the nudge alarm was last armed for (epoch ms), or null when none is armed. Lets a
+     * process restart re-arm exactly the nudge that was pending, rather than any recent time.
+     */
+    suspend fun armedNudgeAt(): Long? = dataStore.data.map { it[ARMED_NUDGE_AT] }.first()
+
+    suspend fun setArmedNudgeAt(epochMillis: Long?) {
+        dataStore.edit { if (epochMillis == null) it.remove(ARMED_NUDGE_AT) else it[ARMED_NUDGE_AT] = epochMillis }
+    }
+
+    /**
      * First local day (epoch day) that day-closing tracks. Set on first use, so installing or
      * upgrading never judges days from before the feature existed.
      */
@@ -103,5 +113,6 @@ class SettingsStore @Inject constructor(@SettingsPreferences private val dataSto
         val NUDGE_MINUTE = intPreferencesKey("nudge_minute_of_day")
         val LAST_NUDGE_DAY = longPreferencesKey("last_nudge_epoch_day")
         val DAY_TRACKING_SINCE = longPreferencesKey("day_tracking_since_epoch_day")
+        val ARMED_NUDGE_AT = longPreferencesKey("armed_nudge_at")
     }
 }

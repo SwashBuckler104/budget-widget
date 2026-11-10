@@ -22,9 +22,11 @@ internal class DayTickHandler @Inject constructor(
 
     suspend fun handle(kind: Kind) {
         val nudgeSettings = settings.nudge.first()
+        val now = Instant.ofEpochMilli(clock.nowMillis()).atZone(ZoneId.systemDefault())
+        val today = now.toLocalDate().toEpochDay()
+        // A nudge still up from an earlier day says "today" about a day that is over.
+        if (settings.lastNudgeEpochDay() != today) nudge.cancel()
         if (kind == Kind.NUDGE && nudgeSettings.enabled) {
-            val now = Instant.ofEpochMilli(clock.nowMillis()).atZone(ZoneId.systemDefault())
-            val today = now.toLocalDate().toEpochDay()
             if (DaySchedule.isNudgeDue(now, nudgeSettings.minuteOfDay) && settings.lastNudgeEpochDay() != today) {
                 // Mark first: a re-arm must not schedule today's nudge again.
                 settings.setLastNudgeEpochDay(today)

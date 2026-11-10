@@ -127,7 +127,8 @@ deliberate deviation. Newest at the bottom. Status is Accepted unless stated.
   - A separate wakeup alarm sends the nudge.
   - Each alarm re-arms itself. Every process start and every nudge-setting change re-arm both (they're lost on reboot; we have no boot receiver, ADR-0013). So do clock and time-zone changes and app updates (`TIME_SET`, `TIMEZONE_CHANGED`, `MY_PACKAGE_REPLACED` to a non-exported receiver).
   - A nudge alarm posts only if it fires on its own day within 1 h of its time. A later delivery (Doze, or a 23:55 nudge landing after midnight) is skipped, because "left to sort today" would be wrong, and the next day's nudge stays armed. The last nudge day is stored, so re-arming never nudges twice.
-  - At process start the nudge is re-armed for today while it can still post (a restart mid-window must not lose it). A time the user just picked only counts if it is still ahead, so saving a time that has just passed doesn't nudge at once.
+  - The armed nudge time is stored. Re-arming (process start, alarms, clock changes) keeps that exact nudge if it is due and hasn't run, so a restart while its alarm was pending doesn't lose it; otherwise the next time still ahead is armed. A time the user picks only counts if it is still ahead, and since only an armed alarm can be resumed, a later restart can't bring back a time moved into the past.
+  - A nudge still up from an earlier day is cleared at the next tick.
   - Every process start redraws the widgets: re-arming can replace a non-wakeup tick that was still waiting while the screen was off.
 - **Closing a day is computed, not sampled at midnight:** schema v3 adds `transactions.sortedAt` (when a row first left the inbox; the migration fills it from `updatedAt`).
   - A day closed if no non-backfill transaction was created before its local midnight and still unsorted then.

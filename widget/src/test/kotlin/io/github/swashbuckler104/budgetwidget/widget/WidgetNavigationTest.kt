@@ -1,8 +1,13 @@
 package io.github.swashbuckler104.budgetwidget.widget
 
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import org.junit.runner.RunWith
 
+@RunWith(AndroidJUnit4::class)
 class WidgetNavigationTest {
     private val ids = listOf(10L, 20L, 30L)
 
@@ -28,5 +33,14 @@ class WidgetNavigationTest {
         assertThat(shortLabel("Restaurant, Fast-food")).isEqualTo("Restaurant")
         assertThat(shortLabel("Fuel")).isEqualTo("Fuel")
         assertThat(shortLabel(", odd")).isEqualTo(", odd")
+    }
+
+    @Test
+    fun `an explicit refresh signals live widget sessions`() = runTest {
+        val signal = WidgetRefreshSignal()
+        val widgets = GlanceInboxWidgets(ApplicationProvider.getApplicationContext(), signal)
+        val before = signal.ticks.value
+        widgets.refreshNow()
+        assertThat(signal.ticks.value).isEqualTo(before + 1)
     }
 }

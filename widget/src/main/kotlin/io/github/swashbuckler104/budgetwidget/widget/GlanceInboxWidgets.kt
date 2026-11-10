@@ -9,9 +9,13 @@ import javax.inject.Singleton
 
 /** Redraws every Quick-Sort widget instance. A no-op when none is on a home screen. */
 @Singleton
-internal class GlanceInboxWidgets @Inject constructor(@param:ApplicationContext private val context: Context) :
-    InboxWidgets {
+internal class GlanceInboxWidgets @Inject constructor(
+    @param:ApplicationContext private val context: Context,
+    private val signal: WidgetRefreshSignal,
+) : InboxWidgets {
     override suspend fun refreshNow() {
+        // Live sessions recompute from the signal; idle widgets get a fresh provideGlance.
+        signal.bump()
         QuickSortWidget().updateAll(context)
     }
 }

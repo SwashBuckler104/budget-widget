@@ -26,18 +26,29 @@ internal class DayTickScheduler @Inject constructor(
 ) {
     private val alarms = context.getSystemService(AlarmManager::class.java)
 
-    /** [allowLate]: see [DaySchedule.nextNudge]; false right after the user changed the time. */
-    suspend fun arm(allowLate: Boolean = true) {
+    /**
+     * [userChange]: the user just changed the nudge settings, so only a time still ahead counts.
+     * Otherwise (process start, alarms, clock changes) a nudge that was armed and is due is kept.
+     */
+    suspend fun arm(userChange: Boolean = false) {
         val now = Instant.ofEpochMilli(clock.nowMillis()).atZone(ZoneId.systemDefault())
         // Not a wakeup: widget text can wait until the screen is on.
         set(AlarmManager.RTC, DaySchedule.nextTick(now).toInstant().toEpochMilli(), DayTickReceiver.ACTION_TICK)
         val nudge = settings.nudge.first()
         if (nudge.enabled) {
             val last = settings.lastNudgeEpochDay()?.let(LocalDate::ofEpochDay)
-            val at = DaySchedule.nextNudge(now, nudge.minuteOfDay, last, allowLate)
+            val armed = settings.armedNudgeAt()?.let { Instant.ofEpochMilli(it).atZone(now.zone) }
+            val at = if (userChange) {
+                DaySchedule.nextNudge(now, nudge.minuteOfDay, last)
+            } else {
+                DaySchedule.rearmNudge(now, nudge.minuteOfDay, last, armed)
+            }
+            val atMillis = at.toInstant().toEpochMilli()
+            settings.setArmedNudgeAt(atMillis)
             // A wakeup: the reminder is meant to arrive at its time, screen on or off.
-            set(AlarmManager.RTC_WAKEUP, at.toInstant().toEpochMilli(), DayTickReceiver.ACTION_NUDGE)
+            set(AlarmManager.RTC_WAKEUP, atMillis, DayTickReceiver.ACTION_NUDGE)
         } else {
+            settings.setArmedNudgeAt(null)
             alarms.cancel(pendingIntent(DayTickReceiver.ACTION_NUDGE))
         }
     }

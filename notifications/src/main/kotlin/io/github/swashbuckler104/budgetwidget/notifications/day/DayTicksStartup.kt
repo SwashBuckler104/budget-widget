@@ -21,7 +21,7 @@ internal class DayTicksStartup @Inject constructor(
             // The first value is the process start; later ones are the user changing the setting.
             var first = true
             settings.nudge.distinctUntilChanged().collect {
-                scheduler.arm(allowLate = first)
+                scheduler.arm(userChange = !first)
                 first = false
             }
         }

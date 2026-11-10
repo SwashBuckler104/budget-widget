@@ -22,13 +22,28 @@ class DayScheduleTest {
     }
 
     @Test
-    fun `the nudge fires today until sent or an hour late, then tomorrow`() {
+    fun `the next nudge is today's while still ahead and not sent, else tomorrow's`() {
         val nine = 21 * 60
         assertThat(DaySchedule.nextNudge(at(10, 12), nine, null)).isEqualTo(at(10, 21))
-        // Re-armed at 21:05 before the alarm went off: still today (fires at once).
-        assertThat(DaySchedule.nextNudge(at(10, 21, 5), nine, null)).isEqualTo(at(10, 21))
-        assertThat(DaySchedule.nextNudge(at(10, 21, 5), nine, LocalDate.of(2026, 11, 10))).isEqualTo(at(11, 21))
-        assertThat(DaySchedule.nextNudge(at(10, 22, 30), nine, null)).isEqualTo(at(11, 21))
+        assertThat(DaySchedule.nextNudge(at(10, 12), nine, LocalDate.of(2026, 11, 10))).isEqualTo(at(11, 21))
+        // A time just picked that has already passed today never fires today.
+        assertThat(DaySchedule.nextNudge(at(10, 21, 5), nine, null)).isEqualTo(at(11, 21))
+    }
+
+    @Test
+    fun `re-arming keeps only a nudge that was armed, is due and hasn't run`() {
+        val nine = 21 * 60
+        // Process restarted at 21:05 while the 21:00 alarm was still pending: fire it now.
+        assertThat(DaySchedule.rearmNudge(at(10, 21, 5), nine, null, armedAt = at(10, 21))).isEqualTo(at(10, 21))
+        // Already ran today.
+        assertThat(DaySchedule.rearmNudge(at(10, 21, 5), nine, LocalDate.of(2026, 11, 10), at(10, 21)))
+            .isEqualTo(at(11, 21))
+        // The user moved the time to 20:00 at 20:30 (armed for tomorrow): a restart keeps tomorrow.
+        assertThat(DaySchedule.rearmNudge(at(10, 20, 35), 20 * 60, null, armedAt = at(11, 20))).isEqualTo(at(11, 20))
+        // Nothing armed (first start after install).
+        assertThat(DaySchedule.rearmNudge(at(10, 21, 5), nine, null, armedAt = null)).isEqualTo(at(11, 21))
+        // Armed but over the grace hour.
+        assertThat(DaySchedule.rearmNudge(at(10, 22, 30), nine, null, armedAt = at(10, 21))).isEqualTo(at(11, 21))
     }
 
     @Test
@@ -37,13 +52,6 @@ class DayScheduleTest {
         // 2026-03-29 02:00-03:00 doesn't exist in Berlin; a 02:30 nudge happens at 03:30.
         val before = LocalDateTime.of(2026, 3, 29, 1, 0).atZone(berlin)
         assertThat(DaySchedule.nextNudge(before, 2 * 60 + 30, null).toLocalTime().toString()).isEqualTo("03:30")
-    }
-
-    @Test
-    fun `a time the user just picked counts only if it is still ahead`() {
-        val eight = 20 * 60
-        assertThat(DaySchedule.nextNudge(at(10, 20, 30), eight, null, allowLate = false)).isEqualTo(at(11, 20))
-        assertThat(DaySchedule.nextNudge(at(10, 19, 30), eight, null, allowLate = false)).isEqualTo(at(10, 20))
     }
 
     @Test

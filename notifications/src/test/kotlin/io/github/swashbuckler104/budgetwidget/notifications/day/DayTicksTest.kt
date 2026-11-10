@@ -245,4 +245,36 @@ class DayTicksTest {
         handler.handle(DayTickHandler.Kind.NUDGE)
         assertThat(nudgeShown()).isNull()
     }
+
+    @Test
+    fun `a time moved into the past survives a process restart without nudging`() = runTest {
+        wire()
+        pending("a")
+        now = at(10, 15)
+        settings.setNudgeMinute(14 * 60 + 40)
+        scheduler.arm(userChange = true)
+        scheduler.arm() // the next process start
+        assertThat(scheduled().single { it.action == DayTickReceiver.ACTION_NUDGE }.atMillis).isEqualTo(at(11, 14, 40))
+    }
+
+    @Test
+    fun `a restart while the nudge alarm is pending keeps it`() = runTest {
+        wire()
+        now = at(10, 20)
+        scheduler.arm() // armed for 21:00
+        now = at(10, 21, 5) // process restarted before the alarm was delivered
+        scheduler.arm()
+        assertThat(scheduled().single { it.action == DayTickReceiver.ACTION_NUDGE }.atMillis).isEqualTo(at(10, 21))
+    }
+
+    @Test
+    fun `yesterday's nudge is cleared at the first tick of a new day`() = runTest {
+        wire()
+        pending("a")
+        handler.handle(DayTickHandler.Kind.NUDGE)
+        assertThat(nudgeShown()).isNotNull()
+        now = at(11, 0, 5)
+        handler.handle(DayTickHandler.Kind.TICK)
+        assertThat(nudgeShown()).isNull()
+    }
 }

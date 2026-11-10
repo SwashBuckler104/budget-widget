@@ -24,25 +24,32 @@ internal object DaySchedule {
         return (TICKS.map { at(today, it, now) } + at(today.plusDays(1), TICKS.first(), now)).first { it.isAfter(now) }
     }
 
-    /**
-     * When to arm the nudge alarm: today's nudge while it can still go out (not sent today and,
-     * with [allowLate], at most [NUDGE_GRACE] late; an alarm set in the past fires at once),
-     * otherwise tomorrow's. [allowLate] is for re-arming at process start, where a restart must
-     * not lose a nudge that was about to fire; a time the user just picked only counts if it is
-     * still ahead.
-     */
-    fun nextNudge(
-        now: ZonedDateTime,
-        minuteOfDay: Int,
-        lastNudgeDay: LocalDate?,
-        allowLate: Boolean = true,
-    ): ZonedDateTime {
+    /** The next nudge still ahead: today's if its time is still to come and it hasn't run, else tomorrow's. */
+    fun nextNudge(now: ZonedDateTime, minuteOfDay: Int, lastNudgeDay: LocalDate?): ZonedDateTime {
         val time = nudgeTime(minuteOfDay)
         val today = now.toLocalDate()
         val target = at(today, time, now)
-        val deadline = if (allowLate) target.plus(NUDGE_GRACE.toJavaDuration()) else target
-        val due = lastNudgeDay != today && now.isBefore(deadline)
-        return if (due) target else at(today.plusDays(1), time, now)
+        return if (lastNudgeDay != today && now.isBefore(target)) target else at(today.plusDays(1), time, now)
+    }
+
+    /**
+     * Where to arm the nudge when re-arming at process start or after a clock change. A nudge that
+     * was armed ([armedAt]) and is now due but hasn't run (its alarm was pending when the process
+     * died or was re-armed) is kept, so it fires at once; anything else gets [nextNudge]. Only an
+     * alarm that was really armed qualifies, so a time the user moved into the past never fires.
+     */
+    fun rearmNudge(
+        now: ZonedDateTime,
+        minuteOfDay: Int,
+        lastNudgeDay: LocalDate?,
+        armedAt: ZonedDateTime?,
+    ): ZonedDateTime {
+        val pending = armedAt != null &&
+            armedAt.toLocalDate() == now.toLocalDate() &&
+            lastNudgeDay != now.toLocalDate() &&
+            !armedAt.isAfter(now) &&
+            isNudgeDue(now, minuteOfDay)
+        return if (pending) armedAt else nextNudge(now, minuteOfDay, lastNudgeDay)
     }
 
     /**
