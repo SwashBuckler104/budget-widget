@@ -44,13 +44,16 @@ internal class WidgetSnapshotLoader @Inject constructor(
     private val suggestions: SuggestionEngine,
     private val days: DayCloseRepository,
     private val clock: WallClock,
+    private val signal: WidgetRefreshSignal,
 ) {
-    /** Recomputes on any inbox, category or recorded-day change. */
+    /** Recomputes on any inbox, category or recorded-day change, and on every explicit refresh. */
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun observe(currentId: Long?): Flow<WidgetSnapshot> =
-        combine(transactions.observePending(), categories.observeGroups(), days.observeLatestDay()) { pending, _, _ ->
-            pending
-        }.mapLatest { load(it, currentId) }
+    fun observe(currentId: Long?): Flow<WidgetSnapshot> = combine(
+        transactions.observePending(),
+        categories.observeGroups(),
+        days.observeLatestDay(),
+        signal.ticks,
+    ) { pending, _, _, _ -> pending }.mapLatest { load(it, currentId) }
 
     suspend fun load(currentId: Long?): WidgetSnapshot = load(transactions.observePending().first(), currentId)
 

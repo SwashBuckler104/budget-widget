@@ -49,6 +49,9 @@ internal class TransactionNotifier @Inject constructor(
      */
     private var shown: MutableSet<Long>? = null
 
+    /** Whether our group summary is up (guarded by [mutex]). */
+    private var summaryShown = false
+
     override suspend fun onPendingAdded(transactionId: Long, origin: IngestOrigin) {
         val transaction = transactions.get(transactionId) ?: return
         if (transaction.status != TransactionStatus.PENDING) return
@@ -80,6 +83,7 @@ internal class TransactionNotifier @Inject constructor(
         ids.forEach { manager.cancel(tag(it), NOTIFICATION_ID) }
         ids.clear()
         manager.cancel(SUMMARY_ID)
+        summaryShown = false
     }
 
     /** Removes notifications whose transaction is no longer pending, e.g. after a crash mid-sort. */
@@ -123,13 +127,28 @@ internal class TransactionNotifier @Inject constructor(
         if (shownSet().remove(transactionId)) updateSummary()
     }
 
-    private fun shownSet(): MutableSet<Long> = shown
-        ?: manager.activeNotifications.mapNotNullTo(mutableSetOf()) { idFromTag(it.tag) }.also { shown = it }
+    private fun shownSet(): MutableSet<Long> = shown ?: manager.activeNotifications.let { active ->
+        summaryShown = active.any { it.id == SUMMARY_ID && it.tag == null }
+        active.mapNotNullTo(mutableSetOf()) { idFromTag(it.tag) }.also { shown = it }
+    }
 
-    /** Called only when the set of shown notifications changed, so the summary is never re-posted needlessly. */
+    /**
+     * Called only when the set of shown notifications changed. Posted from 2 up; once up it stays
+     * until the last child goes: cancelling a group summary makes Android cancel every child in
+     * the group too, and with one child left the system shows that child on its own anyway.
+     */
     private fun updateSummary() {
         val count = shownSet().size
-        if (count >= 2) notify(null, SUMMARY_ID, factory.summary(count)) else manager.cancel(SUMMARY_ID)
+        when {
+            count >= 2 || (count == 1 && summaryShown) ->
+                summaryShown =
+                    notify(null, SUMMARY_ID, factory.summary(count))
+
+            count == 0 -> {
+                manager.cancel(SUMMARY_ID)
+                summaryShown = false
+            }
+        }
     }
 
     private fun canPost(): Boolean = manager.areNotificationsEnabled() && hasPermission()

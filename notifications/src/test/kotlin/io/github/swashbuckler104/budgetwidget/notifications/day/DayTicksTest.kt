@@ -170,10 +170,22 @@ class DayTicksTest {
         assertThat(nudgeShown()).isNull()
 
         val a = pending("a")
+        val b = pending("b")
         nudge.nudge()
-        assertThat(nudgeShown()).isNotNull()
+        assertThat(nudgeShown()!!.extras.getCharSequence(Notification.EXTRA_TEXT).toString())
+            .isEqualTo("Sort them before midnight to close the day")
         db.transactionDao().ignore(a, IgnoreReason.USER, now)
         nudge.onSorted(a)
+        with(nudgeShown()!!) {
+            assertThat(
+                extras.getCharSequence(Notification.EXTRA_TITLE).toString(),
+            ).isEqualTo("1 transaction left to sort today")
+            assertThat(
+                extras.getCharSequence(Notification.EXTRA_TEXT).toString(),
+            ).isEqualTo("Sort it before midnight to close the day")
+        }
+        db.transactionDao().ignore(b, IgnoreReason.USER, now)
+        nudge.onSorted(b)
         assertThat(nudgeShown()).isNull()
     }
 

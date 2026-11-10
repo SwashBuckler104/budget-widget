@@ -27,7 +27,13 @@ internal class NudgeNotifier @Inject constructor(
     private val manager = NotificationManagerCompat.from(context)
 
     /** Posts the nudge if anything that keeps today open is still waiting. */
-    suspend fun nudge() {
+    suspend fun nudge() = post(silent = false)
+
+    /**
+     * [silent] updates a nudge that is already up. The nudge stays until the inbox is clear (like
+     * transaction notifications, it stands for work still waiting) and its count follows sorts.
+     */
+    private suspend fun post(silent: Boolean) {
         val status = days.status()
         if (status.open == 0) {
             manager.cancel(NUDGE_ID)
@@ -35,9 +41,10 @@ internal class NudgeNotifier @Inject constructor(
         }
         val res = context.resources
         val text = if (status.streak > 0) {
-            res.getQuantityString(R.plurals.notif_nudge_text_streak, status.streak, status.streak)
+            val streak = res.getQuantityString(R.plurals.notif_nudge_streak, status.streak, status.streak)
+            res.getQuantityString(R.plurals.notif_nudge_text_streak, status.open, streak)
         } else {
-            context.getString(R.string.notif_nudge_text)
+            res.getQuantityString(R.plurals.notif_nudge_text, status.open)
         }
         val sort = PendingIntent.getActivity(
             context,
@@ -53,6 +60,8 @@ internal class NudgeNotifier @Inject constructor(
             .addAction(0, context.getString(R.string.notif_nudge_action), sort)
             .setAutoCancel(true)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setOnlyAlertOnce(true)
+            .setSilent(silent)
             .build()
         if (!hasPermission()) return
         try {
@@ -62,9 +71,10 @@ internal class NudgeNotifier @Inject constructor(
         }
     }
 
-    /** Clearing the inbox makes the nudge obsolete. */
+    /** Keeps a nudge that is up current: a new count, or gone once the inbox is clear. */
     override suspend fun onSorted(transactionId: Long) {
-        if (days.openCount() == 0) manager.cancel(NUDGE_ID)
+        if (manager.activeNotifications.none { it.id == NUDGE_ID && it.tag == null }) return
+        if (days.openCount() == 0) manager.cancel(NUDGE_ID) else post(silent = true)
     }
 
     private fun hasPermission(): Boolean = manager.areNotificationsEnabled() &&

@@ -60,6 +60,12 @@ fun QuickSortRoute(
     viewModel: QuickSortViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // Show the sheet only once its first content is complete: a sheet that opens nearly empty and
+    // then grows (slow cold start) can stay stuck below the screen edge. The window is transparent,
+    // so waiting shows nothing.
+    var ready by rememberSaveable { mutableStateOf(false) }
+    if (!ready && !state.loading && (state.transaction == null || state.suggestionsReady)) ready = true
+    if (!ready) return
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(onDismissRequest = onClose, sheetState = sheetState, modifier = modifier) {
         QuickSortContent(
@@ -191,9 +197,9 @@ private fun TransactionSummary(transaction: Transaction, overdue: Boolean, modif
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        transaction.duplicateOfId?.let {
+        if (transaction.duplicateOfId != null) {
             Text(
-                stringResource(R.string.debug_flag_duplicate, it),
+                stringResource(R.string.quicksort_possible_duplicate),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.tertiary,
             )

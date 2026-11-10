@@ -139,23 +139,25 @@ private fun Tall(snapshot: WidgetSnapshot, focus: Transaction, intents: WidgetIn
     Column(modifier = GlanceModifier.fillMaxSize()) {
         Header(snapshot, focus, withArrows = false)
         Card(snapshot, focus, intents)
-        Spacer(GlanceModifier.height(6.dp))
+        // Launchers often give more height than the breakpoint: share it out between the blocks
+        // instead of leaving one empty band above the footer.
+        Spacer(GlanceModifier.defaultWeight())
         Row(modifier = GlanceModifier.fillMaxWidth()) {
-            snapshot.chips.take(MAX_CHIPS).forEach { Chip(focus, it, height = 48.dp) }
+            snapshot.chips.take(MAX_CHIPS).forEach { Chip(focus, it, height = 52.dp) }
         }
         if (showUpNext && snapshot.upNext.isNotEmpty()) {
-            Spacer(GlanceModifier.height(6.dp))
+            Spacer(GlanceModifier.defaultWeight())
             Label(context.getString(R.string.widget_up_next), size = 12.sp, muted = true)
             snapshot.upNext.forEach { Label(oneLine(context.resources, it), size = 13.sp, maxLines = 1) }
         }
         Spacer(GlanceModifier.defaultWeight())
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = GlanceModifier.fillMaxWidth().height(36.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = GlanceModifier.fillMaxWidth().height(48.dp)) {
             Arrow(focus, previous = true)
-            TextChip(context.getString(R.string.widget_ignore), ignore(focus), height = 36.dp)
+            TextChip(context.getString(R.string.widget_ignore), ignore(focus), height = 44.dp)
             TextChip(
                 context.getString(R.string.widget_more),
                 actionStartActivity(intents.transaction(focus.id)),
-                height = 36.dp,
+                height = 44.dp,
             )
             Arrow(focus, previous = false)
         }

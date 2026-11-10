@@ -202,7 +202,7 @@ class TransactionNotifierTest {
     }
 
     @Test
-    fun `two or more get a silent summary that goes away again`() = runTest {
+    fun `two or more get a silent summary that stays until the last child goes`() = runTest {
         wire()
         category("Food")
         val a = txn("a")
@@ -216,7 +216,13 @@ class TransactionNotifierTest {
         assertThat(summary.group).isEqualTo(TransactionNotificationFactory.GROUP)
 
         notifier.cancel(a)
-        assertThat(manager.activeNotifications.map { it.tag }).containsExactly("txn:$b")
+        // The summary stays while a child is up: cancelling it would cancel b's notification too
+        // (Android cancels a summary's children; the Robolectric shadow doesn't model that).
+        assertThat(transactionNotifications().map { it.tag }).containsExactly("txn:$b")
+        val summary2 = manager.activeNotifications.single { it.notification.isGroupSummary() }.notification
+        assertThat(summary2.title()).isEqualTo("1 transaction to sort")
+        notifier.cancel(b)
+        assertThat(manager.activeNotifications).isEmpty()
     }
 
     @Test
@@ -302,7 +308,7 @@ class TransactionNotifierTest {
         notifier.onPendingAdded(b, IngestOrigin.REALTIME)
         db.transactionDao().ignore(a, IgnoreReason.USER, now) // sorted without the listener
         notifier.pruneStale()
-        assertThat(manager.activeNotifications.map { it.tag }).containsExactly("txn:$b")
+        assertThat(transactionNotifications().map { it.tag }).containsExactly("txn:$b")
         notifier.cancelAll()
         assertThat(manager.activeNotifications).isEmpty()
     }
@@ -324,6 +330,8 @@ class TransactionNotifierTest {
         handler.handle(NotificationCommand.Dismissed(ids[0]))
         assertThat(summaryTitle()).isEqualTo("2 transactions to sort")
         handler.handle(NotificationCommand.Dismissed(ids[1]))
+        assertThat(summaryTitle()).isEqualTo("1 transaction to sort") // kept while a child is up
+        handler.handle(NotificationCommand.Dismissed(ids[2]))
         assertThat(summaryTitle()).isNull()
         assertThat(db.transactionDao().get(ids[0])!!.status).isEqualTo(TransactionStatus.PENDING)
     }
