@@ -10,12 +10,10 @@ import io.github.swashbuckler104.budgetwidget.core.model.TransactionStatus
  * money to your own accounts or investments isn't spending). Pending transactions count.
  * [kindOf] maps a category id to its kind (null for an unknown id).
  */
-fun Transaction.isSpend(kindOf: (Long) -> CategoryKind?): Boolean =
-    direction == Direction.OUT && counts(kindOf)
+fun Transaction.isSpend(kindOf: (Long) -> CategoryKind?): Boolean = direction == Direction.OUT && counts(kindOf)
 
 /** Income: the mirror of [isSpend] for incoming money. */
-fun Transaction.isIncome(kindOf: (Long) -> CategoryKind?): Boolean =
-    direction == Direction.IN && counts(kindOf)
+fun Transaction.isIncome(kindOf: (Long) -> CategoryKind?): Boolean = direction == Direction.IN && counts(kindOf)
 
 private fun Transaction.counts(kindOf: (Long) -> CategoryKind?): Boolean =
     status != TransactionStatus.IGNORED && categoryId?.let(kindOf) != CategoryKind.TRANSFER

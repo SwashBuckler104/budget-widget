@@ -140,8 +140,10 @@ class TransactionEditor @Inject constructor(
             ?: return@withTransaction EditResult.SortFailed(SortResult.CategoryNotFound)
         when {
             category.archived -> return@withTransaction EditResult.SortFailed(SortResult.CategoryArchived)
+
             db.categoryDao().childIds(category.id).isNotEmpty() ->
                 return@withTransaction EditResult.SortFailed(SortResult.NotALeaf)
+
             !category.kind.accepts(manual.direction) -> return@withTransaction EditResult.CategoryMismatch
         }
         val now = clock.nowMillis()
@@ -246,7 +248,9 @@ class TransactionEditor @Inject constructor(
         return Undoable(changed.size, Undo(changed, rules))
     }
 
-    private fun cleanNote(note: String?): String? = note?.trim()?.take(SortTransactionUseCase.MAX_NOTE)?.ifEmpty { null }
+    private fun cleanNote(note: String?): String? = note?.trim()?.take(SortTransactionUseCase.MAX_NOTE)?.ifEmpty {
+        null
+    }
 
     private fun sha256(text: String): String = MessageDigest.getInstance("SHA-256")
         .digest(text.toByteArray())

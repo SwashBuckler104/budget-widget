@@ -77,7 +77,11 @@ class TransactionFilterTest {
     @Test
     fun `day groups keep order and total spending and income without transfers or ignored`() {
         val day = 86_400_000L
-        val kinds = mapOf(GROCERIES to CategoryKind.EXPENSE, SALARY to CategoryKind.INCOME, SAVINGS to CategoryKind.TRANSFER)
+        val kinds = mapOf(
+            GROCERIES to CategoryKind.EXPENSE,
+            SALARY to CategoryKind.INCOME,
+            SAVINGS to CategoryKind.TRANSFER,
+        )
         val groups = groupByDay(
             listOf(
                 tx(id = 1, at = day + 5, amount = 100_00),

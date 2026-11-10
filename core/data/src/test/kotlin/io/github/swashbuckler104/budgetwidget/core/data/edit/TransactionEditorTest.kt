@@ -109,7 +109,9 @@ class TransactionEditorTest {
             assertThat(txnHash).isNull()
         }
 
-        editor.save(TransactionEdit(id, Direction.OUT, null, null, "Tea stall", amountPaise = 150_00, occurredAt = 2_000))
+        editor.save(
+            TransactionEdit(id, Direction.OUT, null, null, "Tea stall", amountPaise = 150_00, occurredAt = 2_000),
+        )
         assertThat(db.transactionDao().get(id)!!.amountPaise).isEqualTo(150_00)
         assertThat(db.transactionDao().get(id)!!.occurredAt).isEqualTo(2_000)
 
@@ -194,8 +196,14 @@ class TransactionEditorTest {
 
     @Test
     fun `report wrong amount files the SMS in the unparsed list`() = runTest {
-        val a = db.transactionDao().insertOrIgnore(testTxn("a").copy(smsBody = "Rs 450 debited", smsSender = "AD-HDFCBK"))
-        val manual = (editor.addManual(ManualTransaction(1_00, Direction.OUT, cat("X"), null, null, 0)) as EditResult.Saved).id
+        val a = db.transactionDao().insertOrIgnore(
+            testTxn("a").copy(smsBody = "Rs 450 debited", smsSender = "AD-HDFCBK"),
+        )
+        val manual = (
+            editor.addManual(
+                ManualTransaction(1_00, Direction.OUT, cat("X"), null, null, 0),
+            ) as EditResult.Saved
+            ).id
 
         assertThat(editor.reportWrongAmount(a)).isTrue()
         assertThat(editor.reportWrongAmount(manual)).isFalse()
