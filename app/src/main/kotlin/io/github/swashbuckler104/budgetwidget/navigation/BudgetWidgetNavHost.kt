@@ -27,6 +27,7 @@ import androidx.navigation.compose.rememberNavController
 import io.github.swashbuckler104.budgetwidget.R
 import io.github.swashbuckler104.budgetwidget.feature.analysis.AnalysisRoute
 import io.github.swashbuckler104.budgetwidget.feature.categories.CategoriesRoute
+import io.github.swashbuckler104.budgetwidget.feature.settings.SettingsRoute
 import io.github.swashbuckler104.budgetwidget.feature.transactions.debug.DebugTransactionsRoute
 import kotlin.reflect.KClass
 import kotlinx.serialization.Serializable
@@ -39,6 +40,9 @@ data object TransactionsDestination
 
 @Serializable
 data object CategoriesDestination
+
+@Serializable
+data object SettingsDestination
 
 private enum class Tab(val route: Any, val routeClass: KClass<*>, @StringRes val label: Int, val icon: ImageVector) {
     ANALYSIS(AnalysisDestination, AnalysisDestination::class, R.string.tab_analysis, Icons.Rounded.Insights),
@@ -56,23 +60,28 @@ private enum class Tab(val route: Any, val routeClass: KClass<*>, @StringRes val
 fun BudgetWidgetNavHost(onOpenQuickSort: (transactionId: Long?) -> Unit, modifier: Modifier = Modifier) {
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
+    val onTab =
+        backStack?.destination?.let { destination -> Tab.entries.any { destination.hasRoute(it.routeClass) } } ?: true
+    val openSettings = { navController.navigate(SettingsDestination) { launchSingleTop = true } }
     Scaffold(
         modifier = modifier.fillMaxSize(),
         bottomBar = {
-            NavigationBar {
-                Tab.entries.forEach { tab ->
-                    NavigationBarItem(
-                        selected = backStack?.destination?.hasRoute(tab.routeClass) == true,
-                        onClick = {
-                            navController.navigate(tab.route) {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
-                        icon = { Icon(tab.icon, contentDescription = null) },
-                        label = { Text(stringResource(tab.label)) },
-                    )
+            if (onTab) {
+                NavigationBar {
+                    Tab.entries.forEach { tab ->
+                        NavigationBarItem(
+                            selected = backStack?.destination?.hasRoute(tab.routeClass) == true,
+                            onClick = {
+                                navController.navigate(tab.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            icon = { Icon(tab.icon, contentDescription = null) },
+                            label = { Text(stringResource(tab.label)) },
+                        )
+                    }
                 }
             }
         },
@@ -84,9 +93,14 @@ fun BudgetWidgetNavHost(onOpenQuickSort: (transactionId: Long?) -> Unit, modifie
                 .padding(padding)
                 .consumeWindowInsets(padding),
         ) {
-            composable<AnalysisDestination> { AnalysisRoute(onSortInbox = { onOpenQuickSort(null) }) }
-            composable<TransactionsDestination> { DebugTransactionsRoute(onOpenQuickSort = onOpenQuickSort) }
+            composable<AnalysisDestination> {
+                AnalysisRoute(onSortInbox = { onOpenQuickSort(null) }, onOpenSettings = openSettings)
+            }
+            composable<TransactionsDestination> {
+                DebugTransactionsRoute(onOpenQuickSort = onOpenQuickSort, onOpenSettings = openSettings)
+            }
             composable<CategoriesDestination> { CategoriesRoute() }
+            composable<SettingsDestination> { SettingsRoute(onBack = { navController.popBackStack() }) }
         }
     }
 }

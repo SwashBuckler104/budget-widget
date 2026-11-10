@@ -14,12 +14,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,6 +56,7 @@ private const val BACKFILL_DAYS = 30
 @Composable
 fun DebugTransactionsRoute(
     onOpenQuickSort: (transactionId: Long?) -> Unit,
+    onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: DebugTransactionsViewModel = hiltViewModel(),
 ) {
@@ -74,10 +81,12 @@ fun DebugTransactionsRoute(
         onSyncNow = viewModel::syncNow,
         onBackfill = { viewModel.backfill(BACKFILL_DAYS) },
         onOpenQuickSort = onOpenQuickSort,
+        onOpenSettings = onOpenSettings,
         modifier = modifier,
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun DebugTransactionsScreen(
     state: DebugTransactionsState,
@@ -86,9 +95,22 @@ internal fun DebugTransactionsScreen(
     onSyncNow: () -> Unit,
     onBackfill: () -> Unit,
     onOpenQuickSort: (transactionId: Long?) -> Unit,
+    onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Scaffold(modifier = modifier.fillMaxSize()) { innerPadding ->
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.debug_title)) },
+                actions = {
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(Icons.Rounded.Settings, contentDescription = stringResource(R.string.debug_settings))
+                    }
+                },
+            )
+        },
+    ) { innerPadding ->
         LazyColumn(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -98,7 +120,6 @@ internal fun DebugTransactionsScreen(
         ) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(R.string.debug_title), style = MaterialTheme.typography.headlineSmall)
                     Text(
                         pluralStringResource(
                             R.plurals.debug_transaction_count,
