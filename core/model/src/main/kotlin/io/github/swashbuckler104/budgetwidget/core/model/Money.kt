@@ -36,3 +36,6 @@ fun parseInrToPaise(text: String): Long? {
 
 /** 15 digits of rupees is far beyond any real amount and keeps the paise inside a Long. */
 private const val MAX_RUPEE_DIGITS = 15
+
+/** [formatInr] rounded to whole rupees (half up), for averages and chart labels: `₹3,842`. */
+fun formatInrRounded(paise: Long): String = formatInr(Math.floorDiv(paise + 50, 100) * 100)

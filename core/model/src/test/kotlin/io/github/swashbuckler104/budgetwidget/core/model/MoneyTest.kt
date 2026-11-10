@@ -45,4 +45,11 @@ class MoneyTest {
             assertThat(parseInrToPaise(it)).isNull()
         }
     }
+
+    @Test
+    fun `rounded format drops paise half up`() {
+        assertThat(formatInrRounded(3_841_50)).isEqualTo("₹3,842")
+        assertThat(formatInrRounded(3_841_49)).isEqualTo("₹3,841")
+        assertThat(formatInrRounded(0)).isEqualTo("₹0")
+    }
 }
