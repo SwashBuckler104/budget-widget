@@ -17,8 +17,20 @@ internal class DayTicksStartup @Inject constructor(
     private val widgets: InboxWidgets,
 ) : ProcessStartTask {
     override fun start(scope: CoroutineScope) {
-        scope.launch { settings.nudge.distinctUntilChanged().collect { scheduler.arm() } }
-        // Catch up on days that ended while no process ran (alarms are gone after a reboot).
-        scope.launch { if (days.closeFinishedDays() > 0) widgets.refreshNow() }
+        scope.launch {
+            // The first value is the process start; later ones are the user changing the setting.
+            var first = true
+            settings.nudge.distinctUntilChanged().collect {
+                scheduler.arm(allowLate = first)
+                first = false
+            }
+        }
+        scope.launch {
+            // Catch up on days that ended while no process ran (alarms are gone after a reboot),
+            // and redraw: re-arming may have replaced a tick that was still waiting (a non-wakeup
+            // alarm held while the screen was off), whose countdown text would otherwise go stale.
+            days.closeFinishedDays()
+            widgets.refreshNow()
+        }
     }
 }

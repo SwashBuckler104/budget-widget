@@ -14,10 +14,14 @@ internal sealed interface NotificationCommand {
 
     data class SamePayment(override val transactionId: Long) : NotificationCommand
 
+    /** The notification was swiped away (its delete intent); the transaction stays pending. */
+    data class Dismissed(override val transactionId: Long) : NotificationCommand
+
     companion object {
         private const val ACTION_SORT = "io.github.swashbuckler104.budgetwidget.notifications.SORT"
         private const val ACTION_IGNORE = "io.github.swashbuckler104.budgetwidget.notifications.IGNORE"
         private const val ACTION_SAME_PAYMENT = "io.github.swashbuckler104.budgetwidget.notifications.SAME_PAYMENT"
+        private const val ACTION_DISMISSED = "io.github.swashbuckler104.budgetwidget.notifications.DISMISSED"
         private const val EXTRA_TRANSACTION = "transactionId"
         private const val EXTRA_CATEGORY = "categoryId"
 
@@ -26,6 +30,7 @@ internal sealed interface NotificationCommand {
                 is Sort -> ACTION_SORT to "sort/${command.categoryId}"
                 is Ignore -> ACTION_IGNORE to "ignore"
                 is SamePayment -> ACTION_SAME_PAYMENT to "same-payment"
+                is Dismissed -> ACTION_DISMISSED to "dismissed"
             }
             return Intent(context, NotificationActionReceiver::class.java)
                 .setAction(action)
@@ -42,6 +47,7 @@ internal sealed interface NotificationCommand {
                 ACTION_SORT -> intent.getLongExtra(EXTRA_CATEGORY, 0).takeIf { it > 0 }?.let { Sort(id, it) }
                 ACTION_IGNORE -> Ignore(id)
                 ACTION_SAME_PAYMENT -> SamePayment(id)
+                ACTION_DISMISSED -> Dismissed(id)
                 else -> null
             }
         }

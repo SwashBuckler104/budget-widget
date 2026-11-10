@@ -27,26 +27,37 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.swashbuckler104.budgetwidget.core.data.day.DayCloseRepository
 import io.github.swashbuckler104.budgetwidget.core.data.repository.TransactionRepository
 import javax.inject.Inject
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
-class AnalysisViewModel @Inject constructor(transactions: TransactionRepository) : ViewModel() {
+class AnalysisViewModel @Inject constructor(transactions: TransactionRepository, days: DayCloseRepository) :
+    ViewModel() {
     /** Pending count for the inbox banner (SCOPE.md F7); null while loading. */
     val pending: StateFlow<Int?> = transactions.observePending()
         .map { it.size }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
+
+    /** Close-the-day streak for the header (SCOPE.md F6); follows sorts and recorded days. */
+    val streak: StateFlow<Int> = combine(transactions.observeChanges(), days.observeLatestDay()) { _, _ -> }
+        .mapLatest { days.status().streak }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), 0)
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
     }
 }
 
-/** Tab 1. Charts arrive in M6; for now it shows the inbox banner. */
+/** Tab 1. Charts arrive in M6; for now it shows the streak and the inbox banner. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnalysisRoute(
@@ -56,6 +67,7 @@ fun AnalysisRoute(
     viewModel: AnalysisViewModel = hiltViewModel(),
 ) {
     val pending by viewModel.pending.collectAsStateWithLifecycle()
+    val streak by viewModel.streak.collectAsStateWithLifecycle()
     Scaffold(modifier = modifier.fillMaxSize(), topBar = {
         TopAppBar(
             title = { Text(stringResource(R.string.analysis_title)) },
@@ -73,6 +85,12 @@ fun AnalysisRoute(
                 .padding(padding)
                 .padding(16.dp),
         ) {
+            if (streak > 0) {
+                Text(
+                    pluralStringResource(R.plurals.analysis_streak, streak, streak),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            }
             val count = pending ?: 0
             if (count > 0) {
                 Card(

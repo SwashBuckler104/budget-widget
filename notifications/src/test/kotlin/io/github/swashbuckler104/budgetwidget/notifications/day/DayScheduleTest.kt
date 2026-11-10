@@ -38,4 +38,22 @@ class DayScheduleTest {
         val before = LocalDateTime.of(2026, 3, 29, 1, 0).atZone(berlin)
         assertThat(DaySchedule.nextNudge(before, 2 * 60 + 30, null).toLocalTime().toString()).isEqualTo("03:30")
     }
+
+    @Test
+    fun `a time the user just picked counts only if it is still ahead`() {
+        val eight = 20 * 60
+        assertThat(DaySchedule.nextNudge(at(10, 20, 30), eight, null, allowLate = false)).isEqualTo(at(11, 20))
+        assertThat(DaySchedule.nextNudge(at(10, 19, 30), eight, null, allowLate = false)).isEqualTo(at(10, 20))
+    }
+
+    @Test
+    fun `a nudge may post only on its own day and within the grace hour`() {
+        val nine = 21 * 60
+        assertThat(DaySchedule.isNudgeDue(at(10, 20, 59), nine)).isFalse()
+        assertThat(DaySchedule.isNudgeDue(at(10, 21, 0), nine)).isTrue()
+        assertThat(DaySchedule.isNudgeDue(at(10, 21, 59), nine)).isTrue()
+        assertThat(DaySchedule.isNudgeDue(at(10, 22, 0), nine)).isFalse()
+        // A 23:55 nudge delivered at 00:02 belongs to a day that is over.
+        assertThat(DaySchedule.isNudgeDue(at(11, 0, 2), 23 * 60 + 55)).isFalse()
+    }
 }

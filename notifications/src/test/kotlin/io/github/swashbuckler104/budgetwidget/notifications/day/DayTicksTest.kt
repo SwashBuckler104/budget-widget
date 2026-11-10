@@ -198,4 +198,39 @@ class DayTicksTest {
         handler.handle(DayTickHandler.Kind.TICK)
         assertThat(db.dayCloseDao().recent(5).map { it.date }).containsExactly("2026-11-10", "2026-11-09").inOrder()
     }
+
+    @Test
+    fun `a nudge delivered after midnight is skipped and the new day's nudge stays armed`() = runTest {
+        wire()
+        pending("a")
+        settings.setNudgeMinute(23 * 60 + 55)
+        now = at(11, 0, 2) // the 23:55 alarm, delivered late
+
+        handler.handle(DayTickHandler.Kind.NUDGE)
+
+        assertThat(nudgeShown()).isNull()
+        assertThat(settings.lastNudgeEpochDay()).isNull()
+        assertThat(scheduled().single { it.action == DayTickReceiver.ACTION_NUDGE }.atMillis).isEqualTo(at(11, 23, 55))
+    }
+
+    @Test
+    fun `a nudge held back by Doze for hours is skipped`() = runTest {
+        wire()
+        pending("a")
+        now = at(10, 23, 30) // the 21:00 alarm
+        handler.handle(DayTickHandler.Kind.NUDGE)
+        assertThat(nudgeShown()).isNull()
+        assertThat(scheduled().single { it.action == DayTickReceiver.ACTION_NUDGE }.atMillis).isEqualTo(at(11, 21))
+    }
+
+    @Test
+    fun `a second delivery on the same day doesn't nudge twice`() = runTest {
+        wire()
+        pending("a")
+        handler.handle(DayTickHandler.Kind.NUDGE)
+        notifications.cancelAll()
+        now = at(10, 21, 20)
+        handler.handle(DayTickHandler.Kind.NUDGE)
+        assertThat(nudgeShown()).isNull()
+    }
 }

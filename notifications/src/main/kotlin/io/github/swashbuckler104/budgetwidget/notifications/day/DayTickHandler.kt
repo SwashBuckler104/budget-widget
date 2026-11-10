@@ -21,11 +21,15 @@ internal class DayTickHandler @Inject constructor(
     enum class Kind { TICK, NUDGE, CLOCK_CHANGED }
 
     suspend fun handle(kind: Kind) {
-        if (kind == Kind.NUDGE && settings.nudge.first().enabled) {
-            // Mark first: a re-arm must not schedule today's nudge again.
-            val today = Instant.ofEpochMilli(clock.nowMillis()).atZone(ZoneId.systemDefault()).toLocalDate()
-            settings.setLastNudgeEpochDay(today.toEpochDay())
-            nudge.nudge()
+        val nudgeSettings = settings.nudge.first()
+        if (kind == Kind.NUDGE && nudgeSettings.enabled) {
+            val now = Instant.ofEpochMilli(clock.nowMillis()).atZone(ZoneId.systemDefault())
+            val today = now.toLocalDate().toEpochDay()
+            if (DaySchedule.isNudgeDue(now, nudgeSettings.minuteOfDay) && settings.lastNudgeEpochDay() != today) {
+                // Mark first: a re-arm must not schedule today's nudge again.
+                settings.setLastNudgeEpochDay(today)
+                nudge.nudge()
+            }
         }
         scheduler.arm()
         days.closeFinishedDays()

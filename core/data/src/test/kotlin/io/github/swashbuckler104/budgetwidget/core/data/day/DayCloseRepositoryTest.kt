@@ -105,4 +105,20 @@ class DayCloseRepositoryTest {
         db.transactionDao().ignore(early, IgnoreReason.USER, now = at(10, 13))
         assertThat(repo.status(zone).streak).isEqualTo(3)
     }
+
+    @Test
+    fun `a day recorded late still sees what was waiting at its midnight`() = runTest {
+        wire()
+        settings.setDayTrackingSince(LocalDate.of(2026, 11, 9).toEpochDay())
+        val a = stored("a", at(9, 23))
+        // Sorted the next morning, and the day only recorded after that.
+        db.transactionDao().ignore(a, IgnoreReason.USER, now = at(10, 8))
+        now = at(10, 9)
+        repo.closeFinishedDays(zone)
+        with(db.dayCloseDao().recent(1).single()) {
+            assertThat(date).isEqualTo("2026-11-09")
+            assertThat(pendingAtMidnight).isEqualTo(1)
+            assertThat(closed).isFalse()
+        }
+    }
 }

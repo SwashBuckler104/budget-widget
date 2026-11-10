@@ -51,6 +51,7 @@ internal class TransactionNotificationFactory @Inject constructor(
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setPublicVersion(publicVersion())
             .setContentIntent(activity(launcher.transaction(context, id)))
+            .setDeleteIntent(broadcast(NotificationCommand.Dismissed(id)))
         hint?.let { builder.setStyle(NotificationCompat.BigTextStyle().bigText("$text\n$it")) }
         actions.forEach { action ->
             val (label, command) = when (action) {

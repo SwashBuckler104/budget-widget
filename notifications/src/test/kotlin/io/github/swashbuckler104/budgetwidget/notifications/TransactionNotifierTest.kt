@@ -307,5 +307,37 @@ class TransactionNotifierTest {
         assertThat(manager.activeNotifications).isEmpty()
     }
 
+    @Test
+    fun `the summary counts every posted notification and follows swipes`() = runTest {
+        wire()
+        category("Food")
+        val ids = listOf(txn("a"), txn("b"), txn("c"))
+        ids.forEach { notifier.onPendingAdded(it, IngestOrigin.REALTIME) }
+        fun summaryTitle() = manager.activeNotifications.singleOrNull {
+            it.notification.isGroupSummary()
+        }?.notification?.title()
+        assertThat(summaryTitle()).isEqualTo("3 transactions to sort")
+        // Every notification carries a delete intent that reports the swipe back.
+        assertThat(transactionNotifications().all { it.notification.deleteIntent != null }).isTrue()
+
+        manager.cancel("txn:${ids[0]}", 1) // what a swipe does to the system list
+        handler.handle(NotificationCommand.Dismissed(ids[0]))
+        assertThat(summaryTitle()).isEqualTo("2 transactions to sort")
+        handler.handle(NotificationCommand.Dismissed(ids[1]))
+        assertThat(summaryTitle()).isNull()
+        assertThat(db.transactionDao().get(ids[0])!!.status).isEqualTo(TransactionStatus.PENDING)
+    }
+
+    @Test
+    fun `refreshing a transaction sorted meanwhile removes its notification instead`() = runTest {
+        wire()
+        category("Food")
+        val id = txn("a")
+        notifier.onPendingAdded(id, IngestOrigin.REALTIME)
+        db.transactionDao().ignore(id, IgnoreReason.USER, now) // sorted, listener not yet run
+        notifier.refresh(id)
+        assertThat(manager.activeNotifications).isEmpty()
+    }
+
     private fun Notification.isGroupSummary() = flags and Notification.FLAG_GROUP_SUMMARY != 0
 }

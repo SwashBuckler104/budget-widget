@@ -32,6 +32,13 @@ interface TransactionDao {
     suspend fun count(): Int
 
     /**
+     * Emits after every write to the table (Room re-runs the query on each invalidation, even if
+     * the count is unchanged): a cheap change signal that doesn't load any rows.
+     */
+    @Query("SELECT COUNT(*) FROM transactions")
+    fun observeCount(): Flow<Int>
+
+    /**
      * Earliest transaction that may be the same payment reported by another bank or app
      * (SCOPE.md F2): same amount and direction, within [fromMillis]..[toMillis], from an
      * account of a different bank, and not itself marked as a duplicate.

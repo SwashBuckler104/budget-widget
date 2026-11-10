@@ -11,13 +11,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 
 /**
- * Keeps widgets in step with the database while the process lives: any change to the inbox
- * (all transactions, so today's spending too), categories or recorded days redraws them, debounced
+ * Keeps widgets in step with the database while the process lives: any write to transactions
+ * (so today's spending too), categories or recorded days redraws them, debounced
  * because launchers rate-limit widget updates (SCOPE.md F4). Every write happens in this process,
  * so nothing is missed; entry points that may die right away also call `refreshNow` themselves.
  */
@@ -30,14 +29,8 @@ internal class WidgetSync @Inject constructor(
     @OptIn(FlowPreview::class)
     override fun start(scope: CoroutineScope) {
         scope.launch {
-            combine(transactions.observeTransactions(), categories.observeGroups(), days.observeLatestDay()) {
-                    a,
-                    b,
-                    c,
-                ->
-                Triple(a, b, c)
-            }
-                .distinctUntilChanged()
+            // Change signals only: every emission means "something was written", no rows are loaded.
+            combine(transactions.observeChanges(), categories.observeGroups(), days.observeLatestDay()) { _, _, _ -> }
                 // The first value is the state at process start, which the widgets already show.
                 .drop(1)
                 .debounce(DEBOUNCE)
