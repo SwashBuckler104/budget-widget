@@ -73,6 +73,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.swashbuckler104.budgetwidget.core.data.edit.EditResult
 import io.github.swashbuckler104.budgetwidget.core.data.list.DayGroup
 import io.github.swashbuckler104.budgetwidget.core.data.list.TransactionFilter
+import io.github.swashbuckler104.budgetwidget.core.data.sort.SortResult
 import io.github.swashbuckler104.budgetwidget.core.designsystem.component.EmptyState
 import io.github.swashbuckler104.budgetwidget.core.designsystem.component.SectionHeader
 import io.github.swashbuckler104.budgetwidget.core.model.Transaction
@@ -121,6 +122,8 @@ fun TransactionsRoute(
     val undoLabel by rememberUpdatedState(stringResource(R.string.transactions_undo))
     LaunchedEffect(viewModel) {
         viewModel.messages.collect { message ->
+            // A newer action replaces the snackbar at once instead of queueing behind a long Undo.
+            snackbar.currentSnackbarData?.dismiss()
             val undo = message.undo
             val result = snackbar.showSnackbar(
                 message = messageText(message),
@@ -133,7 +136,9 @@ fun TransactionsRoute(
     }
 
     var adding by rememberSaveable { mutableStateOf(false) }
-    var picking by remember { mutableStateOf<PickRequest?>(null) }
+    // Survives rotation: the ids being categorized (null when the picker is closed).
+    var pickingIds by rememberSaveable { mutableStateOf<List<Long>?>(null) }
+    var pickingBulk by rememberSaveable { mutableStateOf(false) }
 
     TransactionsScreen(
         state = state,
@@ -150,7 +155,10 @@ fun TransactionsRoute(
             onToggleSelection = viewModel::toggleSelection,
             onSelectAll = viewModel::selectAll,
             onClearSelection = viewModel::clearSelection,
-            onCategorize = { ids, bulk -> picking = PickRequest(ids, bulk) },
+            onCategorize = { ids, bulk ->
+                pickingIds = ids
+                pickingBulk = bulk
+            },
             onIgnore = viewModel::ignore,
             onUnignore = viewModel::unignore,
             onMerge = viewModel::merge,
@@ -193,27 +201,25 @@ fun TransactionsRoute(
             onDismiss = { adding = false },
         )
     }
-    picking?.let { request ->
+    pickingIds?.let { ids ->
         // Every leaf that fits the selection's direction; all leaves for a mixed selection.
         val direction = (state.inbox.map { it.transaction } + state.days.flatMap { it.transactions })
-            .filter { it.id in request.ids }
+            .filter { it.id in ids }
             .map { it.direction }
             .distinct()
             .singleOrNull()
         PickCategorySheet(
-            title = pluralStringResource(R.plurals.transactions_categorize_n, request.ids.size, request.ids.size),
+            title = pluralStringResource(R.plurals.transactions_categorize_n, ids.size, ids.size),
             groups = state.groups,
             direction = direction,
             onPick = { category ->
-                viewModel.categorize(request.ids, category.id, request.bulk)
-                picking = null
+                viewModel.categorize(ids, category.id, pickingBulk)
+                pickingIds = null
             },
-            onDismiss = { picking = null },
+            onDismiss = { pickingIds = null },
         )
     }
 }
-
-private data class PickRequest(val ids: List<Long>, val bulk: Boolean)
 
 internal class ScreenCallbacks(
     val onBack: (() -> Unit)?,
@@ -223,7 +229,8 @@ internal class ScreenCallbacks(
     val onOpenSettings: () -> Unit,
     val onEdit: (Long) -> Unit,
     val onToggleSelection: (Long) -> Unit,
-    val onSelectAll: () -> Unit,
+    /** Selects these ids: everything currently shown. */
+    val onSelectAll: (List<Long>) -> Unit,
     val onClearSelection: () -> Unit,
     val onCategorize: (ids: List<Long>, bulk: Boolean) -> Unit,
     val onIgnore: (List<Long>) -> Unit,
@@ -253,7 +260,7 @@ internal fun TransactionsScreen(
         modifier = modifier.fillMaxSize(),
         topBar = {
             if (state.selecting) {
-                SelectionBar(state, callbacks)
+                SelectionBar(state, shownIds(state, inboxExpanded), callbacks)
             } else {
                 TopAppBar(
                     title = { Text(title ?: stringResource(R.string.transactions_title)) },
@@ -310,9 +317,14 @@ internal fun TransactionsScreen(
     }
 }
 
+/** Ids on screen in display order: the inbox (as far as it is expanded), then the days. */
+private fun shownIds(state: TransactionsUiState, inboxExpanded: Boolean): List<Long> =
+    (if (inboxExpanded) state.inbox else state.inbox.take(INBOX_PREVIEW)).map { it.transaction.id } +
+        state.days.flatMap { day -> day.transactions.map { it.id } }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SelectionBar(state: TransactionsUiState, callbacks: ScreenCallbacks) {
+private fun SelectionBar(state: TransactionsUiState, shown: List<Long>, callbacks: ScreenCallbacks) {
     val ids = state.selection.toList()
     TopAppBar(
         title = { Text(pluralStringResource(R.plurals.transactions_selected, ids.size, ids.size)) },
@@ -322,7 +334,7 @@ private fun SelectionBar(state: TransactionsUiState, callbacks: ScreenCallbacks)
             }
         },
         actions = {
-            IconButton(onClick = callbacks.onSelectAll) {
+            IconButton(onClick = { callbacks.onSelectAll(shown) }) {
                 Icon(Icons.Rounded.SelectAll, stringResource(R.string.transactions_select_all))
             }
             IconButton(onClick = { callbacks.onCategorize(ids, true) }) {
@@ -363,9 +375,15 @@ private fun OverflowMenu(smsGranted: Boolean, callbacks: ScreenCallbacks) {
 
 @Composable
 private fun SearchField(query: String, onQuery: (String) -> Unit, onClose: () -> Unit) {
+    // The field owns its text: echoing the ViewModel's (asynchronous) filter state back into it
+    // dropped and repeated characters while typing fast (found on the emulator).
+    var text by rememberSaveable { mutableStateOf(query) }
     OutlinedTextField(
-        value = query,
-        onValueChange = onQuery,
+        value = text,
+        onValueChange = {
+            text = it
+            onQuery(it)
+        },
         placeholder = { Text(stringResource(R.string.transactions_search_hint)) },
         leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
         trailingIcon = {
@@ -557,8 +575,20 @@ private fun messageTexts(): (TransactionsMessage) -> String {
     return { message ->
         val r = resources
         when (message) {
-            is TransactionsMessage.Sorted -> r.getQuantityString(
-                R.plurals.transactions_msg_sorted,
+            is TransactionsMessage.Sorted -> {
+                val sorted = r.getQuantityString(R.plurals.transactions_msg_sorted, message.count, message.count)
+                if (message.skipped == 0) {
+                    sorted
+                } else {
+                    sorted + " · " +
+                        r.getQuantityString(R.plurals.transactions_msg_skipped, message.skipped, message.skipped)
+                }
+            }
+
+            is TransactionsMessage.NoneFit -> r.getString(R.string.transactions_msg_mismatch)
+
+            is TransactionsMessage.Renamed -> r.getQuantityString(
+                R.plurals.transactions_msg_renamed,
                 message.count,
                 message.count,
             )
@@ -583,10 +613,17 @@ private fun messageTexts(): (TransactionsMessage) -> String {
 
             TransactionsMessage.Reported -> r.getString(R.string.transactions_msg_reported)
 
-            is TransactionsMessage.Failed -> when (message.result) {
-                EditResult.InvalidAmount -> r.getString(R.string.edit_amount_invalid)
-                EditResult.CategoryMismatch -> r.getString(R.string.transactions_msg_mismatch)
-                else -> r.getString(R.string.transactions_msg_failed)
+            is TransactionsMessage.Failed -> {
+                val result = message.result
+                when {
+                    result == EditResult.InvalidAmount -> r.getString(R.string.edit_amount_invalid)
+
+                    result == EditResult.CategoryMismatch ||
+                        (result is EditResult.SortFailed && result.result == SortResult.KindMismatch) ->
+                        r.getString(R.string.transactions_msg_mismatch)
+
+                    else -> r.getString(R.string.transactions_msg_failed)
+                }
             }
         }
     }

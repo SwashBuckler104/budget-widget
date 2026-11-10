@@ -35,7 +35,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -330,19 +335,31 @@ internal fun SwipeActions(
     val ignored = transaction.status == TransactionStatus.IGNORED
     val categorizeLabel = stringResource(R.string.transactions_categorize)
     val ignoreLabel = stringResource(if (ignored) R.string.transactions_restore else R.string.transactions_ignore)
-    val state = rememberSwipeToDismissBoxState()
+    // One swipe, one action. Found on the emulator: swiping a sorted row left ignored it, and the
+    // dismissal then fired again with the row's new "back to inbox" action. So the state is
+    // keyed by status (a flipped row starts settled), callbacks are read fresh, and a dismissal
+    // is ignored until the reset after the previous one has finished.
+    val state = key(transaction.status) { rememberSwipeToDismissBoxState() }
     val scope = rememberCoroutineScope()
+    val categorize by rememberUpdatedState(onCategorize)
+    val ignoreOrRestore by rememberUpdatedState(onIgnoreOrRestore)
+    var acting by remember { mutableStateOf(false) }
     SwipeToDismissBox(
         state = state,
         enableDismissFromStartToEnd = enabled,
         enableDismissFromEndToStart = enabled,
         onDismiss = { value ->
-            when (value) {
-                SwipeToDismissBoxValue.StartToEnd -> onCategorize()
-                SwipeToDismissBoxValue.EndToStart -> onIgnoreOrRestore()
-                SwipeToDismissBoxValue.Settled -> Unit
+            if (!acting && value != SwipeToDismissBoxValue.Settled) {
+                acting = true
+                if (value == SwipeToDismissBoxValue.StartToEnd) categorize() else ignoreOrRestore()
+                scope.launch {
+                    try {
+                        state.reset()
+                    } finally {
+                        acting = false
+                    }
+                }
             }
-            scope.launch { state.reset() }
         },
         backgroundContent = {
             val direction = state.dismissDirection

@@ -79,6 +79,14 @@
         <item quantity="one">Ignored</item>
         <item quantity="other">%1$d ignored</item>
     </plurals>
+    <plurals name="transactions_msg_skipped">
+        <item quantity="one">%1$d skipped (doesn\'t fit)</item>
+        <item quantity="other">%1$d skipped (don\'t fit)</item>
+    </plurals>
+    <plurals name="transactions_msg_renamed">
+        <item quantity="one">Renamed %1$d other transaction</item>
+        <item quantity="other">Renamed %1$d other transactions</item>
+    </plurals>
     <string name="transactions_msg_merged">Merged: counted once</string>
     <string name="transactions_msg_kept_both">Kept both</string>
     <string name="transactions_msg_back_in_inbox">Back in the inbox</string>

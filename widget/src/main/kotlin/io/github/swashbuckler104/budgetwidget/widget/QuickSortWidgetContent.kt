@@ -1,5 +1,6 @@
 package io.github.swashbuckler104.budgetwidget.widget
 
+import android.content.Context
 import android.content.Intent
 import android.content.res.Resources
 import android.text.format.DateUtils
@@ -45,7 +46,9 @@ import io.github.swashbuckler104.budgetwidget.core.model.Category
 import io.github.swashbuckler104.budgetwidget.core.model.Direction
 import io.github.swashbuckler104.budgetwidget.core.model.Transaction
 import io.github.swashbuckler104.budgetwidget.core.model.formatInr
-import java.text.DateFormat
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 
 /** Activities the widget opens. [app] is the launcher intent (null only if it vanished). */
 internal class WidgetIntents(val inbox: Intent, val transaction: (Long) -> Intent, val app: Intent?)
@@ -153,13 +156,13 @@ private fun Tall(snapshot: WidgetSnapshot, focus: Transaction, intents: WidgetIn
             snapshot.upNext.forEach { Label(oneLine(context.resources, it), size = 13.sp, maxLines = 1) }
         }
         Spacer(GlanceModifier.defaultWeight())
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = GlanceModifier.fillMaxWidth().height(48.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = GlanceModifier.fillMaxWidth().height(52.dp)) {
             Arrow(focus, previous = true)
-            TextChip(context.getString(R.string.widget_ignore), ignore(focus), height = 44.dp)
+            TextChip(context.getString(R.string.widget_ignore), ignore(focus), height = 52.dp)
             TextChip(
                 context.getString(R.string.widget_more),
                 actionStartActivity(intents.transaction(focus.id)),
-                height = 44.dp,
+                height = 52.dp,
                 primary = true,
             )
             Arrow(focus, previous = false)
@@ -216,7 +219,10 @@ private fun Card(snapshot: WidgetSnapshot, focus: Transaction, intents: WidgetIn
                 modifier = GlanceModifier.defaultWeight(),
             )
         }
-        val meta = listOfNotNull(account(focus), time(focus.occurredAt, snapshot.now)).joinToString(" · ")
+        val meta = listOfNotNull(
+            account(focus),
+            time(LocalContext.current, focus.occurredAt, snapshot.now),
+        ).joinToString(" · ")
         Row(verticalAlignment = Alignment.CenterVertically) {
             Label(meta, size = 12.sp, muted = true, maxLines = 1)
             if (snapshot.focusOverdue) {
@@ -309,7 +315,7 @@ private fun Label(
         maxLines = maxLines,
         style = TextStyle(
             color = color ?: if (muted) GlanceTheme.colors.onSurfaceVariant else GlanceTheme.colors.onSurface,
-            fontSize = size,
+            fontSize = size.capped(),
             fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal,
         ),
     )
@@ -327,9 +333,20 @@ private fun GlanceModifier.clickableOrNot(action: Action?): GlanceModifier = act
 private fun account(t: Transaction): String? =
     listOfNotNull(t.bankName, t.accountLast4?.let { "··$it" }).joinToString(" ").ifEmpty { null }
 
-/** Time for today's transactions, the date for older ones. */
-private fun time(epochMillis: Long, now: Long): String =
-    DateUtils.formatSameDayTime(epochMillis, now, DateFormat.SHORT, DateFormat.SHORT).toString()
+/** Time for today's transactions, `9 Nov` for older ones (a numeric date reads differently per locale). */
+private fun time(context: Context, epochMillis: Long, now: Long): String =
+    if (localDate(epochMillis) == localDate(now)) {
+        DateUtils.formatDateTime(context, epochMillis, DateUtils.FORMAT_SHOW_TIME)
+    } else {
+        DateUtils.formatDateTime(
+            context,
+            epochMillis,
+            DateUtils.FORMAT_SHOW_DATE or DateUtils.FORMAT_ABBREV_MONTH or DateUtils.FORMAT_NO_YEAR,
+        )
+    }
+
+private fun localDate(epochMillis: Long): LocalDate =
+    Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()).toLocalDate()
 
 private fun oneLine(res: Resources, t: Transaction): String {
     val sign = if (t.direction == Direction.IN) "+" else "-"

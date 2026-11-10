@@ -31,11 +31,17 @@ class InsightWidget : GlanceAppWidget() {
     }
 
     companion object {
-        /** The app's Analysis tab, through its navigation deep link (a fresh task). */
+        /**
+         * The app's Analysis tab, through its navigation deep link. A running app is brought to
+         * the front and switches tab (CLEAR_TOP + SINGLE_TOP deliver it to `onNewIntent`), so an
+         * open sheet or form in the other tab keeps its state.
+         */
         fun analysisIntent(context: Context): Intent? =
             context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
                 data = ANALYSIS_URI.toUri()
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP,
+                )
             }
 
         /** Must match the deep link on the Analysis destination in `:app`. */

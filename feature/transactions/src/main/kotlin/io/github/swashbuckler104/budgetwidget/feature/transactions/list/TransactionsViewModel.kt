@@ -14,12 +14,14 @@ import io.github.swashbuckler104.budgetwidget.core.data.edit.Undo
 import io.github.swashbuckler104.budgetwidget.core.data.edit.Undoable
 import io.github.swashbuckler104.budgetwidget.core.data.ingest.SmsSync
 import io.github.swashbuckler104.budgetwidget.core.data.list.DayGroup
+import io.github.swashbuckler104.budgetwidget.core.data.list.StatusFilter
 import io.github.swashbuckler104.budgetwidget.core.data.list.TransactionFilter
 import io.github.swashbuckler104.budgetwidget.core.data.list.groupByDay
 import io.github.swashbuckler104.budgetwidget.core.data.repository.TransactionRepository
 import io.github.swashbuckler104.budgetwidget.core.model.Account
 import io.github.swashbuckler104.budgetwidget.core.model.Category
 import io.github.swashbuckler104.budgetwidget.core.model.CategoryGroup
+import io.github.swashbuckler104.budgetwidget.core.model.Direction
 import io.github.swashbuckler104.budgetwidget.core.model.Transaction
 import io.github.swashbuckler104.budgetwidget.core.model.TransactionDetail
 import io.github.swashbuckler104.budgetwidget.core.model.TransactionStatus
@@ -68,17 +70,20 @@ data class TransactionsUiState(
     val total: Int = 0,
 ) {
     val selecting: Boolean get() = selection.isNotEmpty()
-
-    /** Ids on screen in display order: the inbox first, then the days. */
-    val visibleIds: List<Long> get() = inbox.map { it.transaction.id } +
-        days.flatMap { day -> day.transactions.map { it.id } }
 }
 
 /** One-shot feedback; the ones with [undo] show an Undo action (SCOPE.md F7). */
 sealed interface TransactionsMessage {
     val undo: Undo? get() = null
 
-    data class Sorted(val count: Int, override val undo: Undo?) : TransactionsMessage
+    /** [skipped]: selected ones the category can't hold (income in an expense category). */
+    data class Sorted(val count: Int, override val undo: Undo?, val skipped: Int = 0) : TransactionsMessage
+
+    /** Nothing was sorted: the category fits none of the selection. */
+    data class NoneFit(val count: Int) : TransactionsMessage
+
+    /** "Rename every transaction from this merchant" renamed [count] others. */
+    data class Renamed(val count: Int, override val undo: Undo?) : TransactionsMessage
 
     data class Ignored(val count: Int, override val undo: Undo?) : TransactionsMessage
 
@@ -102,25 +107,38 @@ sealed interface TransactionsMessage {
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class TransactionsViewModel @Inject constructor(
-    savedState: SavedStateHandle,
+    private val savedStateHandle: SavedStateHandle,
     private val transactions: TransactionRepository,
     categories: CategoryRepository,
     private val editor: TransactionEditor,
     private val smsSync: SmsSync,
     private val clock: WallClock,
 ) : ViewModel() {
-    private val drillDown: TransactionFilter? = savedState.get<Long>(ARG_FROM_MILLIS)?.let { from ->
+    private val drillDown: TransactionFilter? = savedStateHandle.get<Long>(ARG_FROM_MILLIS)?.let { from ->
         TransactionFilter(
-            query = savedState.get<String>(ARG_QUERY).orEmpty(),
-            categoryId = savedState.get<Long>(ARG_CATEGORY_ID)?.takeIf { it > 0 },
-            accountId = savedState.get<Long>(ARG_ACCOUNT_ID)?.takeIf { it > 0 },
+            query = savedStateHandle.get<String>(ARG_QUERY).orEmpty(),
+            merchantKey = savedStateHandle.get<String>(ARG_MERCHANT_KEY)?.ifEmpty { null },
+            direction = savedStateHandle.get<String>(ARG_DIRECTION)?.let { name ->
+                Direction.entries.firstOrNull {
+                    it.name ==
+                        name
+                }
+            },
+            // A drill-down lists what its total counted: never ignored ones.
+            hideIgnored = true,
+            categoryId = savedStateHandle.get<Long>(ARG_CATEGORY_ID)?.takeIf { it > 0 },
+            accountId = savedStateHandle.get<Long>(ARG_ACCOUNT_ID)?.takeIf { it > 0 },
             fromMillis = from,
-            toMillis = savedState.get<Long>(ARG_TO_MILLIS),
+            toMillis = savedStateHandle.get<Long>(ARG_TO_MILLIS),
         )
     }
-    private val filter = MutableStateFlow(drillDown ?: TransactionFilter())
+
+    /** Survives process death through [savedStateHandle] (the drill-down's own args are fixed anyway). */
+    private val filter = MutableStateFlow(drillDown ?: savedStateHandle.restoreFilter())
     private val selection = MutableStateFlow<Set<Long>>(emptySet())
-    private val editingId = MutableStateFlow<Long?>(null)
+
+    /** The open edit sheet, restored after process death. */
+    private val editingId = savedStateHandle.getMutableStateFlow<Long?>(KEY_EDITING, null)
     private val messageChannel = Channel<TransactionsMessage>(Channel.BUFFERED)
 
     val messages: Flow<TransactionsMessage> = messageChannel.receiveAsFlow()
@@ -186,13 +204,17 @@ class TransactionsViewModel @Inject constructor(
         )
     }
 
-    fun setFilter(update: (TransactionFilter) -> TransactionFilter) = filter.update(update)
+    fun setFilter(update: (TransactionFilter) -> TransactionFilter) {
+        filter.update(update)
+        if (drillDown == null) savedStateHandle.saveFilter(filter.value)
+    }
 
-    fun clearFilters() = filter.update { TransactionFilter(query = it.query) }
+    fun clearFilters() = setFilter { TransactionFilter(query = it.query) }
 
     fun toggleSelection(id: Long) = selection.update { if (id in it) it - id else it + id }
 
-    fun selectAll() = selection.update { state.value.visibleIds.toSet() }
+    /** Selects exactly what the screen shows ([ids]): a collapsed inbox hides some of its rows. */
+    fun selectAll(ids: Collection<Long>) = selection.update { ids.toSet() }
 
     fun clearSelection() = selection.update { emptySet() }
 
@@ -201,7 +223,11 @@ class TransactionsViewModel @Inject constructor(
     fun categorize(ids: Collection<Long>, categoryId: Long, bulk: Boolean) = launch {
         val done = editor.categorize(ids, categoryId, rememberMerchant = !bulk)
         clearSelection()
-        TransactionsMessage.Sorted(done.changed, done.undo).takeIf { done.changed > 0 }
+        when {
+            done.changed > 0 -> TransactionsMessage.Sorted(done.changed, done.undo, done.skipped)
+            done.skipped > 0 -> TransactionsMessage.NoneFit(done.skipped)
+            else -> null
+        }
     }
 
     fun ignore(ids: Collection<Long>) = launch {
@@ -222,14 +248,23 @@ class TransactionsViewModel @Inject constructor(
         TransactionsMessage.Deleted(done.undo).takeIf { done.changed > 0 }
     }
 
-    fun reportWrongAmount(id: Long) = launch { TransactionsMessage.Reported.takeIf { editor.reportWrongAmount(id) } }
+    /** Closes the sheet so the confirmation snackbar is visible. */
+    fun reportWrongAmount(id: Long) = launch {
+        val reported = editor.reportWrongAmount(id)
+        if (reported) editingId.update { null }
+        TransactionsMessage.Reported.takeIf { reported }
+    }
 
     /** Saves the edit sheet; it closes on success. */
     fun save(edit: TransactionEdit) = launch {
         when (val result = editor.save(edit)) {
             is EditResult.Saved -> {
                 editingId.update { null }
-                TransactionsMessage.Saved
+                if (result.renamed > 0) {
+                    TransactionsMessage.Renamed(result.renamed, result.undo)
+                } else {
+                    TransactionsMessage.Saved
+                }
             }
 
             else -> TransactionsMessage.Failed(result)
@@ -274,6 +309,37 @@ class TransactionsViewModel @Inject constructor(
         const val ARG_FROM_MILLIS = "fromMillis"
         const val ARG_TO_MILLIS = "toMillis"
         const val ARG_QUERY = "query"
+        const val ARG_MERCHANT_KEY = "merchantKey"
+        const val ARG_DIRECTION = "direction"
         private const val STOP_TIMEOUT_MS = 5_000L
+        private const val KEY_EDITING = "editingId"
     }
+}
+
+private const val KEY_FILTER_NAME = "filter"
+
+/** The tab's own filter as plain values (a Bundle can't hold the data class). */
+private fun SavedStateHandle.saveFilter(f: TransactionFilter) {
+    this[KEY_FILTER_NAME] = arrayOf(
+        f.query,
+        f.categoryId?.toString(),
+        f.accountId?.toString(),
+        f.direction?.name,
+        f.status?.name,
+        f.fromMillis?.toString(),
+        f.toMillis?.toString(),
+    )
+}
+
+private fun SavedStateHandle.restoreFilter(): TransactionFilter {
+    val v = get<Array<String?>>(KEY_FILTER_NAME) ?: return TransactionFilter()
+    return TransactionFilter(
+        query = v.getOrNull(0).orEmpty(),
+        categoryId = v.getOrNull(1)?.toLongOrNull(),
+        accountId = v.getOrNull(2)?.toLongOrNull(),
+        direction = Direction.entries.firstOrNull { it.name == v.getOrNull(3) },
+        status = StatusFilter.entries.firstOrNull { it.name == v.getOrNull(4) },
+        fromMillis = v.getOrNull(5)?.toLongOrNull(),
+        toMillis = v.getOrNull(6)?.toLongOrNull(),
+    )
 }

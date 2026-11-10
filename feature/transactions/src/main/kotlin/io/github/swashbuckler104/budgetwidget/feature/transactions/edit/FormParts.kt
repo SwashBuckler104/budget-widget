@@ -23,6 +23,7 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -50,6 +51,7 @@ import io.github.swashbuckler104.budgetwidget.core.model.CategoryKind
 import io.github.swashbuckler104.budgetwidget.core.model.Direction
 import io.github.swashbuckler104.budgetwidget.feature.transactions.R
 import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
@@ -225,6 +227,7 @@ internal fun DateTimeRow(epochMillis: Long, onChange: (Long) -> Unit, modifier: 
             // The date picker works in UTC midnights.
             val state = rememberDatePickerState(
                 initialSelectedDateMillis = local.toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
+                selectableDates = PastAndToday,
             )
             DatePickerDialog(
                 onDismissRequest = { picking = Picking.NONE },
@@ -266,6 +269,15 @@ internal fun DateTimeRow(epochMillis: Long, onChange: (Long) -> Unit, modifier: 
 }
 
 private enum class Picking { NONE, DATE, TIME }
+
+/** No future dates: a spend that hasn't happened yet would skew today's and the month's totals. */
+@OptIn(ExperimentalMaterial3Api::class)
+private object PastAndToday : SelectableDates {
+    override fun isSelectableDate(utcTimeMillis: Long): Boolean =
+        utcTimeMillis <= LocalDate.now().atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+
+    override fun isSelectableYear(year: Int): Boolean = year <= LocalDate.now().year
+}
 
 /** A labelled column block for sheets. */
 @Composable

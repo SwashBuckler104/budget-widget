@@ -197,3 +197,19 @@ deliberate deviation. Newest at the bottom. Status is Accepted unless stated.
   - **Incoming** money keeps the suggestion engine (income categories), since expense shortcuts can't hold it.
   - The Quick-Sort widget and sheet keep the full suggestions.
 - Pinned by `TransactionNotifierTest` ("payments always offer the daily categories").
+
+## ADR-0025: Follow-ups from the M5-M7 review
+- **A sort must fit the money's direction** (`SortResult.KindMismatch`, checked in `SortTransactionUseCase`, so it covers the sheet, widget, notifications and bulk). A mixed bulk selection sorts what fits and reports "N skipped". A notification button that no longer fits re-posts with fresh buttons.
+- **Edit sheet saves atomically:** details, merchant rename and sort happen in one transaction (a failed sort rolls everything back), and the "sorted" event fires after the commit. Saving an auto-sorted transaction with its category **confirms** it: it leaves "Review auto-sorted" and the rule counts the confirmation (SCOPE.md F8).
+- **Undo never overwrites a later change:** each undo records every row's `updatedAt` right after the action and restores only rows still at that stamp. "Rename every transaction from this merchant" is undoable too: the other rows' names and the alias go back. Undo puts transactions back in the inbox without re-posting notifications (the user is in the app, looking at them).
+- **Drill-downs list exactly what the card counted:** a top merchant opens its merchant key (not a text search), money out only, and no drill-down shows ignored rows.
+- **Select all selects what's shown**, so a collapsed inbox's hidden rows are left out.
+- **Insight widget tap keeps the app's state:** the intent brings the running app to the front (`CLEAR_TOP | SINGLE_TOP`), and `MainActivity.onNewIntent` switches to the Analysis tab the way the bottom bar does, so an open sheet in the Transactions tab survives. A cold start still uses the NavHost's deep link.
+- Smaller fixes:
+  - The donut reads the latest selection, which is keyed by category, not slice position.
+  - The ▲/▼ percentage is clamped.
+  - The Quick-Sort footer actions are 48 dp tall.
+  - The Insight widget drops weekday labels below 130 dp.
+  - The picker survives rotation.
+  - A newer snackbar replaces an older one.
+  - "Report wrong amount" closes the sheet so its confirmation is visible.

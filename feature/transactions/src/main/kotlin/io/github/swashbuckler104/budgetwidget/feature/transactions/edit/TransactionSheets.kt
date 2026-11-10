@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -56,6 +57,10 @@ import io.github.swashbuckler104.budgetwidget.core.model.accepts
 import io.github.swashbuckler104.budgetwidget.core.model.formatInr
 import io.github.swashbuckler104.budgetwidget.core.model.parseInrToPaise
 import io.github.swashbuckler104.budgetwidget.feature.transactions.R
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 
 /** What the edit sheet can do besides saving. */
 internal class EditActions(
@@ -138,7 +143,12 @@ internal fun EditTransactionContent(
                     emphasizeSpend = true,
                 )
                 Text(
-                    listOfNotNull(t.bankName, t.accountLast4?.let { "··$it" }).joinToString(" "),
+                    listOfNotNull(
+                        t.bankName,
+                        t.accountLast4?.let { "··$it" },
+                        DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
+                            .format(Instant.ofEpochMilli(t.occurredAt).atZone(ZoneId.systemDefault())),
+                    ).joinToString(" · "),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -270,6 +280,7 @@ private fun CheckRow(label: String, checked: Boolean, onCheck: (Boolean) -> Unit
             .toggleable(value = checked, role = Role.Checkbox, onValueChange = onCheck),
     ) {
         Checkbox(checked = checked, onCheckedChange = null)
+        Spacer(Modifier.width(8.dp))
         Text(label, style = MaterialTheme.typography.bodyMedium)
     }
 }

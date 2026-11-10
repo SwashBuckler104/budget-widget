@@ -31,7 +31,7 @@ internal data class InsightSnapshot(
     val lastWeek: List<Long>,
     /** Day of the week of each [lastWeek] entry, to label the bars. */
     val lastWeekDays: List<LocalDate>,
-    /** The month's three biggest top-level categories (or "To sort"), largest first. */
+    /** The month's biggest top-level categories (or "To sort"), largest first, up to [TOP]. */
     val topCategories: List<CategorySpend>,
     val month: YearMonth,
 ) {
@@ -61,7 +61,9 @@ internal data class InsightSnapshot(
         }
 
         const val DAYS = 7
-        const val TOP = 3
+
+        /** A tall widget lists up to this many; smaller ones show as many as fit. */
+        const val TOP = 5
     }
 }
 

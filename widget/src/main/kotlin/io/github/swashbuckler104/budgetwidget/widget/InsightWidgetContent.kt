@@ -65,10 +65,13 @@ internal fun InsightWidgetContent(snapshot: InsightSnapshot, open: Intent?) {
     ) {
         Header(snapshot)
         val rows = categoryRows(size.height, snapshot.topCategories.size)
-        val reserved = FIXED + if (rows > 0) CATEGORY_HEADER + CATEGORY_ROW * rows else 0.dp
+        // At the 110 dp minimum there's no room for weekday labels under a readable chart.
+        val showDays = size.height >= SHOW_DAYS
+        val fixed = if (showDays) FIXED else FIXED - DAY_LABELS
+        val reserved = fixed + if (rows > 0) CATEGORY_HEADER + CATEGORY_ROW * rows else 0.dp
         val chartHeight = (size.height - reserved).coerceIn(MIN_CHART, MAX_CHART)
         Spacer(GlanceModifier.height(8.dp))
-        Chart(snapshot, size.width - PADDING * 2, chartHeight)
+        Chart(snapshot, size.width - PADDING * 2, chartHeight, showDays)
         if (rows > 0) {
             Spacer(GlanceModifier.height(10.dp))
             Label(context.getString(R.string.insight_top_categories), 12.sp, muted = true)
@@ -124,7 +127,7 @@ private fun Header(snapshot: InsightSnapshot) {
 }
 
 @Composable
-private fun Chart(snapshot: InsightSnapshot, width: Dp, height: Dp) {
+private fun Chart(snapshot: InsightSnapshot, width: Dp, height: Dp, showDays: Boolean) {
     val context = LocalContext.current
     val density = context.resources.displayMetrics.density
     val widthPx = (width.value * density).roundToInt()
@@ -156,29 +159,31 @@ private fun Chart(snapshot: InsightSnapshot, width: Dp, height: Dp) {
         }
         val locale = context.resources.configuration.locales[0]
         val dayFormat = DateTimeFormatter.ofPattern("EEEEE", locale)
-        Row(modifier = GlanceModifier.fillMaxWidth().padding(top = 2.dp)) {
-            snapshot.lastWeekDays.forEachIndexed { index, day ->
-                Text(
-                    text = day.format(dayFormat),
-                    maxLines = 1,
-                    style = TextStyle(
-                        color = if (index == snapshot.lastWeekDays.lastIndex) {
-                            GlanceTheme.colors.primary
-                        } else {
-                            GlanceTheme.colors.onSurfaceVariant
-                        },
-                        fontSize = 10.sp,
-                        fontWeight = if (index ==
-                            snapshot.lastWeekDays.lastIndex
-                        ) {
-                            FontWeight.Bold
-                        } else {
-                            FontWeight.Normal
-                        },
-                        textAlign = TextAlign.Center,
-                    ),
-                    modifier = GlanceModifier.defaultWeight(),
-                )
+        if (showDays) {
+            Row(modifier = GlanceModifier.fillMaxWidth().padding(top = 2.dp)) {
+                snapshot.lastWeekDays.forEachIndexed { index, day ->
+                    Text(
+                        text = day.format(dayFormat),
+                        maxLines = 1,
+                        style = TextStyle(
+                            color = if (index == snapshot.lastWeekDays.lastIndex) {
+                                GlanceTheme.colors.primary
+                            } else {
+                                GlanceTheme.colors.onSurfaceVariant
+                            },
+                            fontSize = 10.sp.capped(),
+                            fontWeight = if (index ==
+                                snapshot.lastWeekDays.lastIndex
+                            ) {
+                                FontWeight.Bold
+                            } else {
+                                FontWeight.Normal
+                            },
+                            textAlign = TextAlign.Center,
+                        ),
+                        modifier = GlanceModifier.defaultWeight(),
+                    )
+                }
             }
         }
     }
@@ -230,7 +235,7 @@ private fun Label(
         maxLines = maxLines,
         style = TextStyle(
             color = color ?: if (muted) GlanceTheme.colors.onSurfaceVariant else GlanceTheme.colors.onSurface,
-            fontSize = size,
+            fontSize = size.capped(),
             fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal,
         ),
     )
@@ -250,6 +255,8 @@ private val PADDING = 14.dp
 
 /** Header (~48 dp), day labels (~16 dp), vertical padding (24 dp) and gaps. */
 private val FIXED = 96.dp
+private val DAY_LABELS = 16.dp
+private val SHOW_DAYS = 130.dp
 private val CATEGORY_HEADER = 26.dp
 private val CATEGORY_ROW = 32.dp
 private val CHART_WITH_CATEGORIES = 56.dp

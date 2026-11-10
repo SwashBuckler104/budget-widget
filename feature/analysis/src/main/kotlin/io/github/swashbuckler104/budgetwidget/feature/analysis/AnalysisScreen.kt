@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -84,6 +85,7 @@ import io.github.swashbuckler104.budgetwidget.core.model.formatInrRounded
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 /**
  * Opens the transaction list for part of the shown month: a category (0 = any) and/or a merchant
@@ -96,6 +98,10 @@ data class AnalysisDrillDown(
     val categoryId: Long = 0,
     val accountId: Long = 0,
     val query: String = "",
+    /** One merchant exactly; set for merchant drill-downs. */
+    val merchantKey: String = "",
+    /** `OUT` for spending drill-downs (the totals only count money out), "" for both ways. */
+    val direction: String = "",
 )
 
 /** Tab 1 (SCOPE.md F7): month summary, category donut with drill-down, daily bars, trends, merchants. */
@@ -117,9 +123,21 @@ fun AnalysisRoute(
             onSelectAccount = viewModel::selectAccount,
             onSortInbox = onSortInbox,
             onOpenSettings = onOpenSettings,
-            onDrillDown = { title, categoryId, query ->
+            onDrillDown = { title, categoryId, merchant ->
                 val (from, to) = viewModel.monthRange()
-                onDrillDown(AnalysisDrillDown(title, from, to, categoryId, state.accountId ?: 0, query))
+                onDrillDown(
+                    AnalysisDrillDown(
+                        title = title,
+                        fromMillis = from,
+                        toMillis = to,
+                        categoryId = categoryId,
+                        accountId = state.accountId ?: 0,
+                        // A merchant without a key can only be found by its name.
+                        query = if (merchant != null && merchant.merchantKey == null) merchant.name.orEmpty() else "",
+                        merchantKey = merchant?.merchantKey.orEmpty(),
+                        direction = "OUT",
+                    ),
+                )
             },
         ),
         modifier = modifier,
@@ -131,8 +149,8 @@ internal class AnalysisActions(
     val onSelectAccount: (Long?) -> Unit,
     val onSortInbox: () -> Unit,
     val onOpenSettings: () -> Unit,
-    /** Title, category id (0 = any) and merchant query ("" = any). */
-    val onDrillDown: (String, Long, String) -> Unit,
+    /** Title, category id (0 = any) and a merchant (null = any). */
+    val onDrillDown: (String, Long, MerchantSpend?) -> Unit,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -195,7 +213,7 @@ internal fun AnalysisScreen(
                 else -> {
                     item(key = "summary") { Summary(analysis, state.month == state.currentMonth) }
                     if (analysis.categories.isNotEmpty()) {
-                        item(key = "categories") { CategoriesCard(analysis, actions) }
+                        item(key = "categories") { CategoriesCard(analysis, state.accountId, actions) }
                     }
                     item(key = "daily") { DailyCard(analysis, state.month == state.currentMonth) }
                     item(key = "trend") { TrendCard(analysis) }
@@ -360,19 +378,24 @@ private fun Summary(analysis: MonthAnalysis, current: Boolean) {
 
 /** Donut by top-level category; a tapped slice (or row) shows its subcategories and a link to the list. */
 @Composable
-private fun CategoriesCard(analysis: MonthAnalysis, actions: AnalysisActions) {
-    var selected by rememberSaveable(analysis.month) { mutableStateOf<Int?>(null) }
+private fun CategoriesCard(analysis: MonthAnalysis, accountId: Long?, actions: AnalysisActions) {
+    // Remembered by category (TO_SORT_ID for "To sort"), not slice position: sorting an item or
+    // switching account reorders the slices.
+    var selectedId by rememberSaveable(analysis.month, accountId) { mutableStateOf<Long?>(null) }
     val toSortName = stringResource(R.string.analysis_to_sort)
     val toSortColor = MaterialTheme.colorScheme.outline
     val slices = analysis.categories
-    val pick = selected?.takeIf { it in slices.indices }
+    val pick = selectedId?.let { id ->
+        slices.indexOfFirst { (it.category?.id ?: TO_SORT_ID) == id }
+    }?.takeIf { it >= 0 }
+    val select: (Int?) -> Unit = { index -> selectedId = index?.let { slices[it].category?.id ?: TO_SORT_ID } }
     ChartCard(stringResource(R.string.analysis_categories)) {
         val description = slices.joinToString(", ") { "${nameOf(it, toSortName)} ${formatInr(it.totalPaise)}" }
         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
             DonutChart(
                 slices = slices.map { DonutSlice(it.totalPaise, colorOf(it, toSortColor)) },
                 selected = pick,
-                onSelect = { selected = it },
+                onSelect = select,
                 description = stringResource(R.string.analysis_donut_description, description),
                 trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                 modifier = Modifier
@@ -405,7 +428,7 @@ private fun CategoriesCard(analysis: MonthAnalysis, actions: AnalysisActions) {
                 totalPaise = slice.totalPaise,
                 ofPaise = analysis.spentPaise,
                 selected = index == pick,
-                onClick = { selected = if (pick == index) null else index },
+                onClick = { select(if (pick == index) null else index) },
             )
             if (index == pick) {
                 SliceDetail(slice, toSortName, actions)
@@ -433,12 +456,12 @@ private fun SliceDetail(slice: CategorySpend, toSortName: String, actions: Analy
                 totalPaise = child.totalPaise,
                 ofPaise = slice.totalPaise,
                 selected = false,
-                onClick = { child.category?.let { actions.onDrillDown(it.name, it.id, "") } },
+                onClick = { child.category?.let { actions.onDrillDown(it.name, it.id, null) } },
             )
         }
         if (category != null) {
             TextButton(
-                onClick = { actions.onDrillDown(category.name, category.id, "") },
+                onClick = { actions.onDrillDown(category.name, category.id, null) },
                 modifier = Modifier.padding(horizontal = 8.dp),
             ) {
                 Text(pluralStringResource(R.plurals.analysis_see_transactions, slice.count, slice.count))
@@ -495,10 +518,12 @@ private fun SpendRow(
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    "${(fraction * PERCENT).toInt()}%",
+                    "${(fraction * PERCENT).roundToInt()}%",
                     style = MaterialTheme.typography.labelSmall.tabular(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.width(36.dp),
+                    maxLines = 1,
+                    softWrap = false,
+                    modifier = Modifier.widthIn(min = 36.dp),
                     textAlign = TextAlign.End,
                 )
             }
@@ -577,7 +602,7 @@ private fun MerchantsCard(merchants: List<MerchantSpend>, spentPaise: Long, acti
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(MaterialTheme.shapes.small)
-                    .clickable(enabled = merchant.name != null) { actions.onDrillDown(name, 0, name) }
+                    .clickable(enabled = merchant.name != null) { actions.onDrillDown(name, 0, merchant) }
                     .padding(horizontal = 8.dp, vertical = 10.dp),
             ) {
                 Text(
@@ -603,7 +628,7 @@ private fun MerchantsCard(merchants: List<MerchantSpend>, spentPaise: Long, acti
                     Text(formatInr(merchant.totalPaise), style = MaterialTheme.typography.bodyLarge.tabular())
                     if (spentPaise > 0) {
                         Text(
-                            "${merchant.totalPaise * PERCENT / spentPaise}%",
+                            "${(merchant.totalPaise * PERCENT.toFloat() / spentPaise).roundToInt()}%",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -668,6 +693,7 @@ private fun monthLabel(month: YearMonth, current: YearMonth): String = month.for
 
 private val SWIPE_DISTANCE = 72.dp
 private const val TO_SORT_EMOJI = "📥"
+private const val TO_SORT_ID = -1L
 private const val DONUT_WIDTH = 0.62f
 private const val CENTER_TEXT_WIDTH = 0.4f
 private const val PERCENT = 100

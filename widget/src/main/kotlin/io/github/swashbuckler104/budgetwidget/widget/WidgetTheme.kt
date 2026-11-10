@@ -2,7 +2,10 @@ package io.github.swashbuckler104.budgetwidget.widget
 
 import android.os.Build
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceTheme
+import androidx.glance.LocalContext
 import androidx.glance.color.ColorProvider
 import androidx.glance.material3.ColorProviders
 import androidx.glance.unit.ColorProvider
@@ -24,6 +27,18 @@ internal fun WidgetTheme(content: @Composable () -> Unit) {
 }
 
 private val BrandGlanceColors = ColorProviders(light = BrandColors.light, dark = BrandColors.dark)
+
+/**
+ * Widget text follows the system font size up to [MAX_FONT_SCALE]. Widget cells don't grow, so
+ * larger text was clipped at 200% (chip labels cut in half, footer buttons cut off).
+ */
+@Composable
+internal fun TextUnit.capped(): TextUnit {
+    val scale = LocalContext.current.resources.configuration.fontScale
+    return if (scale <= MAX_FONT_SCALE) this else (value * MAX_FONT_SCALE / scale).sp
+}
+
+private const val MAX_FONT_SCALE = 1.3f
 
 /** Income green and spending red, fixed hues tuned per theme (see [MoneyColors]). */
 internal object WidgetMoney {

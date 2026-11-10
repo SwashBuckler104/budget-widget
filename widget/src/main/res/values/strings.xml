@@ -47,6 +47,6 @@
     <!-- %1$s: spent today, %2$s: the highest day. -->
     <string name="insight_chart_description">Spending over the last 7 days. Today %1$s, highest day %2$s.</string>
     <string name="insight_preview_today">Today ₹1,240</string>
-    <string name="insight_preview_month">November ▼8% ₹18,420</string>
+    <string name="insight_preview_month">This month ▼8% ₹18,420</string>
     <string name="insight_preview_bars">▂ ▅ ▃ ▇ ▄ ▂ ▆</string>
 </resources>
