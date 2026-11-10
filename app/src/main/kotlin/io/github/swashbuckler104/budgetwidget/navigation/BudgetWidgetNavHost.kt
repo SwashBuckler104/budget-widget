@@ -24,6 +24,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navDeepLink
 import androidx.navigation.toRoute
 import io.github.swashbuckler104.budgetwidget.R
 import io.github.swashbuckler104.budgetwidget.feature.analysis.AnalysisRoute
@@ -105,7 +106,14 @@ fun BudgetWidgetNavHost(onOpenQuickSort: (transactionId: Long?) -> Unit, modifie
                 .padding(padding)
                 .consumeWindowInsets(padding),
         ) {
-            composable<AnalysisDestination> {
+            // The Insight widget opens Analysis through this link (InsightWidget.ANALYSIS_URI).
+            composable<AnalysisDestination>(
+                deepLinks = listOf(
+                    navDeepLink {
+                        uriPattern = "budgetwidget://analysis"
+                    },
+                ),
+            ) {
                 AnalysisRoute(
                     onSortInbox = { onOpenQuickSort(null) },
                     onOpenSettings = openSettings,

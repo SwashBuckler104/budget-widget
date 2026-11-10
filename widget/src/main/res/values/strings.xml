@@ -36,4 +36,17 @@
     <string name="widget_preview_header">3 to sort · closes at midnight</string>
     <string name="widget_preview_card">-₹450 · Swiggy</string>
     <string name="widget_preview_chips">🛒  🍔  ⛽  🚌  💊  📱</string>
+    <string name="widget_insight_label">Spending insight</string>
+    <string name="widget_insight_description">Today, this month and the last 7 days at a glance</string>
+    <string name="insight_today">Today</string>
+    <string name="insight_top_categories">Top categories this month</string>
+    <string name="insight_to_sort">To sort</string>
+    <!-- %1$d: percent. Read by TalkBack for the ▲/▼ comparison. -->
+    <string name="insight_more_than_last">%1$d%% more than last month so far</string>
+    <string name="insight_less_than_last">%1$d%% less than last month so far</string>
+    <!-- %1$s: spent today, %2$s: the highest day. -->
+    <string name="insight_chart_description">Spending over the last 7 days. Today %1$s, highest day %2$s.</string>
+    <string name="insight_preview_today">Today ₹1,240</string>
+    <string name="insight_preview_month">November ▼8% ₹18,420</string>
+    <string name="insight_preview_bars">▂ ▅ ▃ ▇ ▄ ▂ ▆</string>
 </resources>
