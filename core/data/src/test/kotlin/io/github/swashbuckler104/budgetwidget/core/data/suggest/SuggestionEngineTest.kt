@@ -5,6 +5,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
 import io.github.swashbuckler104.budgetwidget.core.data.category.CategorySeeder
 import io.github.swashbuckler104.budgetwidget.core.data.inMemoryDb
+import io.github.swashbuckler104.budgetwidget.core.data.inbox.InboxEvents
 import io.github.swashbuckler104.budgetwidget.core.data.sort.SortTransactionUseCase
 import io.github.swashbuckler104.budgetwidget.core.data.testTxn
 import io.github.swashbuckler104.budgetwidget.core.database.BudgetDatabase
@@ -52,7 +53,7 @@ class SuggestionEngineTest {
     fun setUp() {
         db = inMemoryDb()
         engine = SuggestionEngine(db) { now }
-        sort = SortTransactionUseCase(db) { now }
+        sort = SortTransactionUseCase(db, { now }, InboxEvents(emptySet()))
     }
 
     @After

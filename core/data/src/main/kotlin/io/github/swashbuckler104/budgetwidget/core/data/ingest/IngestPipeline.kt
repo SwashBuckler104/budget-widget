@@ -3,6 +3,7 @@ package io.github.swashbuckler104.budgetwidget.core.data.ingest
 import androidx.room.withTransaction
 import io.github.swashbuckler104.budgetwidget.core.data.MerchantKeyNormalizer
 import io.github.swashbuckler104.budgetwidget.core.data.WallClock
+import io.github.swashbuckler104.budgetwidget.core.data.inbox.InboxEvents
 import io.github.swashbuckler104.budgetwidget.core.data.sort.AutoSortSetting
 import io.github.swashbuckler104.budgetwidget.core.database.BudgetDatabase
 import io.github.swashbuckler104.budgetwidget.core.database.entity.AccountEntity
@@ -62,6 +63,7 @@ class IngestPipeline @Inject constructor(
     private val db: BudgetDatabase,
     private val clock: WallClock,
     private val autoSort: AutoSortSetting,
+    private val events: InboxEvents,
 ) {
     private val mutex = Mutex()
 
@@ -70,7 +72,7 @@ class IngestPipeline @Inject constructor(
         if (!parser.isKnownBankSender(sms.sender)) return@withContext IngestOutcome.NotFinancial
         val result = parser.parse(sms)
         val autoSortEnabled = autoSort.enabled()
-        mutex.withLock {
+        val outcome = mutex.withLock {
             db.withTransaction {
                 when (result) {
                     is SmsParseResult.Transaction -> store(result.parsed, origin, autoSortEnabled)
@@ -97,6 +99,9 @@ class IngestPipeline @Inject constructor(
                 }
             }
         }
+        // Step 7 (notification), after the commit so listeners see the stored row.
+        if (outcome is IngestOutcome.Inserted && !outcome.autoSorted) events.pendingAdded(outcome.id, origin)
+        outcome
     }
 
     private suspend fun store(parsed: ParsedSms, origin: IngestOrigin, autoSortEnabled: Boolean): IngestOutcome {

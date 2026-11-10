@@ -3,6 +3,8 @@ package io.github.swashbuckler104.budgetwidget.core.data.sort
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
 import io.github.swashbuckler104.budgetwidget.core.data.inMemoryDb
+import io.github.swashbuckler104.budgetwidget.core.data.inbox.InboxEvents
+import io.github.swashbuckler104.budgetwidget.core.data.inbox.RecordingInboxListener
 import io.github.swashbuckler104.budgetwidget.core.data.testTxn
 import io.github.swashbuckler104.budgetwidget.core.database.BudgetDatabase
 import io.github.swashbuckler104.budgetwidget.core.database.entity.CategoryEntity
@@ -20,11 +22,12 @@ class SortTransactionUseCaseTest {
     private lateinit var db: BudgetDatabase
     private lateinit var sort: SortTransactionUseCase
     private var now = 1_000L
+    private val listener = RecordingInboxListener()
 
     @Before
     fun setUp() {
         db = inMemoryDb()
-        sort = SortTransactionUseCase(db) { now }
+        sort = SortTransactionUseCase(db, { now }, InboxEvents(setOf(listener)))
     }
 
     @After
@@ -103,5 +106,44 @@ class SortTransactionUseCaseTest {
             assertThat(categoryId).isNull()
         }
         assertThat(sort.ignore(999)).isEqualTo(SortResult.TransactionNotFound)
+    }
+
+    @Test
+    fun `requirePending makes a stale sort or ignore a no-op`() = runTest {
+        val food = cat("Food")
+        val fuel = cat("Fuel")
+        val a = db.transactionDao().insertOrIgnore(testTxn("a", key = "swiggy"))
+        sort.categorize(a, food)
+
+        assertThat(sort.categorize(a, fuel, requirePending = true)).isEqualTo(SortResult.NotPending)
+        assertThat(sort.ignore(a, requirePending = true)).isEqualTo(SortResult.NotPending)
+        with(db.transactionDao().get(a)!!) {
+            assertThat(status).isEqualTo(TransactionStatus.CATEGORIZED)
+            assertThat(categoryId).isEqualTo(food)
+        }
+        // The stale tap must not teach the rule either.
+        assertThat(db.merchantRuleDao().get("swiggy")!!.categoryId).isEqualTo(food)
+    }
+
+    @Test
+    fun `duplicate ignore keeps the reason`() = runTest {
+        val a = db.transactionDao().insertOrIgnore(testTxn("a"))
+        assertThat(sort.ignore(a, IgnoreReason.DUPLICATE, requirePending = true)).isEqualTo(SortResult.Done)
+        assertThat(db.transactionDao().get(a)!!.ignoreReason).isEqualTo(IgnoreReason.DUPLICATE)
+    }
+
+    @Test
+    fun `listeners hear about successful sorts only`() = runTest {
+        val food = cat("Food")
+        val a = db.transactionDao().insertOrIgnore(testTxn("a"))
+        val b = db.transactionDao().insertOrIgnore(testTxn("b"))
+
+        sort.categorize(a, 999)
+        sort.categorize(a, food)
+        sort.categorize(a, food, requirePending = true)
+        sort.ignore(b)
+        sort.ignore(999)
+
+        assertThat(listener.events).containsExactly("sorted:$a", "sorted:$b").inOrder()
     }
 }

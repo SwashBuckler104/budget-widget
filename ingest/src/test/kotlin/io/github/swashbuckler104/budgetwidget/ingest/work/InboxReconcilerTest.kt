@@ -6,6 +6,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
+import io.github.swashbuckler104.budgetwidget.core.data.inbox.InboxEvents
 import io.github.swashbuckler104.budgetwidget.core.data.ingest.IngestOrigin
 import io.github.swashbuckler104.budgetwidget.core.data.ingest.IngestPipeline
 import io.github.swashbuckler104.budgetwidget.core.database.BudgetDatabase
@@ -102,7 +103,7 @@ class InboxReconcilerTest {
         assertThat(checkpoint.get()).isNull()
     }
 
-    private fun pipeline() = IngestPipeline(PennyWiseSmsParser(), db, { now }) { false }
+    private fun pipeline() = IngestPipeline(PennyWiseSmsParser(), db, { now }, { false }, InboxEvents(emptySet()))
 
     private fun reconciler(scope: TestScope): Pair<InboxReconciler, IngestCheckpointStore> {
         val store = PreferenceDataStoreFactory.create(scope = scope.backgroundScope) {

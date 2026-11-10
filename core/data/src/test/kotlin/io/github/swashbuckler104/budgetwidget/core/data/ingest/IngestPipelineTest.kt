@@ -5,6 +5,9 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
+import io.github.swashbuckler104.budgetwidget.core.data.inbox.InboxEvents
+import io.github.swashbuckler104.budgetwidget.core.data.inbox.InboxListener
+import io.github.swashbuckler104.budgetwidget.core.data.inbox.RecordingInboxListener
 import io.github.swashbuckler104.budgetwidget.core.database.BudgetDatabase
 import io.github.swashbuckler104.budgetwidget.core.database.entity.CategoryEntity
 import io.github.swashbuckler104.budgetwidget.core.database.entity.MerchantRuleEntity
@@ -31,6 +34,7 @@ class IngestPipelineTest {
     private lateinit var db: BudgetDatabase
     private val parser = FakeParser()
     private var autoSort = false
+    private val listener = RecordingInboxListener()
     private lateinit var pipeline: IngestPipeline
 
     @Before
@@ -40,7 +44,7 @@ class IngestPipelineTest {
                 ApplicationProvider.getApplicationContext<Context>(),
                 BudgetDatabase::class.java,
             ).build()
-        pipeline = IngestPipeline(parser, db, { NOW }) { autoSort }
+        pipeline = IngestPipeline(parser, db, { NOW }, { autoSort }, InboxEvents(setOf(listener)))
     }
 
     @After
@@ -167,6 +171,39 @@ class IngestPipelineTest {
         assertThat(
             (pipeline.ingest(RawSms(BANK, "d", 4), IngestOrigin.REALTIME) as IngestOutcome.Inserted).autoSorted,
         ).isFalse()
+    }
+
+    @Test
+    fun `listeners hear about new pending rows only, after they are stored`() = runTest {
+        val food = db.categoryDao().insert(
+            CategoryEntity(
+                parentId = null,
+                name = "Food",
+                iconKey = "🍽️",
+                colorArgb = 0,
+                kind = CategoryKind.EXPENSE,
+                sortOrder = 0,
+            ),
+        )
+        db.merchantRuleDao().upsert(MerchantRuleEntity("swiggy food", food, 3, 0))
+        autoSort = true
+        val seen = mutableListOf<TransactionStatus?>()
+        val checking = object : InboxListener {
+            override suspend fun onPendingAdded(transactionId: Long, origin: IngestOrigin) {
+                seen += db.transactionDao().get(transactionId)?.status
+            }
+        }
+        val pipeline = IngestPipeline(parser, db, { NOW }, { autoSort }, InboxEvents(linkedSetOf(listener, checking)))
+
+        parser.next = txn(hash = "new")
+        val inserted = pipeline.ingest(RawSms(BANK, "a", 1), IngestOrigin.RECONCILE) as IngestOutcome.Inserted
+        parser.next = txn(hash = "new")
+        pipeline.ingest(RawSms(BANK, "a", 1), IngestOrigin.REALTIME)
+        parser.next = txn(hash = "auto", merchant = "swiggy.food@paytm", at = 900_000_000)
+        pipeline.ingest(RawSms(BANK, "b", 2), IngestOrigin.REALTIME)
+
+        assertThat(listener.events).containsExactly("added:${inserted.id}:RECONCILE")
+        assertThat(seen).containsExactly(TransactionStatus.PENDING)
     }
 
     private class FakeParser : SmsParser {

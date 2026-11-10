@@ -25,6 +25,10 @@ class TransactionRepository @Inject constructor(
     }
 
     fun observeTransaction(id: Long): Flow<Transaction?> = transactionDao.observeWithAccount(id).map { it?.toModel() }
+
+    suspend fun get(id: Long): Transaction? = transactionDao.getWithAccount(id)?.toModel()
+
+    suspend fun pendingIds(): Set<Long> = transactionDao.pendingIds().toSet()
 }
 
 private fun TransactionWithAccount.toModel() = with(transaction) {
