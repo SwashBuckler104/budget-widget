@@ -2,6 +2,7 @@ package io.github.swashbuckler104.budgetwidget.ingest.work
 
 import io.github.swashbuckler104.budgetwidget.core.data.WallClock
 import io.github.swashbuckler104.budgetwidget.core.data.ingest.IngestOrigin
+import io.github.swashbuckler104.budgetwidget.core.data.ingest.IngestOutcome
 import io.github.swashbuckler104.budgetwidget.core.data.ingest.IngestPipeline
 import io.github.swashbuckler104.budgetwidget.core.datastore.IngestCheckpointStore
 import javax.inject.Inject
@@ -22,7 +23,8 @@ internal class InboxReconciler @Inject constructor(
     sealed interface Result {
         data object NoPermission : Result
 
-        data class Scanned(val messages: Int) : Result
+        /** [inserted]: new transactions stored by this scan. */
+        data class Scanned(val messages: Int, val inserted: Int = 0) : Result
     }
 
     suspend fun reconcile(): Result {
@@ -40,15 +42,16 @@ internal class InboxReconciler @Inject constructor(
         // A message dated in the future (clock changes) must not push the checkpoint past now.
         val ceiling = clock.nowMillis()
         var count = 0
+        var inserted = 0
         var newest = Long.MIN_VALUE
         inbox.forEachSince(afterMillis) { sms ->
-            pipeline.ingest(sms, origin)
+            if (pipeline.ingest(sms, origin) is IngestOutcome.Inserted) inserted++
             count++
             newest = maxOf(newest, minOf(sms.receivedAt, ceiling))
             if (count % CHECKPOINT_EVERY == 0) checkpoint.advanceTo(newest)
         }
         if (count > 0) checkpoint.advanceTo(newest)
-        return Result.Scanned(count)
+        return Result.Scanned(count, inserted)
     }
 
     companion object {

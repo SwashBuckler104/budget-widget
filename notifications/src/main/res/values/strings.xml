@@ -12,4 +12,16 @@
         <item quantity="other">%1$d transactions to sort</item>
     </plurals>
     <string name="notif_summary_text">Tap to sort</string>
+    <string name="notif_channel_reminders">Evening reminder</string>
+    <string name="notif_channel_reminders_description">A daily nudge when transactions are still waiting to be sorted</string>
+    <plurals name="notif_nudge_title">
+        <item quantity="one">%1$d transaction left to sort today</item>
+        <item quantity="other">%1$d transactions left to sort today</item>
+    </plurals>
+    <string name="notif_nudge_text">Sort them before midnight to close the day</string>
+    <plurals name="notif_nudge_text_streak">
+        <item quantity="one">Sort them before midnight to keep your %1$d-day streak</item>
+        <item quantity="other">Sort them before midnight to keep your %1$d-day streak</item>
+    </plurals>
+    <string name="notif_nudge_action">Sort now</string>
 </resources>

@@ -52,7 +52,7 @@ class InboxReconcilerTest {
         inbox.messages += hdfc(600, at = now - HOUR)
         inbox.messages += personal(at = now - HOUR)
 
-        assertThat(reconciler.reconcile()).isEqualTo(InboxReconciler.Result.Scanned(2))
+        assertThat(reconciler.reconcile()).isEqualTo(InboxReconciler.Result.Scanned(2, inserted = 1))
         assertThat(inbox.lastAfter).isEqualTo(now - DAY)
         assertThat(checkpoint.get()).isEqualTo(now - HOUR)
         assertThat(amounts()).containsExactly(60_000L)
@@ -60,7 +60,7 @@ class InboxReconcilerTest {
         // The receiver missed one; the next scan picks it up, re-reads the overlap, stores no duplicates.
         now += HOUR
         inbox.messages += hdfc(700, at = now - MINUTE)
-        assertThat(reconciler.reconcile()).isEqualTo(InboxReconciler.Result.Scanned(3))
+        assertThat(reconciler.reconcile()).isEqualTo(InboxReconciler.Result.Scanned(3, inserted = 1))
         assertThat(inbox.lastAfter).isEqualTo(now - HOUR - HOUR - 10 * MINUTE)
         assertThat(amounts()).containsExactly(60_000L, 70_000L)
         assertThat(db.unparsedSmsDao().count()).isEqualTo(0)
@@ -81,7 +81,7 @@ class InboxReconcilerTest {
         val (reconciler, checkpoint) = reconciler(this)
         inbox.messages += hdfc(100, at = now - 20 * DAY)
         inbox.messages += hdfc(200, at = now - 5 * DAY)
-        assertThat(reconciler.backfill(now - 30 * DAY)).isEqualTo(InboxReconciler.Result.Scanned(2))
+        assertThat(reconciler.backfill(now - 30 * DAY)).isEqualTo(InboxReconciler.Result.Scanned(2, inserted = 2))
         val rows = db.transactionDao().observeAllWithAccount().first()
         assertThat(rows.map { it.transaction.isBackfill }).containsExactly(true, true)
         assertThat(checkpoint.get()).isEqualTo(now - 5 * DAY)

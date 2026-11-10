@@ -1,5 +1,6 @@
 package io.github.swashbuckler104.budgetwidget.notifications
 
+import io.github.swashbuckler104.budgetwidget.core.data.inbox.InboxWidgets
 import io.github.swashbuckler104.budgetwidget.core.data.sort.SortResult
 import io.github.swashbuckler104.budgetwidget.core.data.sort.SortTransactionUseCase
 import io.github.swashbuckler104.budgetwidget.core.model.IgnoreReason
@@ -9,6 +10,7 @@ import javax.inject.Inject
 internal class NotificationActionHandler @Inject constructor(
     private val sort: SortTransactionUseCase,
     private val notifier: TransactionNotifier,
+    private val widgets: InboxWidgets,
 ) {
     suspend fun handle(command: NotificationCommand) {
         val id = command.transactionId
@@ -27,5 +29,7 @@ internal class NotificationActionHandler @Inject constructor(
             // The button's category was archived, deleted or got subcategories since posting.
             SortResult.CategoryNotFound, SortResult.CategoryArchived, SortResult.NotALeaf -> notifier.refresh(id)
         }
+        // The process may die right after the broadcast: redraw widgets before returning.
+        if (result == SortResult.Done) widgets.refreshNow()
     }
 }

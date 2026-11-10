@@ -12,6 +12,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
 import io.github.swashbuckler104.budgetwidget.core.data.inbox.InboxEvents
+import io.github.swashbuckler104.budgetwidget.core.data.inbox.InboxWidgets
 import io.github.swashbuckler104.budgetwidget.core.data.inbox.QuickSortLauncher
 import io.github.swashbuckler104.budgetwidget.core.data.ingest.IngestOrigin
 import io.github.swashbuckler104.budgetwidget.core.data.repository.TransactionRepository
@@ -53,6 +54,7 @@ class TransactionNotifierTest {
     private lateinit var handler: NotificationActionHandler
     private val now = 1_700_000_000_000L
     private var account = 0L
+    private var widgetRefreshes = 0
 
     private val launcher = object : QuickSortLauncher {
         override fun transaction(context: Context, transactionId: Long) = Intent("sort").putExtra("id", transactionId)
@@ -88,7 +90,15 @@ class TransactionNotifierTest {
             TransactionNotificationFactory(context, launcher),
             clock,
         )
-        handler = NotificationActionHandler(SortTransactionUseCase(db, clock, InboxEvents(setOf(notifier))), notifier)
+        handler = NotificationActionHandler(
+            SortTransactionUseCase(db, clock, InboxEvents(setOf(notifier))),
+            notifier,
+            object : InboxWidgets {
+                override suspend fun refreshNow() {
+                    widgetRefreshes++
+                }
+            },
+        )
     }
 
     private suspend fun category(name: String, archived: Boolean = false) = db.categoryDao().insert(
@@ -225,6 +235,7 @@ class TransactionNotifierTest {
         // Like the sheet's default, a notification sort teaches the merchant rule.
         assertThat(db.merchantRuleDao().get("swiggy")!!.categoryId).isEqualTo(food)
         assertThat(manager.activeNotifications).isEmpty()
+        assertThat(widgetRefreshes).isEqualTo(1)
     }
 
     @Test

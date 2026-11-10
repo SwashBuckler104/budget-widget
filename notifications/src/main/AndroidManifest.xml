@@ -9,5 +9,17 @@
         <receiver
             android:name=".NotificationActionReceiver"
             android:exported="false" />
+
+        <!-- Day alarms (our own PendingIntents) plus system clock/time-zone changes and our own
+             updates, which the system delivers to non-exported receivers too. -->
+        <receiver
+            android:name=".day.DayTickReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

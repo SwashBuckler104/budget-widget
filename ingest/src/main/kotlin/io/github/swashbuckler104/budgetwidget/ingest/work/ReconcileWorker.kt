@@ -9,6 +9,7 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import io.github.swashbuckler104.budgetwidget.core.data.inbox.InboxWidgets
 
 /** Periodic and on-demand inbox scan; with [backfillInput] it imports older messages instead. */
 @HiltWorker
@@ -16,11 +17,19 @@ internal class ReconcileWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
     private val reconciler: InboxReconciler,
+    private val widgets: InboxWidgets,
 ) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         val backfillSince = inputData.getLong(KEY_BACKFILL_SINCE, NO_BACKFILL)
         return try {
-            if (backfillSince == NO_BACKFILL) reconciler.reconcile() else reconciler.backfill(backfillSince)
+            val result = if (backfillSince ==
+                NO_BACKFILL
+            ) {
+                reconciler.reconcile()
+            } else {
+                reconciler.backfill(backfillSince)
+            }
+            if (result is InboxReconciler.Result.Scanned && result.inserted > 0) widgets.refreshNow()
             Result.success()
         } catch (_: SQLException) {
             if (runAttemptCount < MAX_ATTEMPTS) Result.retry() else Result.failure()
