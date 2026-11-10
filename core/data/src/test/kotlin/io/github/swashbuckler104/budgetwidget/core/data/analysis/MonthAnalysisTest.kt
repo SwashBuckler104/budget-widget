@@ -9,6 +9,7 @@ import io.github.swashbuckler104.budgetwidget.core.model.TransactionSource
 import io.github.swashbuckler104.budgetwidget.core.model.TransactionStatus
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.ZoneId
 import java.time.ZoneOffset
 import org.junit.Test
 
@@ -101,7 +102,7 @@ class MonthAnalysisTest {
         assertThat(a.cumulative).containsExactly(150_00L, 150_00L, 180_00L).inOrder()
         assertThat(a.previousCumulative).hasSize(31)
         assertThat(a.previousCumulative.last()).isEqualTo(70_00)
-        assertThat(a.topMerchants.first()).isEqualTo(MerchantSpend("HP", 150_00, 2))
+        assertThat(a.topMerchants.first()).isEqualTo(MerchantSpend("HP", 150_00, 2, "hp"))
     }
 
     @Test
@@ -128,6 +129,31 @@ class MonthAnalysisTest {
         val future = MonthAnalysis.compute(txns, categories, YearMonth.of(2026, 12), today = d(10), zone = zone)
         assertThat(future.daysCounted).isEqualTo(0)
         assertThat(future.averagePerDayPaise).isEqualTo(0)
+    }
+
+    @Test
+    fun `months are local months and a tiny previous month doesn't overflow the percentage`() {
+        val ist = ZoneId.of("Asia/Kolkata")
+        // 31 Oct 23:30 IST is 18:00 UTC: October locally, even though the UTC date is also the 31st;
+        // 1 Nov 00:15 IST is 31 Oct in UTC but November locally.
+        val octLate = Transaction(
+            id = 90, source = TransactionSource.SMS, amountPaise = 1, direction = Direction.OUT, parserType = null,
+            merchantDisplay = null, bankName = null, accountLast4 = null,
+            occurredAt = LocalDate.of(2026, 10, 31).atTime(23, 30).atZone(ist).toInstant().toEpochMilli(),
+            isCard = false, status = TransactionStatus.CATEGORIZED, isBackfill = false, duplicateOfId = null,
+            categoryId = fuel.id,
+        )
+        val novEarly = octLate.copy(
+            id = 91,
+            amountPaise = 50_000_000_00,
+            occurredAt = LocalDate.of(2026, 11, 1).atTime(0, 15).atZone(ist).toInstant().toEpochMilli(),
+        )
+        // November is a past month here, so it's compared with all of October.
+        val a = MonthAnalysis.compute(listOf(octLate, novEarly), categories, nov, today = d(5, month = 12), zone = ist)
+        assertThat(a.spentPaise).isEqualTo(50_000_000_00)
+        assertThat(a.previousSpentPaise).isEqualTo(1)
+        assertThat(a.daily.first()).isEqualTo(50_000_000_00)
+        assertThat(a.changePercent).isEqualTo(999_999)
     }
 
     @Test

@@ -7,6 +7,7 @@ import io.github.swashbuckler104.budgetwidget.core.database.BudgetDatabase
 import io.github.swashbuckler104.budgetwidget.core.database.entity.MerchantRuleEntity
 import io.github.swashbuckler104.budgetwidget.core.model.IgnoreReason
 import io.github.swashbuckler104.budgetwidget.core.model.TransactionStatus
+import io.github.swashbuckler104.budgetwidget.core.model.accepts
 import javax.inject.Inject
 
 sealed interface SortResult {
@@ -23,6 +24,9 @@ sealed interface SortResult {
     data object NotALeaf : SortResult
 
     data object CategoryArchived : SortResult
+
+    /** The category's kind can't hold money moving this way (an income category for a payment). */
+    data object KindMismatch : SortResult
 }
 
 /**
@@ -54,7 +58,12 @@ class SortTransactionUseCase @Inject constructor(
         }
     }
 
-    private suspend fun categorizeLocked(
+    /**
+     * [categorize] without its own transaction or event, for callers that sort as part of a larger
+     * write ([TransactionEditor][io.github.swashbuckler104.budgetwidget.core.data.edit.TransactionEditor]):
+     * call inside `withTransaction` and report [InboxEvents.sorted] after the commit.
+     */
+    internal suspend fun categorizeLocked(
         transactionId: Long,
         categoryId: Long,
         note: String?,
@@ -66,6 +75,7 @@ class SortTransactionUseCase @Inject constructor(
         val category = db.categoryDao().get(categoryId) ?: return SortResult.CategoryNotFound
         if (category.archived) return SortResult.CategoryArchived
         if (db.categoryDao().childIds(categoryId).isNotEmpty()) return SortResult.NotALeaf
+        if (!category.kind.accepts(tx.direction)) return SortResult.KindMismatch
 
         val now = clock.nowMillis()
         db.transactionDao().categorize(transactionId, categoryId, cleanNote(note), auto = false, now = now)

@@ -12,4 +12,7 @@ interface MerchantAliasDao {
 
     @Upsert
     suspend fun upsert(alias: MerchantAliasEntity)
+
+    @Query("DELETE FROM merchant_alias WHERE merchantKey = :merchantKey")
+    suspend fun delete(merchantKey: String)
 }

@@ -7,6 +7,7 @@ import io.github.swashbuckler104.budgetwidget.core.model.Transaction
 import io.github.swashbuckler104.budgetwidget.core.model.TransactionSource
 import io.github.swashbuckler104.budgetwidget.core.model.TransactionStatus
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.ZoneOffset
 import org.junit.Test
 
@@ -72,6 +73,31 @@ class TransactionFilterTest {
         assertThat(TransactionFilter(accountId = 4).test(tx())).isFalse()
         assertThat(TransactionFilter(fromMillis = 10, toMillis = 20).test(tx(at = 10))).isTrue()
         assertThat(TransactionFilter(fromMillis = 10, toMillis = 20).test(tx(at = 20))).isFalse()
+    }
+
+    @Test
+    fun `merchant key and hide-ignored narrow a drill-down exactly`() {
+        val uber = tx(merchant = "Uber").copy(merchantKey = "uber")
+        val uberEats = tx(merchant = "Uber Eats").copy(merchantKey = "uber eats")
+        val ignored = uber.copy(status = TransactionStatus.IGNORED)
+        val filter = TransactionFilter(merchantKey = "uber", hideIgnored = true)
+        assertThat(filter.test(uber)).isTrue()
+        assertThat(filter.test(uberEats)).isFalse()
+        assertThat(filter.test(ignored)).isFalse()
+    }
+
+    @Test
+    fun `days are local days, not UTC days`() {
+        val ist = ZoneId.of("Asia/Kolkata")
+        // 23:30 IST on 1 Nov is 18:00 UTC: still the 1st locally; 00:30 IST on the 2nd is the 1st in UTC.
+        val late = LocalDate.of(2026, 11, 1).atTime(23, 30).atZone(ist).toInstant().toEpochMilli()
+        val early = LocalDate.of(2026, 11, 2).atTime(0, 30).atZone(ist).toInstant().toEpochMilli()
+        val groups = groupByDay(listOf(tx(id = 2, at = early), tx(id = 1, at = late)), ist) { CategoryKind.EXPENSE }
+        assertThat(
+            groups.map {
+                it.date
+            },
+        ).containsExactly(LocalDate.of(2026, 11, 2), LocalDate.of(2026, 11, 1)).inOrder()
     }
 
     @Test

@@ -58,6 +58,9 @@ interface TransactionDao {
     )
     suspend fun unignore(id: Long, now: Long): Int
 
+    @Query("SELECT * FROM transactions WHERE merchantKey = :merchantKey")
+    suspend fun byMerchantKey(merchantKey: String): List<TransactionEntity>
+
     /** "Apply to all from this merchant": renames every transaction with [merchantKey]. */
     @Query("UPDATE transactions SET merchantDisplay = :displayName, updatedAt = :now WHERE merchantKey = :merchantKey")
     suspend fun renameMerchant(merchantKey: String, displayName: String, now: Long): Int

@@ -23,8 +23,11 @@ data class CategorySpend(
     val children: List<CategorySpend> = emptyList(),
 )
 
-/** A merchant's spending in the month. [name] is null for transactions without one. */
-data class MerchantSpend(val name: String?, val totalPaise: Long, val count: Int)
+/**
+ * A merchant's spending in the month. [name] is null for transactions without one; [merchantKey]
+ * is null when none of them has a key (then only the name identifies it).
+ */
+data class MerchantSpend(val name: String?, val totalPaise: Long, val count: Int, val merchantKey: String? = null)
 
 /** Everything the Analysis tab shows for one month (SCOPE.md F7 Tab 1). Money is paise. */
 data class MonthAnalysis(
@@ -53,16 +56,17 @@ data class MonthAnalysis(
 
     /** Change against [previousSpentPaise] in percent, null when there is nothing to compare with. */
     val changePercent: Int?
-        get() = if (previousSpentPaise <=
-            0
-        ) {
-            null
-        } else {
-            ((spentPaise - previousSpentPaise) * 100 / previousSpentPaise).toInt()
+        get() {
+            if (previousSpentPaise <= 0) return null
+            // Clamped: a previous month of a few paise would otherwise overflow Int.
+            val percent = (spentPaise - previousSpentPaise) * PERCENT / previousSpentPaise
+            return percent.coerceIn(-MAX_PERCENT, MAX_PERCENT).toInt()
         }
 
     companion object {
         const val TOP_MERCHANTS = 5
+        private const val PERCENT = 100L
+        private const val MAX_PERCENT = 999_999L
 
         /**
          * Computes [month] from [transactions] (any order). [categories] maps every category id to
@@ -122,8 +126,11 @@ data class MonthAnalysis(
                             name = items.firstNotNullOfOrNull { it.merchantDisplay },
                             totalPaise = items.sumOf { it.amountPaise },
                             count = items.size,
+                            merchantKey = items.firstNotNullOfOrNull { it.merchantKey },
                         )
                     }
+                    // Rows without a merchant name aren't one merchant: leave them out.
+                    .filter { it.name != null }
                     .sortedByDescending { it.totalPaise }
                     .take(TOP_MERCHANTS),
                 transactionCount = inMonth.size,
