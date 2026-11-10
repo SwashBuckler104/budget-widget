@@ -109,11 +109,12 @@ class TransactionsViewModel @Inject constructor(
     private val smsSync: SmsSync,
     private val clock: WallClock,
 ) : ViewModel() {
-    private val drillDown: TransactionFilter? = savedState.get<Long>(ARG_CATEGORY_ID)?.let { categoryId ->
+    private val drillDown: TransactionFilter? = savedState.get<Long>(ARG_FROM_MILLIS)?.let { from ->
         TransactionFilter(
-            categoryId = categoryId.takeIf { it > 0 },
+            query = savedState.get<String>(ARG_QUERY).orEmpty(),
+            categoryId = savedState.get<Long>(ARG_CATEGORY_ID)?.takeIf { it > 0 },
             accountId = savedState.get<Long>(ARG_ACCOUNT_ID)?.takeIf { it > 0 },
-            fromMillis = savedState.get<Long>(ARG_FROM_MILLIS),
+            fromMillis = from,
             toMillis = savedState.get<Long>(ARG_TO_MILLIS),
         )
     }
@@ -264,11 +265,15 @@ class TransactionsViewModel @Inject constructor(
     }
 
     companion object {
-        /** Drill-down arguments (navigation route fields): a category (0 = any) and a time range. */
+        /**
+         * Drill-down arguments (navigation route fields): a time range, plus a category (0 = any),
+         * an account (0 = any) and a search text (a merchant). [ARG_FROM_MILLIS] makes it a drill-down.
+         */
         const val ARG_CATEGORY_ID = "categoryId"
         const val ARG_ACCOUNT_ID = "accountId"
         const val ARG_FROM_MILLIS = "fromMillis"
         const val ARG_TO_MILLIS = "toMillis"
+        const val ARG_QUERY = "query"
         private const val STOP_TIMEOUT_MS = 5_000L
     }
 }

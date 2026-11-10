@@ -24,6 +24,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import io.github.swashbuckler104.budgetwidget.R
 import io.github.swashbuckler104.budgetwidget.feature.analysis.AnalysisRoute
 import io.github.swashbuckler104.budgetwidget.feature.categories.CategoriesRoute
@@ -43,6 +44,17 @@ data object CategoriesDestination
 
 @Serializable
 data object SettingsDestination
+
+/** Analysis drill-down: the transactions behind a category or merchant in one month. */
+@Serializable
+data class DrillDownDestination(
+    val title: String,
+    val fromMillis: Long,
+    val toMillis: Long,
+    val categoryId: Long = 0,
+    val accountId: Long = 0,
+    val query: String = "",
+)
 
 private enum class Tab(val route: Any, val routeClass: KClass<*>, @StringRes val label: Int, val icon: ImageVector) {
     ANALYSIS(AnalysisDestination, AnalysisDestination::class, R.string.tab_analysis, Icons.Rounded.Insights),
@@ -94,7 +106,23 @@ fun BudgetWidgetNavHost(onOpenQuickSort: (transactionId: Long?) -> Unit, modifie
                 .consumeWindowInsets(padding),
         ) {
             composable<AnalysisDestination> {
-                AnalysisRoute(onSortInbox = { onOpenQuickSort(null) }, onOpenSettings = openSettings)
+                AnalysisRoute(
+                    onSortInbox = { onOpenQuickSort(null) },
+                    onOpenSettings = openSettings,
+                    onDrillDown = { d ->
+                        navController.navigate(
+                            DrillDownDestination(d.title, d.fromMillis, d.toMillis, d.categoryId, d.accountId, d.query),
+                        )
+                    },
+                )
+            }
+            composable<DrillDownDestination> { entry ->
+                TransactionsRoute(
+                    onOpenQuickSort = onOpenQuickSort,
+                    onOpenSettings = openSettings,
+                    onBack = { navController.popBackStack() },
+                    title = entry.toRoute<DrillDownDestination>().title,
+                )
             }
             composable<TransactionsDestination> {
                 TransactionsRoute(onOpenQuickSort = onOpenQuickSort, onOpenSettings = openSettings)

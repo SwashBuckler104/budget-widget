@@ -1,15 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="analysis_title">Analysis</string>
-    <plurals name="analysis_inbox_banner">
-        <item quantity="one">%1$d to sort</item>
-        <item quantity="other">%1$d to sort</item>
-    </plurals>
-    <string name="analysis_inbox_action">Tap to sort them now</string>
-    <string name="analysis_coming">Spending charts arrive in a later version.</string>
     <string name="analysis_settings">Settings</string>
+    <plurals name="analysis_inbox_banner">
+        <item quantity="one">📥 %1$d to sort</item>
+        <item quantity="other">📥 %1$d to sort</item>
+    </plurals>
     <plurals name="analysis_streak">
         <item quantity="one">🔥 %1$d-day streak</item>
         <item quantity="other">🔥 %1$d-day streak</item>
+    </plurals>
+    <string name="analysis_previous_month">Previous month</string>
+    <string name="analysis_next_month">Next month</string>
+    <string name="analysis_all_accounts">All accounts</string>
+    <string name="analysis_empty_title">Nothing this month</string>
+    <string name="analysis_empty_body">Spending shows up here as bank SMS arrive and you sort them.</string>
+    <string name="analysis_spent">Spent</string>
+    <string name="analysis_income">Income</string>
+    <string name="analysis_net">Net</string>
+    <string name="analysis_per_day">Per day</string>
+    <!-- %1$s is a change like "▲ 12%" -->
+    <string name="analysis_vs_same_day">%1$s vs the same day last month</string>
+    <string name="analysis_vs_last_month">%1$s vs the month before</string>
+    <string name="analysis_categories">Where it went</string>
+    <string name="analysis_to_sort">To sort</string>
+    <string name="analysis_donut_description">Spending by category: %1$s</string>
+    <plurals name="analysis_see_transactions">
+        <item quantity="one">See %1$d transaction</item>
+        <item quantity="other">See %1$d transactions</item>
+    </plurals>
+    <string name="analysis_sort_now">Sort them now</string>
+    <string name="analysis_daily">Daily spending</string>
+    <string name="analysis_daily_description">Daily spending bars. Highest day %1$s, average %2$s.</string>
+    <string name="analysis_average">Average %1$s</string>
+    <string name="analysis_trend">This month vs last</string>
+    <string name="analysis_trend_description">Running total %1$s so far, against %2$s at the same point last month.</string>
+    <string name="analysis_this_month">This month</string>
+    <string name="analysis_last_month">Last month</string>
+    <string name="analysis_top_merchants">Top merchants</string>
+    <string name="analysis_unknown_merchant">Unknown merchant</string>
+    <plurals name="analysis_payments">
+        <item quantity="one">%1$d payment</item>
+        <item quantity="other">%1$d payments</item>
     </plurals>
 </resources>
