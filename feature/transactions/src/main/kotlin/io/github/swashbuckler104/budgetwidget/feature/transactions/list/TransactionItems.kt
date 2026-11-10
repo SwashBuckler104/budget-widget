@@ -21,12 +21,13 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.DoNotDisturbOn
 import androidx.compose.material.icons.rounded.Payments
 import androidx.compose.material.icons.rounded.Sell
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
@@ -276,9 +277,23 @@ private fun DuplicateBanner(original: Transaction, time: String, onMerge: () -> 
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onTertiaryContainer,
         )
-        Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
-            TextButton(onClick = onKeepBoth) { Text(stringResource(R.string.transactions_keep_both)) }
-            OutlinedButton(onClick = onMerge) { Text(stringResource(R.string.transactions_merge)) }
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 4.dp),
+        ) {
+            TextButton(
+                onClick = onKeepBoth,
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onTertiaryContainer),
+            ) { Text(stringResource(R.string.transactions_keep_both)) }
+            Button(
+                onClick = onMerge,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.tertiary,
+                    contentColor = MaterialTheme.colorScheme.onTertiary,
+                ),
+            ) { Text(stringResource(R.string.transactions_merge)) }
         }
     }
 }
