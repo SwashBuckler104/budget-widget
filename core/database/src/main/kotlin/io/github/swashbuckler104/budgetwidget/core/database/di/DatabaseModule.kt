@@ -10,6 +10,7 @@ import dagger.hilt.components.SingletonComponent
 import io.github.swashbuckler104.budgetwidget.core.database.BudgetDatabase
 import io.github.swashbuckler104.budgetwidget.core.database.dao.AccountDao
 import io.github.swashbuckler104.budgetwidget.core.database.dao.CategoryDao
+import io.github.swashbuckler104.budgetwidget.core.database.dao.DayCloseDao
 import io.github.swashbuckler104.budgetwidget.core.database.dao.MerchantRuleDao
 import io.github.swashbuckler104.budgetwidget.core.database.dao.TransactionDao
 import io.github.swashbuckler104.budgetwidget.core.database.dao.UnparsedSmsDao
@@ -37,4 +38,7 @@ internal object DatabaseModule {
 
     @Provides
     fun merchantRuleDao(db: BudgetDatabase): MerchantRuleDao = db.merchantRuleDao()
+
+    @Provides
+    fun dayCloseDao(db: BudgetDatabase): DayCloseDao = db.dayCloseDao()
 }

@@ -75,4 +75,10 @@ data class TransactionEntity(
     val editedByUser: Boolean = false,
     val createdAt: Long,
     val updatedAt: Long,
+    /**
+     * When the transaction first left the inbox (categorized or ignored); null while PENDING. With
+     * [createdAt] it tells whether the transaction was waiting in the inbox at any past instant,
+     * which is what closing a day needs (SCOPE.md F6). Edits later don't move it.
+     */
+    val sortedAt: Long? = null,
 )

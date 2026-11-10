@@ -96,7 +96,7 @@ interface TransactionDao {
     @Query(
         """
         UPDATE transactions SET status = 'CATEGORIZED', categoryId = :categoryId, ignoreReason = NULL,
-          autoCategorized = :auto, note = :note, updatedAt = :now
+          autoCategorized = :auto, note = :note, updatedAt = :now, sortedAt = COALESCE(sortedAt, :now)
         WHERE id = :id
         """,
     )
@@ -105,11 +105,42 @@ interface TransactionDao {
     @Query(
         """
         UPDATE transactions SET status = 'IGNORED', ignoreReason = :reason, categoryId = NULL,
-          autoCategorized = 0, updatedAt = :now
+          autoCategorized = 0, updatedAt = :now, sortedAt = COALESCE(sortedAt, :now)
         WHERE id = :id
         """,
     )
     suspend fun ignore(id: Long, reason: IgnoreReason, now: Long): Int
+
+    /**
+     * Transactions that were waiting in the inbox at the instant [atMillis] (epoch ms): stored
+     * before it and not yet sorted then. Backfilled history never counts (SCOPE.md F6).
+     */
+    @Query(
+        """
+        SELECT COUNT(*) FROM transactions
+        WHERE isBackfill = 0 AND createdAt < :atMillis
+          AND (status = 'PENDING' OR (sortedAt IS NOT NULL AND sortedAt >= :atMillis))
+        """,
+    )
+    suspend fun countWaitingAt(atMillis: Long): Int
+
+    /** The inbox that decides whether today closes: PENDING, backfill excluded. */
+    @Query("SELECT COUNT(*) FROM transactions WHERE status = 'PENDING' AND isBackfill = 0")
+    suspend fun countOpen(): Int
+
+    /**
+     * Money spent in [fromMillis, toMillis): outgoing, not ignored, and not sorted into a transfer
+     * category (moving money to your own accounts or investments isn't spending). Paise.
+     */
+    @Query(
+        """
+        SELECT COALESCE(SUM(t.amountPaise), 0) FROM transactions t LEFT JOIN category c ON c.id = t.categoryId
+        WHERE t.direction = 'OUT' AND t.status != 'IGNORED'
+          AND t.occurredAt >= :fromMillis AND t.occurredAt < :toMillis
+          AND (c.kind IS NULL OR c.kind != 'TRANSFER')
+        """,
+    )
+    suspend fun spentBetween(fromMillis: Long, toMillis: Long): Long
 
     /** How often each category was used for [merchantKey], most used (then most recent) first. */
     @Query(
