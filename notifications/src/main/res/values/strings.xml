@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notif_channel_transactions">New transactions</string>
+    <string name="notif_channel_transactions_description">One notification per new bank transaction, with buttons to sort it</string>
+    <string name="notif_public_title">New transaction to sort</string>
+    <string name="notif_action_ignore">Ignore</string>
+    <string name="notif_action_same_payment">Same payment</string>
+    <!-- %1$s: amount, e.g. ₹450. %2$s: time, e.g. 8:42 PM. -->
+    <string name="notif_duplicate_hint">Looks like the same payment as %1$s at %2$s</string>
+    <plurals name="notif_summary_title">
+        <item quantity="one">%1$d transaction to sort</item>
+        <item quantity="other">%1$d transactions to sort</item>
+    </plurals>
+    <string name="notif_summary_text">Tap to sort</string>
+</resources>

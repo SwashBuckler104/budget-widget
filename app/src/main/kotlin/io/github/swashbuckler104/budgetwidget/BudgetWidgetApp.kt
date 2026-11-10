@@ -8,6 +8,7 @@ import androidx.work.ExperimentalConfigurationApi
 import dagger.hilt.android.HiltAndroidApp
 import io.github.swashbuckler104.budgetwidget.core.data.category.CategorySeeder
 import io.github.swashbuckler104.budgetwidget.core.data.ingest.SmsSync
+import io.github.swashbuckler104.budgetwidget.core.data.startup.ProcessStartTask
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,6 +27,10 @@ class BudgetWidgetApp :
 
     @Inject
     lateinit var categorySeeder: CategorySeeder
+
+    /** Contributed by feature modules: notification channels, reminders, widget sync. */
+    @Inject
+    lateinit var startTasks: Set<@JvmSuppressWildcards ProcessStartTask>
 
     /** Lives as long as the process; for one-off startup work. */
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -49,5 +54,6 @@ class BudgetWidgetApp :
         smsSync.reconcileNow()
         // Seed categories once (idempotent; deleted seeds stay deleted).
         appScope.launch { categorySeeder.ensureSeeded() }
+        startTasks.forEach { it.start(appScope) }
     }
 }

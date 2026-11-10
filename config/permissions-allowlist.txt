@@ -9,6 +9,9 @@ ${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
 android.permission.RECEIVE_SMS
 android.permission.READ_SMS
 
+# SCOPE.md F3/F6: transaction notifications and the evening reminder. Runtime-granted (API 33+).
+android.permission.POST_NOTIFICATIONS
+
 # WorkManager (ADR-0013). Expedited ingest work runs as a foreground service on API 26-30.
 android.permission.FOREGROUND_SERVICE
 # WorkManager holds short wake locks while workers run. Normal permission, no user data.
