@@ -248,3 +248,17 @@ deliberate deviation. Newest at the bottom. Status is Accepted unless stated.
 - **Found** while generating the baseline profile: the release APK crashed on its first tab with `NoSuchMethodException: TransactionsViewModel.<init>`. Incremental KSP had left `:feature:transactions` with no release Hilt output, and Gradle still treated the task as up to date. So the release component lacked `TransactionsViewModel` and `QuickSortViewModel`. Debug builds were fine, and every device test so far had used debug builds.
 - **Fix:** `ksp.incremental=false` (full KSP runs cost seconds). `scripts/check-hilt-viewmodels.sh` fails CI and the release workflow if a variant's Hilt component misses any `@HiltViewModel` found in the sources.
 - **Practice:** before a release, install the release APK (signed with any key) on the emulator and walk through setup and every tab.
+
+## ADR-0030: Follow-ups from the M8 review
+- **Data replacement is atomic against ingestion:** restore and start fresh run under the ingest pipeline's lock and bump a generation counter. Every inbox scan records the generation when it starts, and the pipeline drops its messages once that generation is stale. A backfill still iterating when the user taps "Start fresh" can no longer refill the data. The steps after the commit (notification cleanup, settings, seeds, checkpoint) run non-cancellable, so leaving the screen mid-way can't leave notification buttons on reused ids.
+- **Restoring an older backup** rewinds the scan checkpoint to the backup's time, never forward. It drops a newer "start fresh" floor and requests a scan, so SMS received since the backup come back.
+- **File work** (backup, export, restore) runs on the IO dispatcher. It falls back from write mode "wt" to "w" for providers that refuse truncation, and maps any provider error to "couldn't use that file". Cancellation still propagates.
+- **Onboarding is decided once:** on first launch the app stores whether setup is needed (an upgrade with data skips it). A setting written or an SMS imported during setup can no longer re-decide it.
+- **Blocked SMS access** = no dialog shown (the result arrives in under 400 ms) or the rationale flag dropped (a second denial). A dismissed dialog can be asked again. The granted state comes from the system, not the result map.
+- **Comparisons** use calendar arithmetic (same day last week, month or year), so leap years line up. A monthly custom range lays the previous range onto its own buckets by day offset.
+- **Smaller fixes:**
+  - The heuristic needs "Rs"/"INR" as a word of its own, and excludes OTPs glued to digits as well as PIN/MPIN messages.
+  - The Hilt guard accepts class modifiers and annotations between, fails on unmatched annotations, and matches whole words.
+  - A hidden or replaced account no longer stays as an invisible Analysis filter.
+  - The nudge notification follows replaced data.
+  - Copied unparsed SMS are marked sensitive on the clipboard.
