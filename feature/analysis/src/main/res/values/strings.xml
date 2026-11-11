@@ -10,10 +10,23 @@
         <item quantity="one">🔥 %1$d-day streak</item>
         <item quantity="other">🔥 %1$d-day streak</item>
     </plurals>
-    <string name="analysis_previous_month">Previous month</string>
-    <string name="analysis_next_month">Next month</string>
+    <string name="analysis_period_week">Week</string>
+    <string name="analysis_period_month">Month</string>
+    <string name="analysis_period_year">Year</string>
+    <string name="analysis_period_range">Range</string>
+    <string name="analysis_period_kind">Time frame</string>
+    <string name="analysis_previous_period">Previous</string>
+    <string name="analysis_next_period">Next</string>
+    <string name="analysis_this_week">This week</string>
+    <string name="analysis_last_week">Last week</string>
+    <string name="analysis_this_year">This year</string>
+    <string name="analysis_pick_range">Choose dates</string>
+    <!-- %1$s is a date range like "1 Oct - 11 Nov" -->
+    <string name="analysis_change_range">%1$s, change dates</string>
+    <string name="analysis_ok">OK</string>
+    <string name="analysis_cancel">Cancel</string>
     <string name="analysis_all_accounts">All accounts</string>
-    <string name="analysis_empty_title">Nothing this month</string>
+    <string name="analysis_empty_title">Nothing in this period</string>
     <string name="analysis_empty_body">Spending shows up here as bank SMS arrive and you sort them.</string>
     <string name="analysis_spent">Spent</string>
     <string name="analysis_income">Income</string>
@@ -22,7 +35,18 @@
     <!-- %1$s is a change like "▲ 12%" -->
     <string name="analysis_vs_same_day">%1$s vs the same day last month</string>
     <string name="analysis_vs_last_month">%1$s vs the month before</string>
+    <string name="analysis_vs_same_weekday">%1$s vs the same day last week</string>
+    <string name="analysis_vs_last_week">%1$s vs the week before</string>
+    <string name="analysis_vs_same_day_last_year">%1$s vs the same day last year</string>
+    <string name="analysis_vs_last_year">%1$s vs the year before</string>
+    <!-- %1$s is a change like "▲ 12%", %2$d the number of days in the range -->
+    <string name="analysis_vs_previous_days">%1$s vs the %2$d days before</string>
     <string name="analysis_categories">Where it went</string>
+    <string name="analysis_income_categories">Where it came from</string>
+    <string name="analysis_show_spending">Spending</string>
+    <string name="analysis_show_income">Income</string>
+    <string name="analysis_received">Received</string>
+    <string name="analysis_income_donut_description">Income by category: %1$s</string>
     <string name="analysis_to_sort">To sort</string>
     <string name="analysis_donut_description">Spending by category: %1$s</string>
     <plurals name="analysis_see_transactions">
@@ -33,10 +57,15 @@
     <string name="analysis_daily">Daily spending</string>
     <string name="analysis_daily_description">Daily spending bars. Highest day %1$s, average %2$s.</string>
     <string name="analysis_average">Average %1$s</string>
-    <string name="analysis_trend">This month vs last</string>
-    <string name="analysis_trend_description">Running total %1$s so far, against %2$s at the same point last month.</string>
+    <string name="analysis_monthly">Monthly spending</string>
+    <string name="analysis_monthly_description">Monthly spending bars. Highest month %1$s, average %2$s.</string>
+    <string name="analysis_trend">This period vs the one before</string>
+    <string name="analysis_trend_description">Running total %1$s so far, against %2$s at the same point in the period before.</string>
     <string name="analysis_this_month">This month</string>
     <string name="analysis_last_month">Last month</string>
+    <string name="analysis_last_year">Last year</string>
+    <string name="analysis_this_range">This range</string>
+    <string name="analysis_range_before">The one before</string>
     <string name="analysis_top_merchants">Top merchants</string>
     <string name="analysis_unknown_merchant">Unknown merchant</string>
     <plurals name="analysis_payments">
