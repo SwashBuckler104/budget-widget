@@ -170,6 +170,8 @@ class QuickSortViewModelTest {
 
     private companion object {
         const val DAY = 86_400_000L
-        const val TIMEOUT_MS = 10_000L
+
+        /** A hang guard, not a speed check: cold Robolectric and Room on a busy CI runner take seconds. */
+        const val TIMEOUT_MS = 30_000L
     }
 }
