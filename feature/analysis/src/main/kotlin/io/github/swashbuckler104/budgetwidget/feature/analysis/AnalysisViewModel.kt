@@ -79,7 +79,10 @@ class AnalysisViewModel @Inject constructor(
         transactions.observeAccounts(),
         periodText.map { AnalysisPeriod.decode(it) ?: AnalysisPeriod.Month.of(today()) },
         accountId.map { id -> id.takeIf { it != NO_ACCOUNT } },
-    ) { all, groups, accounts, period, account ->
+    ) { all, groups, accounts, period, chosen ->
+        val visible = accounts.filterNot { it.hidden }
+        // A filter on an account that was hidden, or replaced by a restore, no longer applies.
+        val account = chosen?.takeIf { id -> visible.any { it.id == id } }
         val byId = groups.flatMap { listOf(it.category) + it.children }.associateBy { it.id }
         val now = today()
         // Transactions are newest first: the last one is the oldest.
@@ -90,7 +93,7 @@ class AnalysisViewModel @Inject constructor(
             today = now,
             firstDate = minOf(first, now),
             analysis = PeriodAnalysis.compute(all, byId, period, now, zone, account),
-            accounts = accounts.filterNot { it.hidden },
+            accounts = visible,
             accountId = account,
             pending = all.count { it.status == TransactionStatus.PENDING },
         )

@@ -102,9 +102,16 @@ data class PeriodAnalysis(
                 today.isAfter(period.endInclusive) -> period.days
                 else -> (ChronoUnit.DAYS.between(period.start, today) + 1).toInt()
             }
-            // A current period compares with the previous one up to the same day; a past one with all of it.
+            // A current period compares with the previous one up to the same day (calendar arithmetic,
+            // so leap days and month lengths line up); a past one with all of it.
             val previousUpTo = if (today in period) {
-                minOf(previous.start.plusDays(elapsed - 1L), previous.endInclusive)
+                val sameDay = when (period) {
+                    is AnalysisPeriod.Week -> today.minusWeeks(1)
+                    is AnalysisPeriod.Month -> today.minusMonths(1)
+                    is AnalysisPeriod.Year -> today.minusYears(1)
+                    is AnalysisPeriod.Custom -> previous.start.plusDays(elapsed - 1L)
+                }
+                minOf(sameDay, previous.endInclusive)
             } else {
                 previous.endInclusive
             }
@@ -128,7 +135,12 @@ data class PeriodAnalysis(
                 incomeCategories = byCategory(inPeriod.filter { it.isIncome(kindOf) }, categories),
                 buckets = buckets,
                 cumulative = buckets.runningReduce(Long::plus).take(elapsedBuckets),
-                previousCumulative = bucketTotals(previousSpend, previous, ::dateOf).runningReduce(Long::plus),
+                previousCumulative = previousBuckets(
+                    previousSpend,
+                    period,
+                    previous,
+                    ::dateOf,
+                ).runningReduce(Long::plus),
                 todayBucket = todayBucket,
                 topMerchants = topMerchants(spend),
                 transactionCount = inPeriod.size,
@@ -161,6 +173,28 @@ data class PeriodAnalysis(
             items.forEach { t ->
                 val date = dateOf(t)
                 if (date in period) totals[bucketOf(period, date)] += t.amountPaise
+            }
+            return totals.toList()
+        }
+
+        /**
+         * The previous period's spending per bucket for the trend line. Calendar periods use their
+         * own buckets (last month has its own length). A custom range is laid onto this period's
+         * buckets by day offset: both have the same length, but month boundaries fall elsewhere, so
+         * its own monthly buckets wouldn't line up.
+         */
+        private fun previousBuckets(
+            items: List<Transaction>,
+            period: AnalysisPeriod,
+            previous: AnalysisPeriod,
+            dateOf: (Transaction) -> LocalDate,
+        ): List<Long> {
+            if (period !is AnalysisPeriod.Custom) return bucketTotals(items, previous, dateOf)
+            val shift = ChronoUnit.DAYS.between(previous.start, period.start)
+            val totals = LongArray(bucketCount(period))
+            items.forEach { t ->
+                val date = dateOf(t)
+                if (date in previous) totals[bucketOf(period, date.plusDays(shift))] += t.amountPaise
             }
             return totals.toList()
         }

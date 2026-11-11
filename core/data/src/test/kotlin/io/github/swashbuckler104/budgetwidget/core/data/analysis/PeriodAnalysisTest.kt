@@ -251,4 +251,41 @@ class PeriodAnalysisTest {
         assertThat(AnalysisPeriod.decode("junk")).isNull()
         assertThat(AnalysisPeriod.decode("W:2026-11-11")).isNull()
     }
+
+    @Test
+    fun `the same-day comparison uses calendar dates across leap years`() {
+        // 2028 is a leap year: on 1 Mar 2028 the comparison runs to 1 Mar 2027, not 2 Mar.
+        val txns = listOf(tx(LocalDate.of(2027, 3, 1), 10_00, fuel), tx(LocalDate.of(2027, 3, 2), 99_00, fuel))
+        val y2028 = PeriodAnalysis.compute(
+            txns,
+            categories,
+            AnalysisPeriod.Year(2028),
+            today = LocalDate.of(2028, 3, 1),
+            zone = zone,
+        )
+        assertThat(y2028.previousSpentPaise).isEqualTo(10_00)
+        // On 1 Mar 2029 the comparison includes 29 Feb 2028.
+        val leap = listOf(tx(LocalDate.of(2028, 2, 29), 7_00, fuel), tx(LocalDate.of(2028, 3, 2), 99_00, fuel))
+        val y2029 = PeriodAnalysis.compute(
+            leap,
+            categories,
+            AnalysisPeriod.Year(2029),
+            today = LocalDate.of(2029, 3, 1),
+            zone = zone,
+        )
+        assertThat(y2029.previousSpentPaise).isEqualTo(7_00)
+    }
+
+    @Test
+    fun `a monthly custom range lays the previous range onto its own buckets`() {
+        // 15 Jan - 30 Apr 2026 (106 days, 4 monthly bars); the range before is 1 Oct 2025 - 14 Jan 2026.
+        val range = AnalysisPeriod.Custom(LocalDate.of(2026, 1, 15), LocalDate.of(2026, 4, 30))
+        val txns = listOf(tx(LocalDate.of(2025, 10, 1), 5_00, fuel), tx(LocalDate.of(2026, 1, 14), 3_00, fuel))
+        val a = PeriodAnalysis.compute(txns, categories, range, today = LocalDate.of(2026, 6, 1), zone = zone)
+        assertThat(a.buckets).hasSize(4)
+        assertThat(a.previousCumulative).hasSize(4)
+        // Day 0 of the previous range maps to 15 Jan (bucket 0); its last day maps to 30 Apr (bucket 3).
+        assertThat(a.previousCumulative).containsExactly(5_00L, 5_00L, 5_00L, 8_00L).inOrder()
+        assertThat(a.previousSpentPaise).isEqualTo(8_00)
+    }
 }
