@@ -40,7 +40,10 @@
     <string name="analysis_vs_same_day_last_year">%1$s vs the same day last year</string>
     <string name="analysis_vs_last_year">%1$s vs the year before</string>
     <!-- %1$s is a change like "▲ 12%", %2$d the number of days in the range -->
-    <string name="analysis_vs_previous_days">%1$s vs the %2$d days before</string>
+    <plurals name="analysis_vs_previous_days">
+        <item quantity="one">%1$s vs the day before</item>
+        <item quantity="other">%1$s vs the %2$d days before</item>
+    </plurals>
     <string name="analysis_categories">Where it went</string>
     <string name="analysis_income_categories">Where it came from</string>
     <string name="analysis_show_spending">Spending</string>

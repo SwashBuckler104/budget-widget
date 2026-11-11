@@ -916,7 +916,12 @@ private fun comparisonText(period: AnalysisPeriod, current: Boolean, change: Str
         change,
     )
 
-    is AnalysisPeriod.Custom -> stringResource(R.string.analysis_vs_previous_days, change, period.days)
+    is AnalysisPeriod.Custom -> pluralStringResource(
+        R.plurals.analysis_vs_previous_days,
+        period.days,
+        change,
+        period.days,
+    )
 }
 
 @Composable
