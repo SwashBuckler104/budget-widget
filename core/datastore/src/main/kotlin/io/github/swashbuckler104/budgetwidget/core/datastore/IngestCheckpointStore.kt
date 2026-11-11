@@ -25,7 +25,23 @@ class IngestCheckpointStore @Inject constructor(@IngestPreferences private val d
         }
     }
 
+    /**
+     * The oldest inbox timestamp (epoch ms, UTC) a normal scan may import, or null for no limit.
+     * "Start fresh" sets it, so the scan's look-back overlap can't bring older SMS back.
+     */
+    suspend fun floor(): Long? = dataStore.data.map { it[FLOOR] }.first()
+
+    /** Sets the floor and moves the checkpoint up to it. */
+    suspend fun startAt(epochMillis: Long) {
+        dataStore.edit { prefs ->
+            prefs[FLOOR] = epochMillis
+            val current = prefs[KEY]
+            if (current == null || epochMillis > current) prefs[KEY] = epochMillis
+        }
+    }
+
     private companion object {
         val KEY = longPreferencesKey("reconcile_checkpoint_ms")
+        val FLOOR = longPreferencesKey("reconcile_floor_ms")
     }
 }

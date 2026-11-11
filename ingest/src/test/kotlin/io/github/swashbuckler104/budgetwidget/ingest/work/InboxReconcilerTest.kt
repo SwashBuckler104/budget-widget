@@ -96,6 +96,19 @@ class InboxReconcilerTest {
     }
 
     @Test
+    fun `after start fresh the overlap never brings back older messages`() = runTest {
+        val (reconciler, checkpoint) = reconciler(this)
+        inbox.messages += hdfc(100, at = now - 5 * MINUTE) // inside the 10-minute overlap
+        checkpoint.startAt(now)
+        inbox.messages += hdfc(200, at = now)
+        now += MINUTE
+        inbox.messages += hdfc(300, at = now)
+
+        assertThat(reconciler.reconcile()).isEqualTo(InboxReconciler.Result.Scanned(2, inserted = 2))
+        assertThat(amounts()).containsExactly(20_000L, 30_000L)
+    }
+
+    @Test
     fun `without READ_SMS nothing is read`() = runTest {
         val (reconciler, checkpoint) = reconciler(this)
         inbox.readable = false

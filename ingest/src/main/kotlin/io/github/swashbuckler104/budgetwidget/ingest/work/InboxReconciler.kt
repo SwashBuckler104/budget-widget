@@ -31,7 +31,9 @@ internal class InboxReconciler @Inject constructor(
         val now = clock.nowMillis()
         val after = checkpoint.get()?.let { it - OVERLAP.inWholeMilliseconds }
             ?: (now - FIRST_RUN_LOOKBACK.inWholeMilliseconds)
-        return scan(after, IngestOrigin.RECONCILE)
+        // After "start fresh", older messages stay out even within the overlap.
+        val floor = checkpoint.floor()?.let { it - 1 }
+        return scan(if (floor != null) maxOf(after, floor) else after, IngestOrigin.RECONCILE)
     }
 
     /** Imports messages after [sinceMillis] (epoch ms, UTC), flagged as backfill. */

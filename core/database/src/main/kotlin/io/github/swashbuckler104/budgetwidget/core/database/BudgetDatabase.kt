@@ -6,6 +6,7 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.AutoMigrationSpec
 import androidx.sqlite.db.SupportSQLiteDatabase
 import io.github.swashbuckler104.budgetwidget.core.database.dao.AccountDao
+import io.github.swashbuckler104.budgetwidget.core.database.dao.BackupDao
 import io.github.swashbuckler104.budgetwidget.core.database.dao.CategoryDao
 import io.github.swashbuckler104.budgetwidget.core.database.dao.DayCloseDao
 import io.github.swashbuckler104.budgetwidget.core.database.dao.MerchantAliasDao
@@ -59,6 +60,8 @@ abstract class BudgetDatabase : RoomDatabase() {
     abstract fun dayCloseDao(): DayCloseDao
 
     abstract fun merchantAliasDao(): MerchantAliasDao
+
+    abstract fun backupDao(): BackupDao
 
     /** Rows sorted before v3 have no sort time; their last update is the best estimate. */
     class SortedAtSpec : AutoMigrationSpec {

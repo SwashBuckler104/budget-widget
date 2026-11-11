@@ -32,6 +32,16 @@ interface UnparsedSmsDao {
     @Query("SELECT COUNT(*) FROM unparsed_sms")
     fun observeCount(): Flow<Int>
 
+    /** Newest first. */
+    @Query("SELECT * FROM unparsed_sms ORDER BY receivedAt DESC, id DESC")
+    fun observeAll(): Flow<List<UnparsedSmsEntity>>
+
+    @Query("DELETE FROM unparsed_sms WHERE id = :id")
+    suspend fun delete(id: Long)
+
+    @Query("DELETE FROM unparsed_sms")
+    suspend fun deleteAll()
+
     @Query("SELECT COUNT(*) FROM unparsed_sms")
     suspend fun count(): Int
 

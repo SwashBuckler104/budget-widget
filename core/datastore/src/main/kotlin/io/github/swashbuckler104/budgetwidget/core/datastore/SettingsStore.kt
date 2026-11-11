@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
@@ -25,6 +26,12 @@ data class NudgeSettings(val enabled: Boolean = true, val minuteOfDay: Int = DEF
         const val MINUTES_PER_DAY = 24 * 60
     }
 }
+
+/** App theme (SCOPE.md F9): follow the system, or force light or dark. */
+enum class ThemeMode { SYSTEM, LIGHT, DARK }
+
+/** [dynamicColor]: wallpaper colors on Android 12+; the brand palette when off or unavailable. */
+data class AppearanceSettings(val theme: ThemeMode = ThemeMode.SYSTEM, val dynamicColor: Boolean = true)
 
 /** User settings (SCOPE.md F9) plus one-time setup markers. */
 @Singleton
@@ -97,6 +104,55 @@ class SettingsStore @Inject constructor(@SettingsPreferences private val dataSto
         dataStore.edit { it[DAY_TRACKING_SINCE] = epochDay }
     }
 
+    val appearance: Flow<AppearanceSettings> = dataStore.data.map { prefs ->
+        AppearanceSettings(
+            theme = prefs[THEME]?.let { name -> ThemeMode.entries.firstOrNull { it.name == name } } ?: ThemeMode.SYSTEM,
+            dynamicColor = prefs[DYNAMIC_COLOR] ?: true,
+        )
+    }
+
+    suspend fun setTheme(theme: ThemeMode) {
+        dataStore.edit { it[THEME] = theme.name }
+    }
+
+    suspend fun setDynamicColor(enabled: Boolean) {
+        dataStore.edit { it[DYNAMIC_COLOR] = enabled }
+    }
+
+    /** Null until decided: then the app checks whether this is an upgrade with data already in it. */
+    val onboardingDone: Flow<Boolean?> = dataStore.data.map { it[ONBOARDING_DONE] }
+
+    suspend fun setOnboardingDone(done: Boolean) {
+        dataStore.edit { it[ONBOARDING_DONE] = done }
+    }
+
+    /** Everything a backup carries (SCOPE.md F9), read in one go. */
+    suspend fun snapshot(): SettingsSnapshot {
+        val prefs = dataStore.data.first()
+        return SettingsSnapshot(
+            autoSort = prefs[AUTO_SORT] ?: false,
+            notifications = NotificationSettings(prefs[NOTIFICATIONS_ENABLED] ?: true, prefs[NOTIFY_MIN_PAISE] ?: 0),
+            nudge = NudgeSettings(
+                prefs[NUDGE_ENABLED] ?: true,
+                prefs[NUDGE_MINUTE] ?: NudgeSettings.DEFAULT_NUDGE_MINUTE,
+            ),
+            appearance = appearance.first(),
+        )
+    }
+
+    /** Applies a restored backup's settings in one write. */
+    suspend fun restore(snapshot: SettingsSnapshot) {
+        dataStore.edit {
+            it[AUTO_SORT] = snapshot.autoSort
+            it[NOTIFICATIONS_ENABLED] = snapshot.notifications.enabled
+            it[NOTIFY_MIN_PAISE] = snapshot.notifications.minAmountPaise.coerceAtLeast(0)
+            it[NUDGE_ENABLED] = snapshot.nudge.enabled
+            it[NUDGE_MINUTE] = snapshot.nudge.minuteOfDay.mod(NudgeSettings.MINUTES_PER_DAY)
+            it[THEME] = snapshot.appearance.theme.name
+            it[DYNAMIC_COLOR] = snapshot.appearance.dynamicColor
+        }
+    }
+
     /** Version of the seed category set already inserted (0 = never), so deleted seeds stay deleted. */
     suspend fun seededCategoriesVersion(): Int = dataStore.data.map { it[SEED_VERSION] ?: 0 }.first()
 
@@ -114,5 +170,16 @@ class SettingsStore @Inject constructor(@SettingsPreferences private val dataSto
         val LAST_NUDGE_DAY = longPreferencesKey("last_nudge_epoch_day")
         val DAY_TRACKING_SINCE = longPreferencesKey("day_tracking_since_epoch_day")
         val ARMED_NUDGE_AT = longPreferencesKey("armed_nudge_at")
+        val THEME = stringPreferencesKey("theme")
+        val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
+        val ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
     }
 }
+
+/** The user-facing settings a backup carries. */
+data class SettingsSnapshot(
+    val autoSort: Boolean,
+    val notifications: NotificationSettings,
+    val nudge: NudgeSettings,
+    val appearance: AppearanceSettings,
+)
