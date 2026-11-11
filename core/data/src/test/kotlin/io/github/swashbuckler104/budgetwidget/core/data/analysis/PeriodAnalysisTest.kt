@@ -13,7 +13,7 @@ import java.time.ZoneId
 import java.time.ZoneOffset
 import org.junit.Test
 
-class MonthAnalysisTest {
+class PeriodAnalysisTest {
     private val zone = ZoneOffset.UTC
     private fun cat(id: Long, name: String, kind: CategoryKind, parent: Long? = null) =
         Category(id, parent, name, "🙂", 0, kind, 0, archived = false, isSeed = false)
@@ -58,7 +58,7 @@ class MonthAnalysisTest {
             tx(d(5, month = 10), 400_00, fuel),
             tx(d(20, month = 10), 9_000_00, fuel),
         )
-        val a = MonthAnalysis.compute(txns, categories, nov, today = d(10), zone = zone)
+        val a = PeriodAnalysis.compute(txns, categories, AnalysisPeriod.Month(nov), today = d(10), zone = zone)
 
         assertThat(a.spentPaise).isEqualTo(600_00)
         assertThat(a.incomePaise).isEqualTo(5_000_00)
@@ -78,7 +78,7 @@ class MonthAnalysisTest {
             tx(d(3), 50_00, fuel),
             tx(d(4), 200_00),
         )
-        val a = MonthAnalysis.compute(txns, categories, nov, today = d(30), zone = zone)
+        val a = PeriodAnalysis.compute(txns, categories, AnalysisPeriod.Month(nov), today = d(30), zone = zone)
 
         assertThat(a.categories.map { it.category?.name }).containsExactly("Food", null, "Fuel").inOrder()
         val foodSpend = a.categories.first()
@@ -95,10 +95,10 @@ class MonthAnalysisTest {
             tx(d(3), 30_00, fuel, merchant = "Uber"),
             tx(d(30, month = 10), 70_00, fuel),
         )
-        val a = MonthAnalysis.compute(txns, categories, nov, today = d(3), zone = zone)
+        val a = PeriodAnalysis.compute(txns, categories, AnalysisPeriod.Month(nov), today = d(3), zone = zone)
 
-        assertThat(a.daily).hasSize(30)
-        assertThat(a.daily.take(3)).containsExactly(150_00L, 0L, 30_00L).inOrder()
+        assertThat(a.buckets).hasSize(30)
+        assertThat(a.buckets.take(3)).containsExactly(150_00L, 0L, 30_00L).inOrder()
         assertThat(a.cumulative).containsExactly(150_00L, 150_00L, 180_00L).inOrder()
         assertThat(a.previousCumulative).hasSize(31)
         assertThat(a.previousCumulative.last()).isEqualTo(70_00)
@@ -112,10 +112,10 @@ class MonthAnalysisTest {
             tx(d(6, month = 10), 900_00, fuel, account = 2),
             tx(d(25, month = 9), 200_00, fuel, account = 1),
         )
-        val oct = MonthAnalysis.compute(
+        val oct = PeriodAnalysis.compute(
             txns,
             categories,
-            YearMonth.of(2026, 10),
+            AnalysisPeriod.Month(YearMonth.of(2026, 10)),
             today = d(10),
             zone = zone,
             accountId = 1,
@@ -126,7 +126,13 @@ class MonthAnalysisTest {
         assertThat(oct.cumulative).hasSize(31)
         assertThat(oct.changePercent).isEqualTo(-50)
 
-        val future = MonthAnalysis.compute(txns, categories, YearMonth.of(2026, 12), today = d(10), zone = zone)
+        val future = PeriodAnalysis.compute(
+            txns,
+            categories,
+            AnalysisPeriod.Month(YearMonth.of(2026, 12)),
+            today = d(10),
+            zone = zone,
+        )
         assertThat(future.daysCounted).isEqualTo(0)
         assertThat(future.averagePerDayPaise).isEqualTo(0)
     }
@@ -149,17 +155,100 @@ class MonthAnalysisTest {
             occurredAt = LocalDate.of(2026, 11, 1).atTime(0, 15).atZone(ist).toInstant().toEpochMilli(),
         )
         // November is a past month here, so it's compared with all of October.
-        val a = MonthAnalysis.compute(listOf(octLate, novEarly), categories, nov, today = d(5, month = 12), zone = ist)
+        val a = PeriodAnalysis.compute(
+            listOf(octLate, novEarly),
+            categories,
+            AnalysisPeriod.Month(nov),
+            today = d(5, month = 12),
+            zone = ist,
+        )
         assertThat(a.spentPaise).isEqualTo(50_000_000_00)
         assertThat(a.previousSpentPaise).isEqualTo(1)
-        assertThat(a.daily.first()).isEqualTo(50_000_000_00)
+        assertThat(a.buckets.first()).isEqualTo(50_000_000_00)
         assertThat(a.changePercent).isEqualTo(999_999)
     }
 
     @Test
     fun `last days spans month boundaries`() {
         val txns = listOf(tx(d(30, month = 10), 10_00, fuel), tx(d(2), 20_00), tx(d(3), 5_00, savings))
-        assertThat(MonthAnalysis.lastDays(txns, categories, today = d(3), zone = zone, days = 7))
+        assertThat(PeriodAnalysis.lastDays(txns, categories, today = d(3), zone = zone, days = 7))
             .containsExactly(0L, 0L, 10_00L, 0L, 0L, 20_00L, 0L).inOrder()
+    }
+
+    @Test
+    fun `a week compares with last week up to the same weekday and marks today`() {
+        // 2026-11-11 is a Wednesday; its week runs Mon 9 to Sun 15.
+        val txns = listOf(
+            tx(d(9), 100_00, fuel),
+            tx(d(11), 50_00, fuel),
+            tx(d(14), 999_00, fuel),
+            tx(d(3), 40_00, fuel),
+            tx(d(6), 70_00, fuel),
+        )
+        val week = AnalysisPeriod.Week.of(d(11))
+        assertThat(week.start).isEqualTo(d(9))
+        val a = PeriodAnalysis.compute(txns, categories, week, today = d(11), zone = zone)
+        assertThat(a.buckets).containsExactly(100_00L, 0L, 50_00L, 0L, 0L, 999_00L, 0L).inOrder()
+        assertThat(a.todayBucket).isEqualTo(2)
+        assertThat(a.daysCounted).isEqualTo(3)
+        // Last week up to Wednesday the 4th: only the 3rd counts, not Friday the 6th.
+        assertThat(a.previousSpentPaise).isEqualTo(40_00)
+        assertThat(a.previousCumulative).hasSize(7)
+        assertThat(a.cumulative).containsExactly(100_00L, 100_00L, 150_00L).inOrder()
+    }
+
+    @Test
+    fun `a year is charted by month and a long custom range too`() {
+        val txns = listOf(
+            tx(d(5, month = 1), 10_00, fuel),
+            tx(d(9), 20_00, fuel),
+            tx(LocalDate.of(2025, 6, 1), 30_00, fuel),
+        )
+        val year = PeriodAnalysis.compute(txns, categories, AnalysisPeriod.Year(2026), today = d(11), zone = zone)
+        assertThat(year.buckets).hasSize(12)
+        assertThat(year.buckets.first()).isEqualTo(10_00)
+        assertThat(year.buckets[10]).isEqualTo(20_00)
+        assertThat(year.todayBucket).isEqualTo(10)
+        assertThat(year.cumulative).hasSize(11)
+        assertThat(year.averagePerBucketPaise).isEqualTo(30_00 / 11)
+        assertThat(year.previousSpentPaise).isEqualTo(30_00)
+
+        val long = AnalysisPeriod.Custom(d(20, month = 7), d(11))
+        assertThat(long.unit).isEqualTo(BucketUnit.MONTH)
+        assertThat(PeriodAnalysis.bucketCount(long)).isEqualTo(5)
+        assertThat(PeriodAnalysis.bucketStart(long, 0)).isEqualTo(d(20, month = 7))
+        assertThat(PeriodAnalysis.bucketStart(long, 1)).isEqualTo(d(1, month = 8))
+        assertThat(AnalysisPeriod.Custom(d(20, month = 9), d(11)).unit).isEqualTo(BucketUnit.DAY)
+        val short = AnalysisPeriod.Custom(d(1), d(10))
+        assertThat(short.unit).isEqualTo(BucketUnit.DAY)
+        assertThat(short.previous()).isEqualTo(AnalysisPeriod.Custom(d(22, month = 10), d(31, month = 10)))
+        assertThat(short.shift(1)).isNull()
+    }
+
+    @Test
+    fun `income has its own category breakdown`() {
+        val txns = listOf(
+            tx(d(1), 50_000_00, salary, direction = Direction.IN),
+            tx(d(2), 2_000_00, direction = Direction.IN),
+            tx(d(3), 100_00, fuel),
+            tx(d(4), 500_00, savings, direction = Direction.IN),
+        )
+        val a = PeriodAnalysis.compute(txns, categories, AnalysisPeriod.Month(nov), today = d(30), zone = zone)
+        assertThat(a.incomePaise).isEqualTo(52_000_00)
+        assertThat(a.incomeCategories.map { it.category?.name }).containsExactly("Salary", null).inOrder()
+        assertThat(a.categories.map { it.category?.name }).containsExactly("Fuel")
+    }
+
+    @Test
+    fun `periods survive an encode and decode round trip`() {
+        listOf(
+            AnalysisPeriod.Week.of(d(11)),
+            AnalysisPeriod.Month(nov),
+            AnalysisPeriod.Year(2026),
+            AnalysisPeriod.Custom(d(1, month = 1), d(11)),
+        ).forEach { assertThat(AnalysisPeriod.decode(it.encode())).isEqualTo(it) }
+        assertThat(AnalysisPeriod.decode("C:2026-11-10:2026-11-01")).isNull()
+        assertThat(AnalysisPeriod.decode("junk")).isNull()
+        assertThat(AnalysisPeriod.decode("W:2026-11-11")).isNull()
     }
 }
