@@ -51,6 +51,9 @@ jobs:
       - name: Check parser module boundary
         run: scripts/check-module-boundaries.sh
 
+      - name: Check every view model is in the Hilt components
+        run: scripts/check-hilt-viewmodels.sh debug release
+
       - name: Upload reports
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

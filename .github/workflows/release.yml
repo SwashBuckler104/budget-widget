@@ -65,6 +65,9 @@ jobs:
       - name: Check APK permissions (no INTERNET, allowlist only)
         run: scripts/check-permissions.sh app/build/outputs/apk/release/app-release.apk
 
+      - name: Check every view model is in the Hilt component
+        run: scripts/check-hilt-viewmodels.sh release
+
       - name: Verify signature and prepare assets
         run: |
           apksigner="$(find "${ANDROID_HOME}/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)/apksigner"
