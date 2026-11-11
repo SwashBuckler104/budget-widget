@@ -3,6 +3,13 @@ plugins {
     alias(libs.plugins.bw.android.compose)
     alias(libs.plugins.bw.hilt)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.androidx.baselineprofile)
+}
+
+// The profile is generated on a device or emulator (`./gradlew :app:generateBaselineProfile`, see
+// baselineprofile/README.md) and checked in, so CI builds never need one.
+baselineProfile {
+    automaticGenerationDuringBuild = false
 }
 
 android {
@@ -41,4 +48,7 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.core.ktx)
+    // Compiles the baseline profile on sideloaded installs too, where no app store does it.
+    implementation(libs.androidx.profileinstaller)
+    baselineProfile(projects.baselineprofile)
 }

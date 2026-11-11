@@ -47,6 +47,7 @@ include(":feature:categories")
 include(":feature:onboarding")
 include(":feature:settings")
 include(":parser-core")
+include(":baselineprofile")
 
 // Fail fast with a clear message instead of a "no sources" error deep inside :parser-core.
 check(file("third_party/pennywise/parser-core/src/main/kotlin").isDirectory) {
