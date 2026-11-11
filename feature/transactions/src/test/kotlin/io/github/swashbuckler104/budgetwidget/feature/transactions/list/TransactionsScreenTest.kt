@@ -96,7 +96,7 @@ class TransactionsScreenTest {
         compose.onNodeWithText("Sort all").performClick()
         compose.onNodeWithText("Jupiter").performClick()
         compose.onNodeWithText("Jupiter").performTouchInput { longClick() }
-        compose.onNodeWithText("Add", useUnmergedTree = true).performClick()
+        compose.onNodeWithContentDescription("Add").performClick()
 
         assertThat(calls).containsExactly(
             "quicksort:2",
