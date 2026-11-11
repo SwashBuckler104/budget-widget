@@ -8,6 +8,8 @@ import dagger.hilt.components.SingletonComponent
 import dagger.multibindings.Multibinds
 import io.github.swashbuckler104.budgetwidget.core.data.WallClock
 import io.github.swashbuckler104.budgetwidget.core.data.inbox.InboxListener
+import io.github.swashbuckler104.budgetwidget.core.data.ingest.StoredUnparsedDismissals
+import io.github.swashbuckler104.budgetwidget.core.data.ingest.UnparsedDismissals
 import io.github.swashbuckler104.budgetwidget.core.data.sort.AutoSortSetting
 import io.github.swashbuckler104.budgetwidget.core.data.sort.SettingsAutoSort
 import io.github.swashbuckler104.budgetwidget.core.data.startup.ProcessStartTask
@@ -17,6 +19,9 @@ import io.github.swashbuckler104.budgetwidget.core.data.startup.ProcessStartTask
 internal abstract class DataModule {
     @Binds
     abstract fun autoSort(impl: SettingsAutoSort): AutoSortSetting
+
+    @Binds
+    abstract fun unparsedDismissals(impl: StoredUnparsedDismissals): UnparsedDismissals
 
     /** Declared so the sets exist (empty) even in builds where no module contributes. */
     @Multibinds

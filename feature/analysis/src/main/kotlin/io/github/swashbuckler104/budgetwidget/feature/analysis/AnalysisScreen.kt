@@ -24,6 +24,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
@@ -42,6 +44,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
@@ -75,6 +79,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.swashbuckler104.budgetwidget.core.data.analysis.AnalysisPeriod
@@ -267,7 +272,7 @@ private fun PeriodSwitcher(state: AnalysisUiState, actions: AnalysisActions) {
                     onClick = { if (kind == PeriodKind.CUSTOM) picking = true else actions.onSelectKind(kind) },
                     shape = SegmentedButtonDefaults.itemShape(index, kinds.size),
                     icon = {},
-                    label = { Text(stringResource(kind.label), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    label = { SegmentLabel(stringResource(kind.label)) },
                 )
             }
         }
@@ -346,7 +351,6 @@ private fun RangePickerDialog(
 ) {
     // The picker works in UTC midnights; local dates map to them one to one.
     fun LocalDate.utcMillis() = atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
-    fun Long.utcDate() = Instant.ofEpochMilli(this).atZone(ZoneOffset.UTC).toLocalDate()
     val todayMillis = today.utcMillis()
     val picker = rememberDateRangePickerState(
         initialSelectedStartDateMillis = initial.start.utcMillis(),
@@ -379,10 +383,49 @@ private fun RangePickerDialog(
                     modifier = Modifier.padding(start = 24.dp, end = 12.dp, top = 16.dp),
                 )
             },
+            // A compact one-line headline: the default "Feb 28, 2026 - Mar 3, 2026" in display size
+            // wrapped even at normal text size and filled the whole dialog at 200%.
+            headline = {
+                RangeHeadline(picker.selectedStartDateMillis?.utcDate(), picker.selectedEndDateMillis?.utcDate(), today)
+            },
             modifier = Modifier.weight(1f),
         )
     }
 }
+
+@Composable
+private fun RangeHeadline(start: LocalDate?, end: LocalDate?, today: LocalDate) {
+    val locale = LocalConfiguration.current.locales[0]
+    fun day(date: LocalDate) =
+        date.format(DateTimeFormatter.ofPattern(if (date.year == today.year) "d MMM" else "d MMM yyyy", locale))
+    Text(
+        text = when {
+            start == null -> stringResource(R.string.analysis_pick_start)
+            end == null -> "${day(start)} - …"
+            else -> "${day(start)} - ${day(end)}"
+        },
+        style = MaterialTheme.typography.titleLarge,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier.padding(start = 24.dp, end = 12.dp, bottom = 12.dp),
+    )
+}
+
+/** One line that shrinks rather than truncating ("Mon…" at 200% font). */
+@Composable
+private fun SegmentLabel(text: String) {
+    val style = LocalTextStyle.current
+    BasicText(
+        text,
+        style = style.copy(color = LocalContentColor.current),
+        maxLines = 1,
+        softWrap = false,
+        autoSize = TextAutoSize.StepBased(minFontSize = 9.sp, maxFontSize = style.fontSize),
+    )
+}
+
+/** The date pickers work in UTC midnights; they map one to one onto local dates. */
+private fun Long.utcDate(): LocalDate = Instant.ofEpochMilli(this).atZone(ZoneOffset.UTC).toLocalDate()
 
 private val PeriodKind.label: Int
     get() = when (this) {

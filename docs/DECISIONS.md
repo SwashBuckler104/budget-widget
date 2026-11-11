@@ -262,3 +262,10 @@ deliberate deviation. Newest at the bottom. Status is Accepted unless stated.
   - A hidden or replaced account no longer stays as an invisible Analysis filter.
   - The nudge notification follows replaced data.
   - Copied unparsed SMS are marked sensitive on the clipboard.
+
+## ADR-0031: Release QA follow-ups (M8 emulator round)
+- **Blocker, fixed:** in the R8 release build every Quick-Sort widget button failed (`NoSuchMethodException: SortChipAction.<init>`). Glance creates `ActionCallback` classes by reflection, R8 removed their no-arg constructors, and debug builds hid it. `:widget` now ships a consumer keep rule. `scripts/check-release-reflection.sh` reads the release dex and fails CI if any `ActionCallback` lost its constructor; a build without the rule was confirmed to fail it.
+- **Onboarding's notifications step** had no Allow button (the launcher was wired up but unreachable). It has one now.
+- **Bank-like alerts from unknown senders** were only caught by the inbox scan, because the SMS receiver filtered on known banks alone. The receiver now uses the same rule as the pipeline (ADR-0028).
+- **Deleted unparsed SMS stay deleted:** deleting records a "dismissed up to" time, and the pipeline won't record unparsed messages received at or before it. Otherwise the scan's 10-minute overlap re-added them. The trade-off: an older unparsed message not stored yet also stays out, which only matters for a later "Import older SMS".
+- **Undo snackbar** sits above the keyboard (it was hidden behind it while search had focus). **Range picker** has a compact one-line headline ("1 Oct - 5 Nov"); the default display-size headline wrapped at normal text size and filled the dialog at 200%. **Period segments** shrink their text instead of truncating ("Mon…").

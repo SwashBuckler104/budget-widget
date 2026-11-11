@@ -53,7 +53,19 @@ class IngestCheckpointStore @Inject constructor(@IngestPreferences private val d
         }
     }
 
+    /** Unparsed SMS received at or before this time (epoch ms) were deleted by the user; never re-add them. */
+    suspend fun unparsedDismissedUpTo(): Long? = dataStore.data.map { it[DISMISSED] }.first()
+
+    /** Moves the dismissal mark forward to [epochMillis]; an older value is ignored. */
+    suspend fun dismissUnparsedUpTo(epochMillis: Long) {
+        dataStore.edit { prefs ->
+            val current = prefs[DISMISSED]
+            if (current == null || epochMillis > current) prefs[DISMISSED] = epochMillis
+        }
+    }
+
     private companion object {
+        val DISMISSED = longPreferencesKey("unparsed_dismissed_up_to_ms")
         val KEY = longPreferencesKey("reconcile_checkpoint_ms")
         val FLOOR = longPreferencesKey("reconcile_floor_ms")
     }

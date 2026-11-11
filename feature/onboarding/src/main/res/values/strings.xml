@@ -31,6 +31,7 @@
     <string name="onboarding_notifications_title">Ask right after you pay</string>
     <string name="onboarding_notifications_body">A notification shows each new payment with your daily categories (Groceries, Restaurant, Public transport) as buttons. Sort it without opening the app.</string>
     <string name="onboarding_notifications_granted">Notifications allowed</string>
+    <string name="onboarding_notifications_allow">Allow notifications</string>
 
     <string name="onboarding_battery_title">Don\'t miss a payment</string>
     <string name="onboarding_battery_body">Some phones stop apps in the background to save battery, which delays notifications. The app catches up every few hours anyway, but for instant alerts:</string>

@@ -1,5 +1,6 @@
 package io.github.swashbuckler104.budgetwidget.core.data.repository
 
+import io.github.swashbuckler104.budgetwidget.core.data.ingest.UnparsedDismissals
 import io.github.swashbuckler104.budgetwidget.core.database.dao.AccountDao
 import io.github.swashbuckler104.budgetwidget.core.database.dao.TransactionDao
 import io.github.swashbuckler104.budgetwidget.core.database.dao.UnparsedSmsDao
@@ -18,6 +19,7 @@ class TransactionRepository @Inject constructor(
     private val transactionDao: TransactionDao,
     private val unparsedSmsDao: UnparsedSmsDao,
     private val accountDao: AccountDao,
+    private val dismissals: UnparsedDismissals = UnparsedDismissals.None,
 ) {
     /** Every transaction, newest first (list rows: no SMS body). */
     fun observeTransactions(): Flow<List<Transaction>> = transactionDao.observeRows().map { rows ->
@@ -56,9 +58,16 @@ class TransactionRepository @Inject constructor(
         rows.map { UnparsedSms(it.id, it.sender, it.body, it.receivedAt, it.reason) }
     }
 
-    suspend fun deleteUnparsed(id: Long) = unparsedSmsDao.delete(id)
+    /** Deletes one entry; a later inbox rescan won't record it again ([UnparsedDismissals]). */
+    suspend fun deleteUnparsed(id: Long) {
+        unparsedSmsDao.receivedAt(id)?.let { dismissals.dismissUpTo(it) }
+        unparsedSmsDao.delete(id)
+    }
 
-    suspend fun clearUnparsed() = unparsedSmsDao.deleteAll()
+    suspend fun clearUnparsed() {
+        unparsedSmsDao.newestReceivedAt()?.let { dismissals.dismissUpTo(it) }
+        unparsedSmsDao.deleteAll()
+    }
 
     /** Blank clears the nickname. */
     suspend fun setAccountNickname(id: Long, nickname: String?) = accountDao.setNickname(id, nickname)

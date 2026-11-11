@@ -21,6 +21,7 @@
     <string name="analysis_last_week">Last week</string>
     <string name="analysis_this_year">This year</string>
     <string name="analysis_pick_range">Choose dates</string>
+    <string name="analysis_pick_start">Pick the first day</string>
     <!-- %1$s is a date range like "1 Oct - 11 Nov" -->
     <string name="analysis_change_range">%1$s, change dates</string>
     <string name="analysis_ok">OK</string>

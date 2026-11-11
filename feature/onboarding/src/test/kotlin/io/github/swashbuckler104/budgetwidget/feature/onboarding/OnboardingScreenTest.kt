@@ -59,6 +59,13 @@ class OnboardingScreenTest {
     }
 
     @Test
+    fun `the notifications step asks for the permission`() {
+        show(OnboardingStep.NOTIFICATIONS)
+        compose.onNodeWithText("Allow notifications").performScrollTo().performClick()
+        assertThat(calls).containsExactly("notifications")
+    }
+
+    @Test
     fun `a blocked request shows the restricted settings guide`() {
         show(OnboardingStep.SMS, smsBlocked = true)
         compose.onNodeWithText("Allow restricted settings", substring = true).performScrollTo().assertExists()

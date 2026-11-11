@@ -204,11 +204,20 @@ internal fun OnboardingScreen(state: OnboardingState, actions: OnboardingActions
             ) {
                 when (step) {
                     OnboardingStep.WELCOME -> Welcome()
+
                     OnboardingStep.SMS -> SmsStep(state, actions)
-                    OnboardingStep.NOTIFICATIONS -> NotificationsStep(state.notificationsGranted)
+
+                    OnboardingStep.NOTIFICATIONS -> NotificationsStep(
+                        state.notificationsGranted,
+                        actions.onAllowNotifications,
+                    )
+
                     OnboardingStep.BATTERY -> BatteryStep(state.samsung, actions.onOpenAppInfo)
+
                     OnboardingStep.HISTORY -> HistoryStep(state.backfill, state.smsGranted, actions.onChooseBackfill)
+
                     OnboardingStep.CATEGORIES -> CategoriesStep(state.groups)
+
                     OnboardingStep.WIDGET -> WidgetStep(state.canPinWidget, actions.onPinWidget)
                 }
             }
@@ -326,11 +335,17 @@ private fun RestrictedGuide(onOpenAppInfo: () -> Unit) {
 }
 
 @Composable
-private fun NotificationsStep(granted: Boolean) {
+private fun NotificationsStep(granted: Boolean, onAllow: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         StepHeader(Icons.Rounded.NotificationsActive, stringResource(R.string.onboarding_notifications_title))
         Text(stringResource(R.string.onboarding_notifications_body), style = MaterialTheme.typography.bodyLarge)
-        if (granted) Granted(stringResource(R.string.onboarding_notifications_granted))
+        if (granted) {
+            Granted(stringResource(R.string.onboarding_notifications_granted))
+        } else {
+            Button(onClick = onAllow, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.onboarding_notifications_allow))
+            }
+        }
     }
 }
 

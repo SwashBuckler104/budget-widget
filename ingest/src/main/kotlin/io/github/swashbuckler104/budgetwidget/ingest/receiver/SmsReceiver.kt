@@ -30,7 +30,9 @@ class SmsReceiver : BroadcastReceiver() {
             ?.map { SmsPart(it.displayOriginatingAddress, it.displayMessageBody, it.timestampMillis) }
             .orEmpty()
         SmsAssembler.assemble(parts)
-            .filter { parser.isKnownBankSender(it.sender) }
+            // Same rule as the pipeline's step 1: known banks, plus bank-like alerts from senders
+            // no parser knows yet (ADR-0028), so those reach the unparsed list right away.
+            .filter { parser.isKnownBankSender(it.sender) || parser.looksLikeUnknownBankAlert(it) }
             .forEach(scheduler::enqueueIngest)
     }
 }

@@ -68,6 +68,9 @@ jobs:
       - name: Check every view model is in the Hilt component
         run: scripts/check-hilt-viewmodels.sh release
 
+      - name: Check R8 kept what libraries create by reflection
+        run: scripts/check-release-reflection.sh app/build/outputs/apk/release/app-release.apk
+
       - name: Verify signature and prepare assets
         run: |
           apksigner="$(find "${ANDROID_HOME}/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)/apksigner"
