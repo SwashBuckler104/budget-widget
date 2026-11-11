@@ -219,3 +219,8 @@ deliberate deviation. Newest at the bottom. Status is Accepted unless stated.
   - Widget text grows only up to 1.3x, while chip and button labels in fixed-height boxes don't grow at all (they keep full TalkBack labels).
   - Insight category rows are sized for the scaled text.
 - Glance widget tests run with a 15 s harness timeout instead of 2 s: the first test of a class missed 2 s under a loaded full build (a flake, not a hang).
+
+## ADR-0026: Family seed group and versioned seeding
+- **Family** (expense): Transfer, Lend; D-Mart, Kirana, Groceries; Other. The owner created it on their phone and asked for it in the seed set. New installs get it before Investments, with its own color (cyan 800).
+- **Seeds are versioned per group:** each group records the seed version that introduced it, and the seeder adds only groups newer than the version an install already has. The earlier "re-run the whole list on a version bump" would have re-created seeds the user deleted.
+- **Adoption instead of duplicates:** a new group first looks for an unseeded category with the same name (ignoring case) at the same level and marks it as the seed, keeping the user's name, icon, color, kind and order. Its same-named subcategories are adopted the same way; missing ones are added after the user's own. Without this, an install that already has its own "Family" would get a second one.

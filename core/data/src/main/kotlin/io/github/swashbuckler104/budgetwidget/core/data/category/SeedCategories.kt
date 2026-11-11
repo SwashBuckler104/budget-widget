@@ -10,16 +10,23 @@ internal data class SeedCategory(
     val children: List<SeedCategory> = emptyList(),
 )
 
-internal data class SeedGroup(val category: SeedCategory, val colorArgb: Int, val kind: CategoryKind)
+/** [since] is the [SeedCategories.VERSION] that introduced the group; older installs get it on upgrade. */
+internal data class SeedGroup(
+    val category: SeedCategory,
+    val colorArgb: Int,
+    val kind: CategoryKind,
+    val since: Int = 1,
+)
 
 /**
- * The editable starter set, chosen by the owner (docs/DECISIONS.md ADR-0018). Bump [VERSION] and add a migration path in `CategorySeeder` if this
- * list changes after release. Investments are a TRANSFER kind: money moved to your own
+ * The editable starter set, chosen by the owner (docs/DECISIONS.md ADR-0018, ADR-0026). To add a
+ * group, bump [VERSION] and give the group `since = VERSION`; `CategorySeeder` adds only groups newer
+ * than what an install already has, adopting same-named categories the user made. Investments are a TRANSFER kind: money moved to your own
  * investments is not spending (docs/DECISIONS.md ADR-0018). Emoji are limited to Emoji 5.0 so
  * they render on Android 8 (minSdk) in widgets and notifications, which can't use EmojiCompat.
  */
 internal object SeedCategories {
-    const val VERSION = 1
+    const val VERSION = 2
 
     private fun c(key: String, name: String, emoji: String, vararg children: SeedCategory) =
         SeedCategory(key, name, emoji, children.toList())
@@ -131,6 +138,19 @@ internal object SeedCategories {
             ),
             0xFFC62828.toInt(),
             CategoryKind.EXPENSE,
+        ),
+        SeedGroup(
+            c(
+                "family",
+                "Family",
+                "👪",
+                c("family_transfer_lend", "Transfer, Lend", "💸"),
+                c("family_groceries", "D-Mart, Kirana, Groceries", "🛒"),
+                c("family_other", "Other", "🤝"),
+            ),
+            0xFF00838F.toInt(),
+            CategoryKind.EXPENSE,
+            since = 2,
         ),
         SeedGroup(
             c(

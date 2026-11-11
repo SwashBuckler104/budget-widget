@@ -34,14 +34,13 @@ class CategoryTest {
     @After
     fun tearDown() = db.close()
 
-    private fun seeder(scope: TestScope) = CategorySeeder(
-        db,
-        SettingsStore(
-            PreferenceDataStoreFactory.create(scope = scope.backgroundScope) {
-                tmp.root.resolve("s.preferences_pb")
-            },
-        ),
+    private fun settings(scope: TestScope) = SettingsStore(
+        PreferenceDataStoreFactory.create(scope = scope.backgroundScope) {
+            tmp.root.resolve("s.preferences_pb")
+        },
     )
+
+    private fun seeder(scope: TestScope) = CategorySeeder(db, settings(scope))
 
     @Test
     fun `seeding inserts the scope set once and never brings back deleted seeds`() = runTest {
@@ -50,7 +49,7 @@ class CategoryTest {
         val groups = repo.observeGroups().first()
         assertThat(groups.map { it.category.name }).containsExactly(
             "Food & Drinks", "Shopping", "Housing", "Transportation", "Vehicle", "Life & Entertainment",
-            "Communication, PC", "Financial Expenses", "Investments", "Income",
+            "Communication, PC", "Financial Expenses", "Family", "Investments", "Income",
         ).inOrder()
         val food = groups.first().children.map { it.name }
         assertThat(food).containsExactly("Groceries", "Restaurant, Fast-food", "Drinks, Alcohol").inOrder()
@@ -58,7 +57,7 @@ class CategoryTest {
         assertThat(income).containsExactly("Salary", "Freelancing", "Other", "Self Transfer").inOrder()
         val financial = groups.single { it.category.name == "Financial Expenses" }.children.map { it.name }
         assertThat(financial.last()).isEqualTo("Self Transfer")
-        assertThat(groups.sumOf { it.children.size }).isEqualTo(44)
+        assertThat(groups.sumOf { it.children.size }).isEqualTo(47)
         assertThat(
             groups.flatMap { g ->
                 g.children.map { it.name.length }
@@ -72,6 +71,55 @@ class CategoryTest {
         assertThat(repo.delete(housing)).isEqualTo(DeleteResult.Deleted)
         seeder.ensureSeeded()
         assertThat(repo.observeGroups().first().none { it.category.name == "Housing" }).isTrue()
+    }
+
+    @Test
+    fun `upgrading adds only new groups and adopts the user's own same-named category`() = runTest {
+        val settings = settings(this)
+        val seeder = CategorySeeder(db, settings)
+        seeder.ensureSeeded()
+        // Turn the database into a version 1 install: no Family seed, Housing deleted by the user.
+        val before = repo.observeGroups().first()
+        repo.delete(before.single { it.category.name == "Family" }.category.id)
+        repo.delete(before.single { it.category.name == "Housing" }.category.id)
+        settings.setSeededCategoriesVersion(1)
+        // The user made their own Family, with one subcategory the seed doesn't have.
+        val color = 0xFF8E24AA.toInt()
+        val family = (
+            repo.create(
+                null,
+                CategoryDraft("family", "🏠", color, CategoryKind.EXPENSE),
+            ) as CategoryResult.Saved
+            ).id
+        val lend = (
+            repo.create(
+                family,
+                CategoryDraft("Transfer, Lend", "💸", 0, CategoryKind.EXPENSE),
+            ) as CategoryResult.Saved
+            ).id
+        repo.create(family, CategoryDraft("Pocket money", "👛", 0, CategoryKind.EXPENSE))
+        repo.create(family, CategoryDraft("d-mart, kirana, groceries", "🛒", 0, CategoryKind.EXPENSE))
+
+        seeder.ensureSeeded()
+
+        val groups = repo.observeGroups().first()
+        assertThat(groups.none { it.category.name == "Housing" }).isTrue()
+        val adopted = groups.single { it.category.name.equals("Family", ignoreCase = true) }
+        assertThat(adopted.category.id).isEqualTo(family)
+        assertThat(adopted.category.name).isEqualTo("family")
+        assertThat(adopted.category.emoji).isEqualTo("🏠")
+        assertThat(adopted.category.colorArgb).isEqualTo(color)
+        assertThat(adopted.category.isSeed).isTrue()
+        assertThat(adopted.children.map { it.name })
+            .containsExactly("Transfer, Lend", "Pocket money", "d-mart, kirana, groceries", "Other").inOrder()
+        assertThat(adopted.children.first().id).isEqualTo(lend)
+        val keys = db.categoryDao().getAll().associate { it.name to it.seedKey }
+        assertThat(keys["family"]).isEqualTo("family")
+        assertThat(keys["Transfer, Lend"]).isEqualTo("family_transfer_lend")
+        assertThat(keys["d-mart, kirana, groceries"]).isEqualTo("family_groceries")
+        assertThat(keys["Pocket money"]).isNull()
+        assertThat(db.categoryDao().getAll().count { it.seedKey == "family_other" }).isEqualTo(1)
+        assertThat(settings.seededCategoriesVersion()).isEqualTo(SeedCategories.VERSION)
     }
 
     @Test
