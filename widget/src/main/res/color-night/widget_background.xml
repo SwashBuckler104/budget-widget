@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Translucent widget background (ADR-0033): the wallpaper shows through. Brand dark surface. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:alpha="0.58" android:color="#0E1513" />
+</selector>
