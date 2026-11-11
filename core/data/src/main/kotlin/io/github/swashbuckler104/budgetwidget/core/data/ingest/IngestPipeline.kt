@@ -68,9 +68,13 @@ class IngestPipeline @Inject constructor(
     private val mutex = Mutex()
 
     suspend fun ingest(sms: RawSms, origin: IngestOrigin): IngestOutcome = withContext(Dispatchers.IO) {
-        // Step 1: never parse or persist messages from senders that aren't banks.
-        if (!parser.isKnownBankSender(sms.sender)) return@withContext IngestOutcome.NotFinancial
-        val result = parser.parse(sms)
+        // Step 1: never parse messages from senders that aren't banks. One that still reads like a
+        // bank alert is kept in the unparsed list, so a missing parser shows up (ADR-0028).
+        val result = when {
+            parser.isKnownBankSender(sms.sender) -> parser.parse(sms)
+            parser.looksLikeUnknownBankAlert(sms) -> SmsParseResult.Unparsed(UnparsedReason.UNKNOWN_SENDER)
+            else -> return@withContext IngestOutcome.NotFinancial
+        }
         val autoSortEnabled = autoSort.enabled()
         val outcome = mutex.withLock {
             db.withTransaction {
@@ -88,7 +92,7 @@ class IngestPipeline @Inject constructor(
                             UnparsedSmsEntity(
                                 sender = sms.sender,
                                 bodyHash = sha256(sms.body),
-                                // Only known bank senders reach this point (step 1).
+                                // Only bank senders and bank-like alerts reach this point (step 1).
                                 body = sms.body,
                                 receivedAt = sms.receivedAt,
                                 reason = result.reason,

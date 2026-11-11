@@ -60,6 +60,15 @@ class IngestPipelineTest {
     }
 
     @Test
+    fun `an alert from an unknown bank sender is kept as unparsed, never parsed or notified`() = runTest {
+        val outcome = pipeline.ingest(RawSms(UNKNOWN_BANK, "Rs 10 credited to A/c XX1", 1), IngestOrigin.REALTIME)
+        assertThat(outcome).isEqualTo(IngestOutcome.Unparsed(UnparsedReason.UNKNOWN_SENDER))
+        assertThat(parser.parsed).isEmpty()
+        assertThat(db.transactionDao().count()).isEqualTo(0)
+        assertThat(db.unparsedSmsDao().count()).isEqualTo(1)
+    }
+
+    @Test
     fun `a transaction is stored once with account, keys and PENDING status`() = runTest {
         val sms = RawSms(BANK, "Rs 150.00 debited to swiggy.food@paytm", 1_000)
         parser.next = txn(hash = "h1", merchant = "swiggy.food@paytm", balance = 99_00)
@@ -212,6 +221,8 @@ class IngestPipelineTest {
 
         override fun isKnownBankSender(sender: String) = sender == BANK
 
+        override fun looksLikeUnknownBankAlert(sms: RawSms) = sms.sender == UNKNOWN_BANK
+
         override fun parse(sms: RawSms): SmsParseResult {
             parsed += sms
             return next
@@ -245,6 +256,7 @@ class IngestPipelineTest {
 
     private companion object {
         const val BANK = "AD-HDFCBK"
+        const val UNKNOWN_BANK = "VM-NEWBNK-S"
         const val NOW = 42L
     }
 }

@@ -22,6 +22,8 @@ import javax.inject.Inject
 internal class PennyWiseSmsParser @Inject constructor() : SmsParser {
     override fun isKnownBankSender(sender: String): Boolean = parsersFor(sender).isNotEmpty()
 
+    override fun looksLikeUnknownBankAlert(sms: RawSms): Boolean = FinancialSmsHeuristic.looksLikeTransaction(sms)
+
     override fun parse(sms: RawSms): SmsParseResult {
         val parsed = try {
             // Same order and semantics as BankParserFactory.parse, restricted to our parsers.
