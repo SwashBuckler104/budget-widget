@@ -21,4 +21,104 @@
     <string name="settings_section_sorting">Sorting</string>
     <string name="settings_auto_sort">Auto-sort known merchants</string>
     <string name="settings_auto_sort_summary">Sort merchants you have confirmed 3 or more times without asking</string>
+    <string name="settings_save">Save</string>
+    <string name="settings_delete">Delete</string>
+
+    <string name="settings_section_appearance">Appearance</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_system">Follow system</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_dynamic_color">Wallpaper colors</string>
+    <string name="settings_dynamic_color_summary">Use colors from your wallpaper instead of the app\'s teal</string>
+
+    <string name="settings_section_sms">Bank SMS</string>
+    <string name="settings_import_older">Import older SMS</string>
+    <string name="settings_import_older_summary">Add bank transactions already in your inbox</string>
+    <plurals name="settings_import_days">
+        <item quantity="one">Last %1$d day</item>
+        <item quantity="other">Last %1$d days</item>
+    </plurals>
+    <string name="settings_unparsed">Unparsed bank SMS</string>
+    <plurals name="settings_unparsed_summary">
+        <item quantity="one">%1$d message the app couldn\'t read</item>
+        <item quantity="other">%1$d messages the app couldn\'t read</item>
+    </plurals>
+    <string name="settings_unparsed_hint">Bank messages that did not become transactions. Copy one (remove your account number and name first) to report it so support for it can be added.</string>
+    <string name="settings_unparsed_empty_title">Nothing here</string>
+    <string name="settings_unparsed_empty_body">Every bank SMS so far became a transaction.</string>
+    <string name="settings_unparsed_copied">Copied</string>
+    <!-- %1$s is the SMS sender, e.g. AD-HDFCBK -->
+    <string name="settings_unparsed_copy">Copy message from %1$s</string>
+    <string name="settings_unparsed_delete">Delete message from %1$s</string>
+    <string name="settings_unparsed_delete_all">Delete all</string>
+    <string name="settings_unparsed_delete_all_body">Remove every message from this list? Your transactions are not affected.</string>
+    <string name="settings_unparsed_no_body">(message text not kept)</string>
+    <string name="settings_unparsed_reason_no_match">Format not recognised</string>
+    <string name="settings_unparsed_reason_currency">Not in rupees</string>
+    <string name="settings_unparsed_reason_amount">No valid amount</string>
+    <string name="settings_unparsed_reason_error">Reading failed</string>
+    <string name="settings_unparsed_reason_wrong_amount">You reported the amount</string>
+    <string name="settings_unparsed_reason_unknown_sender">Bank not supported yet</string>
+    <string name="settings_accounts">Accounts</string>
+    <string name="settings_accounts_summary">Nicknames, and which accounts show in filters</string>
+    <string name="settings_accounts_hint">Accounts appear as bank SMS arrive. Hidden accounts leave the filters; their transactions still count.</string>
+    <string name="settings_accounts_empty_title">No accounts yet</string>
+    <string name="settings_accounts_empty_body">They appear here once bank SMS arrive.</string>
+    <string name="settings_account_shown">Shown</string>
+    <string name="settings_account_hidden">Hidden</string>
+    <!-- %1$s is an account label, e.g. HDFC Bank ··1234 -->
+    <string name="settings_account_show_in_filters">Show %1$s in filters</string>
+    <string name="settings_account_rename">Rename %1$s</string>
+    <string name="settings_account_balance">Balance %1$s</string>
+    <string name="settings_account_nickname">Nickname</string>
+    <string name="settings_account_nickname_hint">Leave empty to use the bank name</string>
+
+    <string name="settings_section_data">Your data</string>
+    <string name="settings_export_csv">Export to CSV</string>
+    <string name="settings_export_csv_summary">Every transaction, for a spreadsheet</string>
+    <string name="settings_backup">Back up</string>
+    <string name="settings_backup_summary">Save everything to a file. It isn\'t encrypted: keep it somewhere safe.</string>
+    <string name="settings_restore">Restore</string>
+    <string name="settings_restore_summary">Replace everything with a backup file</string>
+    <string name="settings_restore_confirm_title">Restore a backup?</string>
+    <string name="settings_restore_confirm_body">Your transactions, categories, merchant rules and settings are replaced by the ones in the file. This can\'t be undone.</string>
+    <string name="settings_restore_choose">Choose file</string>
+    <string name="settings_start_fresh">Start fresh</string>
+    <string name="settings_start_fresh_summary">Delete all transactions and begin tracking from now</string>
+    <string name="settings_start_fresh_confirm_title">Start fresh?</string>
+    <string name="settings_start_fresh_confirm_body">Every transaction is deleted, and SMS received before now won\'t be imported again. Categories, merchant rules and account nicknames stay. Back up first if you may want them later.</string>
+    <string name="settings_start_fresh_confirm">Delete and start fresh</string>
+    <string name="settings_msg_backed_up">Backup saved</string>
+    <string name="settings_msg_exported">CSV saved</string>
+    <plurals name="settings_msg_restored">
+        <item quantity="one">Restored %1$d transaction</item>
+        <item quantity="other">Restored %1$d transactions</item>
+    </plurals>
+    <string name="settings_msg_not_backup">That file isn\'t a backup from this app. Nothing changed.</string>
+    <string name="settings_msg_too_new">That backup is from a newer version of the app. Update it first.</string>
+    <string name="settings_msg_file_failed">Couldn\'t use that file. Nothing changed.</string>
+    <plurals name="settings_msg_started_fresh">
+        <item quantity="one">Deleted %1$d transaction. Tracking starts now.</item>
+        <item quantity="other">Deleted %1$d transactions. Tracking starts now.</item>
+    </plurals>
+    <plurals name="settings_msg_import_started">
+        <item quantity="one">Importing the last %1$d day of SMS</item>
+        <item quantity="other">Importing the last %1$d days of SMS</item>
+    </plurals>
+
+    <string name="settings_about">About</string>
+    <string name="settings_about_summary">Version, license, privacy and credits</string>
+    <string name="settings_app_name">Budget Widget</string>
+    <string name="settings_version">Version %1$s</string>
+    <string name="settings_offline_title">No internet permission</string>
+    <string name="settings_offline_body">This app cannot connect to the internet. Your SMS and spending never leave this phone. You can check it in App info.</string>
+    <string name="settings_privacy_title">Privacy</string>
+    <string name="settings_privacy_body">Only SMS from banks are read, and only on this phone. Bank messages are stored here so you can see where a transaction came from; personal messages are never stored. There are no ads, no analytics and no accounts. Backups and exports are files you choose where to save.</string>
+    <string name="settings_license_title">License</string>
+    <string name="settings_license_body">Free software under the GNU Affero General Public License, version 3 (AGPL-3.0). You may use, study, share and change it under that license.</string>
+    <string name="settings_source">Source code</string>
+    <string name="settings_credits_title">Credits</string>
+    <string name="settings_credits_body">Bank SMS are read with PennyWise parser-core by the PennyWise authors (AGPL-3.0), used unmodified. Budget Widget is a separate project, not made or endorsed by them.</string>
+    <string name="settings_parser_link">Parser project</string>
 </resources>

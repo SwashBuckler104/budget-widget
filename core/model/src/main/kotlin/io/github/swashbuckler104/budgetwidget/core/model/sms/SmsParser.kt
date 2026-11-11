@@ -52,3 +52,16 @@ enum class UnparsedReason {
     /** No parser knows the sender, but the message reads like a bank transaction alert (ADR-0028). */
     UNKNOWN_SENDER,
 }
+
+/**
+ * A stored message no parser turned into a transaction (SCOPE.md F2 "Unparsed bank SMS"), shown in
+ * Settings so the user can copy it for a parser bug report, or delete it. [body] can be null for
+ * entries recorded without one.
+ */
+data class UnparsedSms(
+    val id: Long,
+    val sender: String,
+    val body: String?,
+    val receivedAt: Long,
+    val reason: UnparsedReason,
+)

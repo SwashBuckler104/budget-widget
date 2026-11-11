@@ -9,6 +9,7 @@ import io.github.swashbuckler104.budgetwidget.core.database.model.TransactionWit
 import io.github.swashbuckler104.budgetwidget.core.model.Account
 import io.github.swashbuckler104.budgetwidget.core.model.Transaction
 import io.github.swashbuckler104.budgetwidget.core.model.TransactionDetail
+import io.github.swashbuckler104.budgetwidget.core.model.sms.UnparsedSms
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -50,7 +51,24 @@ class TransactionRepository @Inject constructor(
 
     fun observeAccounts(): Flow<List<Account>> = accountDao.observeAll().map { rows -> rows.map { it.toModel() } }
 
+    /** Newest first. */
+    fun observeUnparsed(): Flow<List<UnparsedSms>> = unparsedSmsDao.observeAll().map { rows ->
+        rows.map { UnparsedSms(it.id, it.sender, it.body, it.receivedAt, it.reason) }
+    }
+
+    suspend fun deleteUnparsed(id: Long) = unparsedSmsDao.delete(id)
+
+    suspend fun clearUnparsed() = unparsedSmsDao.deleteAll()
+
+    /** Blank clears the nickname. */
+    suspend fun setAccountNickname(id: Long, nickname: String?) = accountDao.setNickname(id, nickname)
+
+    /** Hidden accounts leave the account filters; their transactions still count. */
+    suspend fun setAccountHidden(id: Long, hidden: Boolean) = accountDao.setHidden(id, hidden)
+
     suspend fun get(id: Long): Transaction? = transactionDao.getWithAccount(id)?.toModel()
+
+    suspend fun hasAny(): Boolean = transactionDao.count() > 0
 
     suspend fun pendingIds(): Set<Long> = transactionDao.pendingIds().toSet()
 }
@@ -103,4 +121,4 @@ private fun TransactionRow.toModel() = Transaction(
     editedByUser = editedByUser,
 )
 
-private fun AccountEntity.toModel() = Account(id, bankName, last4, nickname, kind, hidden)
+private fun AccountEntity.toModel() = Account(id, bankName, last4, nickname, kind, hidden, lastBalancePaise)

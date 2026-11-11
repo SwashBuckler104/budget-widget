@@ -61,6 +61,8 @@ data class Account(
     val nickname: String?,
     val kind: AccountKind,
     val hidden: Boolean,
+    /** The last balance a bank SMS reported, in paise; null if none did. */
+    val balancePaise: Long? = null,
 ) {
     /** `Nickname`, or `HDFC Bank ··1234`. */
     val label: String get() = nickname ?: listOfNotNull(bankName, last4?.let { "··$it" }).joinToString(" ")
