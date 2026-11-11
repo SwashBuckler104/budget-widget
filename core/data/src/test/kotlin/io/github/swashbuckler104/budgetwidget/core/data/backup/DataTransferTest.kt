@@ -194,6 +194,21 @@ class DataTransferTest {
     }
 
     @Test
+    fun `a backup from before the bright palette restores with bright colors`() = runTest {
+        val target = env(this, "palette")
+        val old = """{"format":"budget-widget-backup","version":1,"exportedAt":0,"appVersion":"0.1.0","seedVersion":2,
+            "accounts":[],"transactions":[],"merchantRules":[],"settings":{},
+            "categories":[
+              {"id":1,"name":"Housing","emoji":"🏠","colorArgb":${0xFF5D4037.toInt()},"kind":"EXPENSE","sortOrder":0},
+              {"id":2,"name":"Mine","emoji":"🙂","colorArgb":${0xFF112233.toInt()},"kind":"EXPENSE","sortOrder":1}]}"""
+
+        assertThat(target.transfer.restore(old.byteInputStream())).isInstanceOf(RestoreResult.Restored::class.java)
+
+        val colors = target.db.backupDao().categories().associate { it.name to it.colorArgb }
+        assertThat(colors).containsExactly("Housing", 0xFFFFF176.toInt(), "Mine", 0xFF112233.toInt())
+    }
+
+    @Test
     fun `start fresh keeps categories and rules and stops older SMS coming back`() = runTest {
         val e = env(this, "fresh")
         e.fill()

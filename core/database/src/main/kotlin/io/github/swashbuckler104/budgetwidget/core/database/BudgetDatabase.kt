@@ -20,6 +20,7 @@ import io.github.swashbuckler104.budgetwidget.core.database.entity.MerchantAlias
 import io.github.swashbuckler104.budgetwidget.core.database.entity.MerchantRuleEntity
 import io.github.swashbuckler104.budgetwidget.core.database.entity.TransactionEntity
 import io.github.swashbuckler104.budgetwidget.core.database.entity.UnparsedSmsEntity
+import io.github.swashbuckler104.budgetwidget.core.model.CategoryPalette
 
 /**
  * All SCOPE.md §5 tables exist from version 1. Every version bump needs a migration and a
@@ -35,7 +36,7 @@ import io.github.swashbuckler104.budgetwidget.core.database.entity.UnparsedSmsEn
         UnparsedSmsEntity::class,
         MerchantAliasEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
     autoMigrations = [
         // 1 -> 2: category.seedKey (nullable) with a unique index.
@@ -44,6 +45,8 @@ import io.github.swashbuckler104.budgetwidget.core.database.entity.UnparsedSmsEn
         AutoMigration(from = 2, to = 3, spec = BudgetDatabase.SortedAtSpec::class),
         // 3 -> 4: merchant_alias table (names the user gave merchants).
         AutoMigration(from = 3, to = 4),
+        // 4 -> 5: no schema change; category colors move to the bright palette (ADR-0032).
+        AutoMigration(from = 4, to = 5, spec = BudgetDatabase.BrightColorsSpec::class),
     ],
 )
 abstract class BudgetDatabase : RoomDatabase() {
@@ -67,6 +70,15 @@ abstract class BudgetDatabase : RoomDatabase() {
     class SortedAtSpec : AutoMigrationSpec {
         override fun onPostMigrate(db: SupportSQLiteDatabase) {
             db.execSQL("UPDATE transactions SET sortedAt = updatedAt WHERE status != 'PENDING'")
+        }
+    }
+
+    /** The old dark category colors read poorly on a black theme: each moves to its bright shade. */
+    class BrightColorsSpec : AutoMigrationSpec {
+        override fun onPostMigrate(db: SupportSQLiteDatabase) {
+            CategoryPalette.legacy.forEach { (old, new) ->
+                db.execSQL("UPDATE category SET colorArgb = ? WHERE colorArgb = ?", arrayOf<Any>(new, old))
+            }
         }
     }
 

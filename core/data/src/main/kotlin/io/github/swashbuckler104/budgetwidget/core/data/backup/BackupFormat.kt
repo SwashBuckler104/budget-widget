@@ -13,6 +13,7 @@ import io.github.swashbuckler104.budgetwidget.core.datastore.SettingsSnapshot
 import io.github.swashbuckler104.budgetwidget.core.datastore.ThemeMode
 import io.github.swashbuckler104.budgetwidget.core.model.AccountKind
 import io.github.swashbuckler104.budgetwidget.core.model.CategoryKind
+import io.github.swashbuckler104.budgetwidget.core.model.CategoryPalette
 import io.github.swashbuckler104.budgetwidget.core.model.Direction
 import io.github.swashbuckler104.budgetwidget.core.model.IgnoreReason
 import io.github.swashbuckler104.budgetwidget.core.model.ParserType
@@ -134,8 +135,14 @@ internal data class BackupSettings(
 internal fun CategoryEntity.toBackup() =
     BackupCategory(id, parentId, name, iconKey, colorArgb, kind, sortOrder, archived, isSeed, seedKey)
 
-internal fun BackupCategory.toEntity() =
-    CategoryEntity(id, parentId, name, emoji, colorArgb, kind, sortOrder, archived, isSeed, seedKey)
+/** Backups made before the bright palette (ADR-0032) restore with their colors moved to it. */
+internal fun BackupCategory.toEntity() = CategoryEntity(
+    id, parentId, name, emoji,
+    CategoryPalette.upgrade(
+        colorArgb,
+    ),
+    kind, sortOrder, archived, isSeed, seedKey,
+)
 
 internal fun AccountEntity.toBackup() =
     BackupAccount(id, bankName, last4, nickname, kind, lastBalancePaise, hidden, createdAt)

@@ -13,6 +13,7 @@ import io.github.swashbuckler104.budgetwidget.core.data.category.DeleteResult
 import io.github.swashbuckler104.budgetwidget.core.model.Category
 import io.github.swashbuckler104.budgetwidget.core.model.CategoryGroup
 import io.github.swashbuckler104.budgetwidget.core.model.CategoryKind
+import io.github.swashbuckler104.budgetwidget.core.model.CategoryPalette
 import io.github.swashbuckler104.budgetwidget.core.model.MerchantRule
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -226,11 +227,8 @@ class CategoriesViewModel @Inject constructor(private val repository: CategoryRe
     }
 }
 
-/** Palette for new top-level categories; distinguishable in light and dark themes. */
-val CATEGORY_COLORS: List<Int> = listOf(
-    0xFFEF6C00, 0xFF1565C0, 0xFFAD1457, 0xFF5D4037, 0xFFC62828, 0xFF283593,
-    0xFF00838F, 0xFF8E24AA, 0xFF00695C, 0xFF9E9D24, 0xFF558B2F, 0xFF546E7A,
-).map { it.toInt() }
+/** Colors offered for top-level categories (bright shades, darkened on light surfaces). */
+val CATEGORY_COLORS: List<Int> = CategoryPalette.colors
 
 /** Emoji offered in the editor (Emoji 5.0 or older, so they render on Android 8); any emoji can be typed. */
 val CATEGORY_EMOJI: List<String> = listOf(

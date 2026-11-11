@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import io.github.swashbuckler104.budgetwidget.core.data.category.CategoryRepository
 import io.github.swashbuckler104.budgetwidget.core.data.category.CategoryResult
 import io.github.swashbuckler104.budgetwidget.core.designsystem.component.CategoryAvatar
+import io.github.swashbuckler104.budgetwidget.core.designsystem.theme.BudgetTheme
 import io.github.swashbuckler104.budgetwidget.core.model.CategoryKind
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -142,7 +143,7 @@ internal fun CategoryEditorSheet(
                                 .size(48.dp)
                                 .padding(4.dp)
                                 .clip(CircleShape)
-                                .background(Color(color))
+                                .background(BudgetTheme.categoryColor(color))
                                 .then(
                                     if (selected) {
                                         Modifier.border(

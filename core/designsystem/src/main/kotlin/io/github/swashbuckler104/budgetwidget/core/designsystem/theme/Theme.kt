@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.github.swashbuckler104.budgetwidget.core.model.CategoryPalette
 
 /**
  * App theme: Material 3 with dynamic color on Android 12+ and the brand palette (a calm teal, see
@@ -81,15 +82,33 @@ object BudgetTheme {
     val money: MoneyColors
         @Composable
         @ReadOnlyComposable
-        get() = if (MaterialTheme.colorScheme.surface.luminance() <
-            DARK_SURFACE
-        ) {
-            MoneyColors.dark
-        } else {
-            MoneyColors.light
-        }
+        get() = if (isDarkSurface) MoneyColors.dark else MoneyColors.light
+
+    /**
+     * A category's stored color as drawn on the current surface: the bright shade on dark, a
+     * darker shade of the same hue on light (see [CategoryPalette.forLightSurface]).
+     */
+    @Composable
+    @ReadOnlyComposable
+    fun categoryColor(argb: Int): Color = Color(if (isDarkSurface) argb else CategoryPalette.forLightSurface(argb))
+
+    /**
+     * The disc behind a category's emoji. On dark surfaces it is nearly solid: any thin tint of a
+     * bright shade over black blends into a muddy olive or brown. On light surfaces it is a pastel tint.
+     */
+    @Composable
+    @ReadOnlyComposable
+    fun categoryContainer(argb: Int): Color =
+        categoryColor(argb).copy(alpha = if (isDarkSurface) DARK_CONTAINER_ALPHA else LIGHT_CONTAINER_ALPHA)
+
+    private val isDarkSurface: Boolean
+        @Composable
+        @ReadOnlyComposable
+        get() = MaterialTheme.colorScheme.surface.luminance() < DARK_SURFACE
 
     private const val DARK_SURFACE = 0.5f
+    private const val DARK_CONTAINER_ALPHA = 0.85f
+    private const val LIGHT_CONTAINER_ALPHA = 0.2f
 }
 
 /** Brand palette (seed #006B5E), used when dynamic color is unavailable or off. */

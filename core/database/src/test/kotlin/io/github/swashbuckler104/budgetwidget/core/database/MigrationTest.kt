@@ -4,6 +4,7 @@ import androidx.room.testing.MigrationTestHelper
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
+import io.github.swashbuckler104.budgetwidget.core.model.CategoryPalette
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -97,6 +98,28 @@ class MigrationTest {
             db.query("SELECT displayName FROM merchant_alias WHERE merchantKey = 'swiggy'").use {
                 it.moveToFirst()
                 assertThat(it.getString(0)).isEqualTo("Swiggy")
+            }
+        }
+    }
+
+    @Test
+    fun `4 to 5 moves old category colors to the bright palette and keeps custom ones`() {
+        val oldHousing = 0xFF5D4037.toInt()
+        val custom = 0xFF112233.toInt()
+        helper.createDatabase(DB, 4).use { db ->
+            listOf(1 to oldHousing, 2 to custom).forEach { (id, color) ->
+                db.execSQL(
+                    "INSERT INTO category (id, parentId, name, iconKey, colorArgb, kind, sortOrder, archived, " +
+                        "isSeed) VALUES ($id, NULL, 'C$id', '🙂', $color, 'EXPENSE', $id, 0, 0)",
+                )
+            }
+        }
+
+        helper.runMigrationsAndValidate(DB, 5, true).use { db ->
+            db.query("SELECT id, colorArgb FROM category ORDER BY id").use {
+                val colors = buildMap { while (it.moveToNext()) put(it.getLong(0), it.getInt(1)) }
+                assertThat(colors).containsExactly(1L, CategoryPalette.upgrade(oldHousing), 2L, custom)
+                assertThat(colors[1L]).isEqualTo(0xFFFFF176.toInt())
             }
         }
     }

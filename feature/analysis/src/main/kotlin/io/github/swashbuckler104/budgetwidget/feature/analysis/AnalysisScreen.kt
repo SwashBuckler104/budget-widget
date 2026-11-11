@@ -57,6 +57,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -897,7 +898,10 @@ private fun Legend(entries: List<Pair<Color, String>>) {
 
 private fun nameOf(slice: CategorySpend, toSort: String): String = slice.category?.name ?: toSort
 
-private fun colorOf(slice: CategorySpend, toSort: Color): Color = slice.category?.let { Color(it.colorArgb) } ?: toSort
+@Composable
+@ReadOnlyComposable
+private fun colorOf(slice: CategorySpend, toSort: Color): Color =
+    slice.category?.let { BudgetTheme.categoryColor(it.colorArgb) } ?: toSort
 
 /** "This week", "November", "2026", "1 Oct - 11 Nov"; the year only when it isn't this year. */
 @Composable

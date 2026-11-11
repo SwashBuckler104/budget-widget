@@ -34,10 +34,10 @@ class AnalysisScreenTest {
     @get:Rule
     val compose = createComposeRule()
 
-    private val housing = Category(1, null, "Housing", "🏠", 0xFF5D4037.toInt(), CategoryKind.EXPENSE, 0, false, true)
-    private val rent = Category(2, 1, "Rent", "🔑", 0xFF5D4037.toInt(), CategoryKind.EXPENSE, 0, false, true)
-    private val power = Category(3, 1, "Electricity", "💡", 0xFF5D4037.toInt(), CategoryKind.EXPENSE, 1, false, true)
-    private val salary = Category(4, null, "Salary", "💼", 0xFF2E7D32.toInt(), CategoryKind.INCOME, 1, false, true)
+    private val housing = Category(1, null, "Housing", "🏠", 0xFFFFF176.toInt(), CategoryKind.EXPENSE, 0, false, true)
+    private val rent = Category(2, 1, "Rent", "🔑", 0xFFFFF176.toInt(), CategoryKind.EXPENSE, 0, false, true)
+    private val power = Category(3, 1, "Electricity", "💡", 0xFFFFF176.toInt(), CategoryKind.EXPENSE, 1, false, true)
+    private val salary = Category(4, null, "Salary", "💼", 0xFF7CFF6B.toInt(), CategoryKind.INCOME, 1, false, true)
     private val categories = listOf(housing, rent, power, salary).associateBy { it.id }
     private val month = YearMonth.of(2026, 11)
 

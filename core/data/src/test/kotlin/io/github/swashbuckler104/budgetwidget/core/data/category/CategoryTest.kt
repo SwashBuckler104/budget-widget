@@ -84,7 +84,7 @@ class CategoryTest {
         repo.delete(before.single { it.category.name == "Housing" }.category.id)
         settings.setSeededCategoriesVersion(1)
         // The user made their own Family, with one subcategory the seed doesn't have.
-        val color = 0xFF8E24AA.toInt()
+        val color = 0xFFE07CFF.toInt()
         val family = (
             repo.create(
                 null,
