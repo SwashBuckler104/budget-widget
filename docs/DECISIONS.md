@@ -279,3 +279,11 @@ deliberate deviation. Newest at the bottom. Status is Accepted unless stated.
 ## ADR-0033: Translucent widgets
 - **Why:** the owner found the opaque widgets heavy on the home screen.
 - **How:** backgrounds are color resources with alpha (`widget/src/main/res/color*`): 66% by day and 58% at night. On Android 12+ the base is the wallpaper's Material You neutral. Because the launcher resolves the resources, day/night and wallpaper changes still need no redraw. The transaction card is a glass overlay. Ignore and the bar tracks are a quiet tint, and category chips are tonal at about 75%. The filled "More" button and today's bar stay opaque, so the main actions still stand out. Launchers can't blur behind RemoteViews, so the alpha levels keep text readable on busy wallpapers instead.
+
+## ADR-0034: KSP tasks run one at a time
+- **Found** while verifying ADR-0032: clean parallel builds failed intermittently. Two of three `--rerun-tasks` builds failed, and so did one ordinary CI run.
+  - KSP reported `android.content.ContentResolver` "could not be resolved" in `:feature:settings`.
+  - `:core:data:kspReleaseKotlin` "succeeded" but left no output directory, so Hilt missed `WallClock`, `AutoSortSetting` and `UnparsedDismissals`.
+  - The release crash in ADR-0029 has the same shape.
+- **Cause:** KSP2 runs in the Gradle daemon (`KspAAWorkerAction`). Concurrent KSP tasks share its cached analysis classloader, and with it the analysis engine's global state. Run one after the other, the same tasks never fail.
+- **Fix:** a shared build service with one permit (`build-logic/.../KspSerialization.kt`), used by every KSP task through the Hilt and Room convention plugins. All other tasks still run in parallel. KSP costs a few seconds per module, and running it serially also lowers peak memory in the 9 GB build slice. `scripts/check-hilt-viewmodels.sh` stays as the backstop.
