@@ -28,5 +28,9 @@ class FinancialSmsHeuristicTest {
         ).isFalse()
         assertThat(looks("AD-NEWBNK-S", "Your account statement is ready")).isFalse()
         assertThat(looks("AD-NEWBNK-S", "Rs 500 is due on your card")).isFalse()
+        // "hours 5" and "years 2" are not rupee amounts.
+        assertThat(looks("AD-NEWBNK-S", "Your account was credited after 48 hours 5 days ago via UPI")).isFalse()
+        assertThat(looks("AD-NEWBNK-S", "OTP482913 for Rs 500 debited from your card")).isFalse()
+        assertThat(looks("AD-NEWBNK-S", "Do not share your MPIN. Rs 500 debited from A/c XX1")).isFalse()
     }
 }
