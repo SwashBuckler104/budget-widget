@@ -50,6 +50,9 @@ sealed interface IngestOutcome {
     data object BalanceUpdated : IngestOutcome
 
     data class Unparsed(val reason: UnparsedReason) : IngestOutcome
+
+    /** From a scan that started before the data was replaced (restore, start fresh): dropped. */
+    data object Superseded : IngestOutcome
 }
 
 /**
@@ -67,7 +70,27 @@ class IngestPipeline @Inject constructor(
 ) {
     private val mutex = Mutex()
 
-    suspend fun ingest(sms: RawSms, origin: IngestOrigin): IngestOutcome = withContext(Dispatchers.IO) {
+    /** Bumped under [mutex] whenever the stored data is replaced wholesale. */
+    @Volatile
+    private var generation = 0L
+
+    /** For scans: pass it to every [ingest] call so messages read before a data replace are dropped. */
+    fun generation(): Long = generation
+
+    /**
+     * Runs [block] with ingestion paused, then marks every scan that started earlier as stale.
+     * Restore and "start fresh" use it, so a scan already iterating the inbox can't write old
+     * messages into the new data (ADR-0027).
+     */
+    suspend fun <T> replacingData(block: suspend () -> T): T = mutex.withLock {
+        generation++
+        block()
+    }
+
+    /** [scanGeneration]: [generation] when the calling scan started; null for a single new SMS. */
+    suspend fun ingest(sms: RawSms, origin: IngestOrigin, scanGeneration: Long? = null): IngestOutcome = withContext(
+        Dispatchers.IO,
+    ) {
         // Step 1: never parse messages from senders that aren't banks. One that still reads like a
         // bank alert is kept in the unparsed list, so a missing parser shows up (ADR-0028).
         val result = when {
@@ -77,6 +100,7 @@ class IngestPipeline @Inject constructor(
         }
         val autoSortEnabled = autoSort.enabled()
         val outcome = mutex.withLock {
+            if (scanGeneration != null && scanGeneration != generation) return@withLock IngestOutcome.Superseded
             db.withTransaction {
                 when (result) {
                     is SmsParseResult.Transaction -> store(result.parsed, origin, autoSortEnabled)

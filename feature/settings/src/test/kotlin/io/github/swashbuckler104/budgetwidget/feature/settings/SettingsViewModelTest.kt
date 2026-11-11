@@ -11,6 +11,7 @@ import com.google.common.truth.Truth.assertThat
 import io.github.swashbuckler104.budgetwidget.core.data.backup.DataTransfer
 import io.github.swashbuckler104.budgetwidget.core.data.category.CategorySeeder
 import io.github.swashbuckler104.budgetwidget.core.data.inbox.InboxEvents
+import io.github.swashbuckler104.budgetwidget.core.data.ingest.IngestPipeline
 import io.github.swashbuckler104.budgetwidget.core.data.ingest.SmsSync
 import io.github.swashbuckler104.budgetwidget.core.data.repository.TransactionRepository
 import io.github.swashbuckler104.budgetwidget.core.database.BudgetDatabase
@@ -20,6 +21,10 @@ import io.github.swashbuckler104.budgetwidget.core.datastore.NotificationSetting
 import io.github.swashbuckler104.budgetwidget.core.datastore.NudgeSettings
 import io.github.swashbuckler104.budgetwidget.core.datastore.SettingsStore
 import io.github.swashbuckler104.budgetwidget.core.datastore.ThemeMode
+import io.github.swashbuckler104.budgetwidget.core.model.sms.RawSms
+import io.github.swashbuckler104.budgetwidget.core.model.sms.SmsParseResult
+import io.github.swashbuckler104.budgetwidget.core.model.sms.SmsParser
+import io.github.swashbuckler104.budgetwidget.core.model.sms.UnparsedReason
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -70,6 +75,12 @@ class SettingsViewModelTest {
         }
     }
 
+    private object NoParser : SmsParser {
+        override fun isKnownBankSender(sender: String) = false
+
+        override fun parse(sms: RawSms): SmsParseResult = SmsParseResult.Unparsed(UnparsedReason.NO_MATCH)
+    }
+
     private fun TestScope.viewModel(): Pair<SettingsViewModel, SettingsStore> {
         val store =
             SettingsStore(
@@ -80,7 +91,11 @@ class SettingsViewModelTest {
         val checkpoint = IngestCheckpointStore(
             PreferenceDataStoreFactory.create(scope = backgroundScope) { File(tmp.root, "i.preferences_pb") },
         )
-        val transfer = DataTransfer(db, store, checkpoint, CategorySeeder(db, store), InboxEvents(emptySet())) { now }
+        val pipeline = IngestPipeline(NoParser, db, { now }, { false }, InboxEvents(emptySet()))
+        val transfer =
+            DataTransfer(db, store, checkpoint, CategorySeeder(db, store), InboxEvents(emptySet()), {
+                now
+            }, pipeline, sync)
         val repository = TransactionRepository(db.transactionDao(), db.unparsedSmsDao(), db.accountDao())
         return SettingsViewModel(store, transfer, sync, { now }, context.contentResolver, repository) to store
     }

@@ -40,6 +40,19 @@ class IngestCheckpointStore @Inject constructor(@IngestPreferences private val d
         }
     }
 
+    /**
+     * After restoring a backup made at [epochMillis]: moves the checkpoint back to it (never
+     * forward), so the next scan re-imports SMS that arrived after the backup, and drops a floor
+     * newer than the backup so those messages are allowed in.
+     */
+    suspend fun rewindTo(epochMillis: Long) {
+        dataStore.edit { prefs ->
+            val current = prefs[KEY]
+            if (current == null || epochMillis < current) prefs[KEY] = epochMillis
+            prefs[FLOOR]?.let { if (it > epochMillis) prefs.remove(FLOOR) }
+        }
+    }
+
     private companion object {
         val KEY = longPreferencesKey("reconcile_checkpoint_ms")
         val FLOOR = longPreferencesKey("reconcile_floor_ms")

@@ -7,9 +7,14 @@ import io.github.swashbuckler104.budgetwidget.core.data.category.CategorySeeder
 import io.github.swashbuckler104.budgetwidget.core.data.inMemoryDb
 import io.github.swashbuckler104.budgetwidget.core.data.inbox.InboxEvents
 import io.github.swashbuckler104.budgetwidget.core.data.inbox.InboxListener
+import io.github.swashbuckler104.budgetwidget.core.data.ingest.IngestOrigin
+import io.github.swashbuckler104.budgetwidget.core.data.ingest.IngestOutcome
+import io.github.swashbuckler104.budgetwidget.core.data.ingest.IngestPipeline
+import io.github.swashbuckler104.budgetwidget.core.data.ingest.SmsSync
 import io.github.swashbuckler104.budgetwidget.core.data.testTxn
 import io.github.swashbuckler104.budgetwidget.core.database.BudgetDatabase
 import io.github.swashbuckler104.budgetwidget.core.database.entity.AccountEntity
+import io.github.swashbuckler104.budgetwidget.core.database.entity.DayCloseEntity
 import io.github.swashbuckler104.budgetwidget.core.database.entity.MerchantAliasEntity
 import io.github.swashbuckler104.budgetwidget.core.database.entity.MerchantRuleEntity
 import io.github.swashbuckler104.budgetwidget.core.database.entity.UnparsedSmsEntity
@@ -19,6 +24,9 @@ import io.github.swashbuckler104.budgetwidget.core.datastore.ThemeMode
 import io.github.swashbuckler104.budgetwidget.core.model.AccountKind
 import io.github.swashbuckler104.budgetwidget.core.model.Direction
 import io.github.swashbuckler104.budgetwidget.core.model.TransactionStatus
+import io.github.swashbuckler104.budgetwidget.core.model.sms.RawSms
+import io.github.swashbuckler104.budgetwidget.core.model.sms.SmsParseResult
+import io.github.swashbuckler104.budgetwidget.core.model.sms.SmsParser
 import io.github.swashbuckler104.budgetwidget.core.model.sms.UnparsedReason
 import java.io.ByteArrayOutputStream
 import java.time.LocalDate
@@ -44,11 +52,30 @@ class DataTransferTest {
     @After
     fun tearDown() = databases.forEach { it.close() }
 
+    private var reconciles = 0
+    private val sync = object : SmsSync {
+        override fun schedulePeriodicReconcile() = Unit
+
+        override fun reconcileNow() {
+            reconciles++
+        }
+
+        override fun backfill(sinceMillis: Long) = Unit
+    }
+
+    /** Treats every sender as a bank and every message as unreadable: enough to reach the pipeline lock. */
+    private object AnyBankParser : SmsParser {
+        override fun isKnownBankSender(sender: String) = true
+
+        override fun parse(sms: RawSms): SmsParseResult = SmsParseResult.Unparsed(UnparsedReason.NO_MATCH)
+    }
+
     private class Env(
         val db: BudgetDatabase,
         val settings: SettingsStore,
         val checkpoint: IngestCheckpointStore,
         val transfer: DataTransfer,
+        val pipeline: IngestPipeline,
     )
 
     private fun env(scope: TestScope, name: String): Env {
@@ -68,9 +95,18 @@ class DataTransferTest {
                 replaced++
             }
         }
-        val transfer =
-            DataTransfer(db, settings, checkpoint, CategorySeeder(db, settings), InboxEvents(setOf(listener))) { now }
-        return Env(db, settings, checkpoint, transfer)
+        val pipeline = IngestPipeline(AnyBankParser, db, { now }, { false }, InboxEvents(emptySet()))
+        val transfer = DataTransfer(
+            db,
+            settings,
+            checkpoint,
+            CategorySeeder(db, settings),
+            InboxEvents(setOf(listener)),
+            { now },
+            pipeline,
+            sync,
+        )
+        return Env(db, settings, checkpoint, transfer, pipeline)
     }
 
     /** Seeded categories, an account, two transactions (one a duplicate of the other), rules and names. */
@@ -195,5 +231,43 @@ class DataTransferTest {
             "2026-11-11,11:59,-100.00,OUT,CATEGORIZED,Food & Drinks,Groceries,dmart,Salary," +
                 "\"'=SUM(A1), \"\"weekly\"\"\",SMS,",
         )
+    }
+
+    @Test
+    fun `restore over existing data replaces it, rewinds the scan and asks for one`() = runTest {
+        val source = env(this, "source")
+        source.fill()
+        source.db.dayCloseDao().insert(DayCloseEntity("2026-11-10", pendingAtMidnight = 0, closed = true))
+        val bytes = ByteArrayOutputStream().also { source.transfer.backup(it, "1.0.0") }.toByteArray()
+
+        val target = env(this, "target")
+        target.fill()
+        target.db.transactionDao().insertOrIgnore(testTxn("only-in-target", key = "zomato", at = now))
+        target.checkpoint.startAt(now + 60_000)
+        target.transfer.restore(bytes.inputStream())
+
+        assertThat(target.db.backupDao().transactions().map { it.txnHash }).containsExactly("a", "b")
+        assertThat(target.db.backupDao().dayCloses()).isEqualTo(source.db.backupDao().dayCloses())
+        // The backup was made at `now`: SMS after it are scanned again, and the newer floor is gone.
+        assertThat(target.checkpoint.get()).isEqualTo(now)
+        assertThat(target.checkpoint.floor()).isNull()
+        assertThat(reconciles).isEqualTo(1)
+    }
+
+    @Test
+    fun `a scan that started before start fresh can't write into the new data`() = runTest {
+        val e = env(this, "stale")
+        val scanStartedAt = e.pipeline.generation()
+        e.transfer.startFresh(ZoneOffset.UTC)
+
+        val outcome = e.pipeline.ingest(
+            RawSms("AD-HDFCBK", "old message", now - 1),
+            IngestOrigin.BACKFILL,
+            scanStartedAt,
+        )
+        assertThat(outcome).isEqualTo(IngestOutcome.Superseded)
+        // A scan that starts afterwards (or a single new SMS) still goes through.
+        val fresh = e.pipeline.ingest(RawSms("AD-HDFCBK", "new message", now), IngestOrigin.REALTIME)
+        assertThat(fresh).isEqualTo(IngestOutcome.Unparsed(UnparsedReason.NO_MATCH))
     }
 }

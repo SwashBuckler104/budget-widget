@@ -16,8 +16,11 @@ import io.github.swashbuckler104.budgetwidget.core.datastore.NudgeSettings
 import io.github.swashbuckler104.budgetwidget.core.datastore.SettingsStore
 import io.github.swashbuckler104.budgetwidget.core.datastore.ThemeMode
 import java.io.IOException
+import java.io.OutputStream
 import javax.inject.Inject
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration.Companion.days
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,6 +30,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** [loaded] false until the stored values arrive, so the form never flashes defaults. */
 data class SettingsUiState(
@@ -116,16 +120,23 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun backup(uri: Uri, appVersion: String) = fileWork {
-        val output = resolver.openOutputStream(uri, "wt") ?: throw IOException("no stream")
-        output.use { transfer.backup(it, appVersion) }
+        openOutput(uri).use { transfer.backup(it, appVersion) }
         SettingsMessage.BackedUp
     }
 
     fun exportCsv(uri: Uri) = fileWork {
-        val output = resolver.openOutputStream(uri, "wt") ?: throw IOException("no stream")
-        output.use { transfer.exportCsv(it) }
+        openOutput(uri).use { transfer.exportCsv(it) }
         SettingsMessage.Exported
     }
+
+    /** Truncating write; some document providers only accept plain "w" (a new file is empty anyway). */
+    private fun openOutput(uri: Uri): OutputStream = try {
+        resolver.openOutputStream(uri, "wt")
+    } catch (_: IOException) {
+        null
+    } catch (_: IllegalArgumentException) {
+        null
+    } ?: resolver.openOutputStream(uri, "w") ?: throw IOException("no stream")
 
     fun restore(uri: Uri) = fileWork {
         val input = resolver.openInputStream(uri) ?: throw IOException("no stream")
@@ -143,11 +154,15 @@ class SettingsViewModel @Inject constructor(
         if (!busy.compareAndSet(expect = false, update = true)) return
         viewModelScope.launch {
             val message = try {
-                block()
+                // Document providers do binder calls and may upload on close: never on the main thread.
+                withContext(Dispatchers.IO) { block() }
+            } catch (e: CancellationException) {
+                throw e
             } catch (_: IOException) {
                 SettingsMessage.FileFailed
-            } catch (_: SecurityException) {
-                // The document provider revoked access or refused the URI.
+            } catch (_: RuntimeException) {
+                // A provider refusing the URI or mode (SecurityException, IllegalArgumentException,
+                // UnsupportedOperationException...): nothing was changed.
                 SettingsMessage.FileFailed
             } finally {
                 busy.value = false

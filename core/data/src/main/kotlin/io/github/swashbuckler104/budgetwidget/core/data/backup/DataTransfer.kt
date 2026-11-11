@@ -5,6 +5,8 @@ import androidx.room.withTransaction
 import io.github.swashbuckler104.budgetwidget.core.data.WallClock
 import io.github.swashbuckler104.budgetwidget.core.data.category.CategorySeeder
 import io.github.swashbuckler104.budgetwidget.core.data.inbox.InboxEvents
+import io.github.swashbuckler104.budgetwidget.core.data.ingest.IngestPipeline
+import io.github.swashbuckler104.budgetwidget.core.data.ingest.SmsSync
 import io.github.swashbuckler104.budgetwidget.core.database.BudgetDatabase
 import io.github.swashbuckler104.budgetwidget.core.database.entity.AccountEntity
 import io.github.swashbuckler104.budgetwidget.core.database.entity.CategoryEntity
@@ -22,6 +24,7 @@ import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -55,6 +58,8 @@ class DataTransfer @Inject constructor(
     private val seeder: CategorySeeder,
     private val events: InboxEvents,
     private val clock: WallClock,
+    private val pipeline: IngestPipeline,
+    private val sync: SmsSync,
 ) {
     private val mutex = Mutex()
 
@@ -96,16 +101,24 @@ class DataTransfer @Inject constructor(
         if (file.format != BackupFile.FORMAT) return@withLock RestoreResult.NotABackup
         if (file.version > BackupFile.VERSION) return@withLock RestoreResult.TooNew(file.version)
         try {
-            db.withTransaction { replaceAll(file) }
+            // Ingestion is paused meanwhile, and scans already running are made stale.
+            pipeline.replacingData { db.withTransaction { replaceAll(file) } }
         } catch (_: SQLException) {
             // Broken references (a transaction pointing at a missing category): rolled back.
             return@withLock RestoreResult.NotABackup
         }
-        settings.restore(file.settings.toSnapshot())
-        // Seed groups newer than the backup are added (or adopted by name).
-        settings.setSeededCategoriesVersion(file.seedVersion)
-        seeder.ensureSeeded()
-        events.dataReplaced()
+        // Once committed, finish even if the caller goes away: otherwise posted notifications
+        // would keep ids that now belong to other transactions.
+        withContext(NonCancellable) {
+            events.dataReplaced()
+            settings.restore(file.settings.toSnapshot())
+            // Seed groups newer than the backup are added (or adopted by name).
+            settings.setSeededCategoriesVersion(file.seedVersion)
+            seeder.ensureSeeded()
+            // SMS that arrived after the backup was made come back through the next scan.
+            checkpoint.rewindTo(file.exportedAt)
+            sync.reconcileNow()
+        }
         RestoreResult.Restored(file.transactions.size, file.categories.size)
     }
 
@@ -134,14 +147,19 @@ class DataTransfer @Inject constructor(
      */
     suspend fun startFresh(zone: ZoneId = ZoneId.systemDefault()): Int = mutex.withLock {
         val now = clock.nowMillis()
-        val removed = db.withTransaction {
-            val count = db.backupDao().transactions().size
-            clearTransactions()
-            count
-        }
+        // The floor goes first: on its own it is harmless, and no scan can slip old SMS in after the delete.
         checkpoint.startAt(now)
-        settings.setDayTrackingSince(Instant.ofEpochMilli(now).atZone(zone).toLocalDate().toEpochDay())
-        events.dataReplaced()
+        val removed = pipeline.replacingData {
+            db.withTransaction {
+                val count = db.backupDao().transactions().size
+                clearTransactions()
+                count
+            }
+        }
+        withContext(NonCancellable) {
+            events.dataReplaced()
+            settings.setDayTrackingSince(Instant.ofEpochMilli(now).atZone(zone).toLocalDate().toEpochDay())
+        }
         removed
     }
 

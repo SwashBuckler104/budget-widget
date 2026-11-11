@@ -1,6 +1,9 @@
 package io.github.swashbuckler104.budgetwidget.feature.settings
 
 import android.content.ClipData
+import android.content.ClipDescription
+import android.os.Build
+import android.os.PersistableBundle
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -154,7 +157,7 @@ internal fun UnparsedScreen(
                         sms = sms,
                         onCopy = {
                             scope.launch {
-                                clipboard.setClipEntry(ClipEntry(ClipData.newPlainText(sms.sender, copyText(sms))))
+                                clipboard.setClipEntry(ClipEntry(sensitiveClip(sms.sender, copyText(sms))))
                                 snackbar.showSnackbar(copied)
                             }
                         },
@@ -219,6 +222,16 @@ private fun UnparsedCard(sms: UnparsedSms, onCopy: () -> Unit, onDelete: () -> U
                 )
             }
         }
+    }
+}
+
+/**
+ * Bank SMS hold account digits and balances: marked sensitive, so Android 13+ hides the text in
+ * its clipboard preview.
+ */
+private fun sensitiveClip(label: String, text: String): ClipData = ClipData.newPlainText(label, text).apply {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        description.extras = PersistableBundle().apply { putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true) }
     }
 }
 

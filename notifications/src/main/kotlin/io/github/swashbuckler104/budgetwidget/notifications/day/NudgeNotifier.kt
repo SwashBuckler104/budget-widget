@@ -74,7 +74,13 @@ internal class NudgeNotifier @Inject constructor(
     }
 
     /** Keeps a nudge that is up current: a new count, or gone once the inbox is clear. */
-    override suspend fun onSorted(transactionId: Long) {
+    override suspend fun onSorted(transactionId: Long) = refreshShown()
+
+    /** Restore or "start fresh": the count it shows may be wrong now, same as after a sort. */
+    override suspend fun onDataReplaced() = refreshShown()
+
+    /** A posted nudge follows the open count: updated silently, or removed once nothing is left. */
+    private suspend fun refreshShown() {
         if (manager.activeNotifications.none { it.id == NUDGE_ID && it.tag == null }) return
         if (days.openCount() == 0) manager.cancel(NUDGE_ID) else post(silent = true)
     }
