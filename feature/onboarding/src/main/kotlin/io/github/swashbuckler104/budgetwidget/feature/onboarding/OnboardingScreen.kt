@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.SystemClock
 import android.provider.Settings
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -53,6 +54,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -97,8 +99,7 @@ fun OnboardingRoute(
     val groups by viewModel.groups.collectAsStateWithLifecycle()
     var smsGranted by remember { mutableStateOf(hasSms(context)) }
     var notificationsGranted by remember { mutableStateOf(hasNotifications(context)) }
-    // Denied without a dialog: a sideloaded app's SMS access is a "restricted setting" (Android 13+),
-    // or the user chose "don't ask again". Either way only App info can grant it now.
+    // True when only App info can grant SMS now (see smsAccessBlocked).
     var smsBlocked by rememberSaveable { mutableStateOf(false) }
     LifecycleResumeEffect(Unit) {
         smsGranted = hasSms(context)
@@ -107,12 +108,18 @@ fun OnboardingRoute(
     }
     fun rationale() = activity != null && activity.shouldShowRequestPermissionRationale(Manifest.permission.RECEIVE_SMS)
     var rationaleBefore by remember { mutableStateOf(false) }
-    val smsLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
-            smsGranted = result.values.all { it }
-            smsBlocked = !smsGranted && !rationaleBefore && !rationale()
-            if (smsGranted) viewModel.next()
-        }
+    var requestedAt by remember { mutableLongStateOf(0L) }
+    val smsLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        // From the system, not the result map: a cancelled request returns an empty map.
+        smsGranted = hasSms(context)
+        smsBlocked = smsAccessBlocked(
+            granted = smsGranted,
+            rationaleBefore = rationaleBefore,
+            rationaleAfter = rationale(),
+            elapsedMillis = SystemClock.elapsedRealtime() - requestedAt,
+        )
+        if (smsGranted) viewModel.next()
+    }
     val notificationLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         notificationsGranted = it
         viewModel.next()
@@ -133,6 +140,7 @@ fun OnboardingRoute(
             onBack = viewModel::back,
             onAllowSms = {
                 rationaleBefore = rationale()
+                requestedAt = SystemClock.elapsedRealtime()
                 smsLauncher.launch(SMS_PERMISSIONS)
             },
             onAllowNotifications = {
