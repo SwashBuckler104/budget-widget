@@ -14,13 +14,13 @@ copied to Google Drive either.
 
 ## What the app reads
 
-- **SMS** (`RECEIVE_SMS`, `READ_SMS`): to detect bank, card and UPI transaction messages. Each message is checked on the phone. Messages from senders that aren't recognised banks are ignored and never stored.
+- **SMS** (`RECEIVE_SMS`, `READ_SMS`): to detect bank, card and UPI transaction messages. Each message is checked on the phone. Messages from senders that aren't recognised banks are ignored and never stored, with one exception: a message from a registered business sender (never a phone number) that clearly reads as a bank transaction alert (a rupee amount, "credited"/"debited" or similar, an account, card or UPI mention, and no one-time password) is kept in the unparsed list, so a bank the parser doesn't know yet shows up instead of vanishing.
 - **Notifications** (`POST_NOTIFICATIONS`): to ask you to categorize a new transaction.
 
 ## What the app stores (on your phone only)
 
 - Transactions parsed from bank SMS: amount, direction, merchant, account's last 4 digits, time, and the original SMS text (so you can check it).
-- Bank SMS the parser couldn't understand, so you can report a parser bug. This list holds at most 200 messages and you can delete it at any time.
+- Bank SMS the parser couldn't understand, so you can report a parser bug. This list holds at most 200 messages and you can delete it at any time (*Settings → Unparsed bank SMS*).
 - Your categories, merchant rules, notes and settings.
 
 Personal SMS is never stored.
@@ -32,7 +32,9 @@ These files are not encrypted (encryption is planned for v1.1), so store them so
 
 ## Deleting your data
 
-Uninstalling the app deletes everything it stored. Backup files you exported are not touched.
+*Settings → Start fresh* deletes every transaction (categories, merchant rules and account
+nicknames stay). Uninstalling the app deletes everything it stored. Backup files you exported are
+not touched.
 
 ## Contact
 

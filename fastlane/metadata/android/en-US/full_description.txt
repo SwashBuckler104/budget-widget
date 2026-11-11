@@ -1,8 +1,17 @@
-Budget Widget turns every bank, card and UPI SMS into a card in an inbox. Sort it in one tap from
-the notification, the home-screen Quick-Sort widget or the app, and close the day before midnight
-to keep your streak.
+Budget Widget turns every bank, card and UPI SMS into a transaction waiting in an inbox. Sort it in
+one tap from the notification, the home-screen Quick-Sort widget or the app, and close the day
+before midnight to keep your streak.
+
+* Notifications with your daily categories as buttons
+* Quick-Sort widget: the next payment and category chips on your home screen
+* Insight widget: today, this month against last month, the last 7 days
+* Analysis for any week, month, year or date range: spending and income pie charts, trends and
+  top merchants
+* Search, filters, editing, cash entries, bulk actions, swipe with undo
+* Detects the same payment reported by two banks
+* CSV export, JSON backup and restore
 
 Private by construction: the app has no internet permission, so your financial data never leaves
 your phone. No accounts, no ads, no analytics.
 
-SMS parsing uses PennyWise parser-core (AGPL-3.0).
+SMS parsing uses PennyWise parser-core by the PennyWise authors (AGPL-3.0), unmodified.

@@ -4,11 +4,17 @@
 it in one tap from a notification, a home-screen widget or the app, and you "close the day"
 before midnight to keep your streak.
 
-> **Status:** early development (milestone M2, categories). The app reads bank SMS, lets you sort
-> each transaction in one tap from the Quick-Sort sheet, and learns merchants. Notifications and
-> widgets come next. See [docs/SCOPE.md](docs/SCOPE.md) for the v1.0 plan.
+> **Status:** v1.0 feature complete (milestones M0-M8 of [docs/SCOPE.md](docs/SCOPE.md)): SMS
+> import, notifications with one-tap categories, the Quick-Sort and Insight widgets, the
+> Transactions and Analysis tabs, onboarding, backup/restore and CSV export.
 
-<!-- Screenshots: added in M8 (fastlane/metadata/android/en-US/images/phoneScreenshots/). -->
+## Features
+
+- **Inbox of new payments.** Every bank SMS becomes a transaction waiting to be sorted. A notification offers your daily categories (Groceries, Restaurant, Public transport) as buttons; the **Quick-Sort widget** shows the next payment with category chips.
+- **Close the day.** Sort everything before midnight to keep a streak, with an optional evening reminder.
+- **Analysis.** Any week, month, year or date range: spending and income pie charts with drill-down, daily or monthly bars, the trend against the period before, and top merchants. The **Insight widget** shows today, this month and the last 7 days.
+- **Transactions.** Search, filters, edit, manual cash entries, bulk actions, swipe with undo, and duplicate detection when two banks report the same payment.
+- **Your data.** CSV export, JSON backup and restore, and "start fresh", all through files you choose.
 
 ## Why
 
@@ -33,8 +39,13 @@ questions the first time.
    2. Tap the **⋮** menu (top right) → **Allow restricted settings**, and confirm with your PIN or fingerprint.
    3. Go to **Permissions → SMS → Allow**.
 5. **Allow notifications** when asked. That's how new transactions reach you.
-6. **Add the widget.** Long-press an empty spot on your home screen → **Widgets** → **Budget Widget** → drag **Quick-Sort** onto the screen.
-7. **Keep it alive (Xiaomi, Oppo, Vivo, Realme, Samsung).** Some phones stop background apps aggressively. In **Settings → Apps → Budget Widget → Battery**, choose **Unrestricted**. On Xiaomi, Oppo and Vivo also turn on **Autostart**. The app catches up on missed SMS anyway, but this makes notifications arrive on time.
+6. **Add the widget.** The last setup step offers to add it. Or long-press an empty spot on your home screen → **Widgets** → **Budget Widget** → drag **Quick-Sort** (or **Insight**) onto the screen.
+7. **Keep it alive (Xiaomi, Oppo, Vivo, Realme, Samsung).** Some phones stop background apps aggressively. In **Settings → Apps → Budget Widget → Battery**, choose **Unrestricted**. On Samsung, also check **Settings → Battery → Background usage limits** and make sure Budget Widget is not under *Sleeping* or *Deep sleeping apps*. On Xiaomi, Oppo and Vivo turn on **Autostart**. The app catches up on missed SMS every few hours anyway, but this makes notifications arrive on time.
+
+**A bank's SMS don't show up?** Look in **Settings → Unparsed bank SMS**. Messages from a supported
+bank that couldn't be read, and transaction alerts from banks the parser doesn't know yet, are kept
+there. Copy one (remove your name and account number first) into a
+[bank format issue](https://github.com/SwashBuckler104/budget-widget/issues/new/choose).
 
 **Updating:** download the new APK and install it over the old one. Your data stays. You can also
 use [Obtainium](https://github.com/ImranR98/Obtainium) with this repository's URL to get updates
@@ -55,6 +66,9 @@ echo "sdk.dir=$HOME/Android/Sdk" > local.properties   # or set ANDROID_HOME
 ./gradlew assembleDebug                                # app/build/outputs/apk/debug/app-debug.apk
 ./gradlew spotlessCheck lint test assembleRelease      # what CI runs
 ```
+
+The baseline profile in `app/src/release/generated/` is regenerated on an emulator; see
+[baselineprofile/README.md](baselineprofile/README.md).
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the module layout and conventions.
 

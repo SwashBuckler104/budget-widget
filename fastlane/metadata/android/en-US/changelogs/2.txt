@@ -1,0 +1,2 @@
+First release: SMS import, notifications with one-tap categories, Quick-Sort and Insight widgets,
+Transactions and Analysis tabs, onboarding, backup and restore, CSV export.
