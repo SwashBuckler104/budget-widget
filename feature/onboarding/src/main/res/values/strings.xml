@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- %1$d is the current step, %2$d the number of steps -->
+    <string name="onboarding_progress">Step %1$d of %2$d</string>
+    <string name="onboarding_back">Back</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_not_now">Not now</string>
+    <string name="onboarding_done">Start</string>
+    <string name="onboarding_open_app_info">Open App info</string>
+
+    <string name="onboarding_welcome_title">Know where your money goes</string>
+    <string name="onboarding_welcome_body">Every bank SMS becomes a transaction waiting for one tap: which category was it?</string>
+    <string name="onboarding_welcome_point_sort">Sort each payment from the notification or the home-screen widget, in a second.</string>
+    <string name="onboarding_welcome_point_widget">Clear the inbox every day to keep a streak and see your month at a glance.</string>
+    <string name="onboarding_welcome_point_offline">No internet permission: your SMS and spending never leave this phone. You can check it in App info.</string>
+
+    <string name="onboarding_sms_title">Reading bank SMS</string>
+    <string name="onboarding_sms_body">To find your payments, Budget Widget needs to read SMS. Here is exactly what it does with them:</string>
+    <string name="onboarding_sms_point_banks">Only messages from banks and card issuers are looked at. Personal messages are skipped and never stored.</string>
+    <string name="onboarding_sms_point_device">Reading happens on this phone. Nothing is uploaded: the app has no internet access.</string>
+    <string name="onboarding_sms_point_store">Bank messages are kept with their transaction, so you can see where it came from. Delete them any time.</string>
+    <string name="onboarding_sms_allow">Allow SMS access</string>
+    <string name="onboarding_sms_granted">SMS access allowed</string>
+    <string name="onboarding_restricted_title">Android blocked the request</string>
+    <string name="onboarding_restricted_body">For apps installed outside the Play Store, Android hides SMS access behind an extra switch. To turn it on:</string>
+    <string name="onboarding_restricted_step_1">Tap Open App info below.</string>
+    <string name="onboarding_restricted_step_2">Tap ⋮ (top right), then Allow restricted settings, and confirm.</string>
+    <string name="onboarding_restricted_step_3">Tap Permissions, then SMS, then Allow.</string>
+    <string name="onboarding_restricted_step_4">Come back here.</string>
+
+    <string name="onboarding_notifications_title">Ask right after you pay</string>
+    <string name="onboarding_notifications_body">A notification shows each new payment with your daily categories (Groceries, Restaurant, Public transport) as buttons. Sort it without opening the app.</string>
+    <string name="onboarding_notifications_granted">Notifications allowed</string>
+
+    <string name="onboarding_battery_title">Don\'t miss a payment</string>
+    <string name="onboarding_battery_body">Some phones stop apps in the background to save battery, which delays notifications. The app catches up every few hours anyway, but for instant alerts:</string>
+    <string name="onboarding_battery_unrestricted">In App info, open Battery and choose Unrestricted.</string>
+    <string name="onboarding_battery_samsung">On Samsung, also check Settings, Battery, Background usage limits: Budget Widget must not be under Sleeping or Deep sleeping apps.</string>
+
+    <string name="onboarding_history_title">Where to start</string>
+    <string name="onboarding_history_body">Import bank SMS already in your inbox, or start tracking from today.</string>
+    <string name="onboarding_history_30">Last 30 days</string>
+    <string name="onboarding_history_30_summary">A month of payments to sort</string>
+    <string name="onboarding_history_90">Last 90 days</string>
+    <string name="onboarding_history_90_summary">More history for the charts; more to sort</string>
+    <string name="onboarding_history_fresh">Start fresh</string>
+    <string name="onboarding_history_fresh_summary">Only payments from now on</string>
+    <string name="onboarding_history_needs_sms">Importing needs SMS access. You can import later from Settings.</string>
+
+    <string name="onboarding_categories_title">Your categories</string>
+    <string name="onboarding_categories_body">A starter set with subcategories. Rename, add, reorder or archive them any time in the Categories tab.</string>
+
+    <string name="onboarding_widget_title">Sort from the home screen</string>
+    <string name="onboarding_widget_body">The Quick-Sort widget shows the next payment with category buttons. Most people sort everything from there.</string>
+    <string name="onboarding_widget_add">Add the widget</string>
+    <string name="onboarding_widget_manual">Long-press your home screen, choose Widgets, and find Budget Widget.</string>
+</resources>
