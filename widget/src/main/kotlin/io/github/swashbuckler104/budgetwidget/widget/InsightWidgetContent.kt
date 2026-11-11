@@ -64,11 +64,11 @@ internal fun InsightWidgetContent(snapshot: InsightSnapshot, open: Intent?) {
             .let { m -> open?.let { m.clickable(actionStartActivity(it)) } ?: m },
     ) {
         Header(snapshot)
-        val rows = categoryRows(size.height, snapshot.topCategories.size)
+        val rows = categoryRows(size.height, snapshot.topCategories.size, widgetFontScale())
         // At the 110 dp minimum there's no room for weekday labels under a readable chart.
         val showDays = size.height >= SHOW_DAYS
         val fixed = if (showDays) FIXED else FIXED - DAY_LABELS
-        val reserved = fixed + if (rows > 0) CATEGORY_HEADER + CATEGORY_ROW * rows else 0.dp
+        val reserved = fixed + if (rows > 0) CATEGORY_HEADER + CATEGORY_ROW * widgetFontScale() * rows else 0.dp
         val chartHeight = (size.height - reserved).coerceIn(MIN_CHART, MAX_CHART)
         Spacer(GlanceModifier.height(8.dp))
         Chart(snapshot, size.width - PADDING * 2, chartHeight, showDays)
@@ -245,10 +245,12 @@ private fun Label(
  * How many category rows fit under a chart of at least [CHART_WITH_CATEGORIES] (0 when none or
  * fewer than [available]): the chart is the point of the widget, categories come second.
  */
-internal fun categoryRows(height: Dp, available: Int): Int {
+internal fun categoryRows(height: Dp, available: Int, fontScale: Float = 1f): Int {
+    // Rows grow with the (capped) font size; at 200% the fifth row was cut off.
+    val row = CATEGORY_ROW * fontScale
     val room = height - FIXED - CHART_WITH_CATEGORIES - CATEGORY_HEADER
-    if (room < CATEGORY_ROW) return 0
-    return minOf(available, (room.value / CATEGORY_ROW.value).toInt())
+    if (room < row) return 0
+    return minOf(available, (room.value / row.value).toInt())
 }
 
 private val PADDING = 14.dp

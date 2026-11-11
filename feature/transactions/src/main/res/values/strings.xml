@@ -79,6 +79,11 @@
         <item quantity="one">Ignored</item>
         <item quantity="other">%1$d ignored</item>
     </plurals>
+    <!-- Before "· N skipped": the count is always shown. -->
+    <plurals name="transactions_msg_sorted_count">
+        <item quantity="one">%1$d sorted</item>
+        <item quantity="other">%1$d sorted</item>
+    </plurals>
     <plurals name="transactions_msg_skipped">
         <item quantity="one">%1$d skipped (doesn\'t fit)</item>
         <item quantity="other">%1$d skipped (don\'t fit)</item>

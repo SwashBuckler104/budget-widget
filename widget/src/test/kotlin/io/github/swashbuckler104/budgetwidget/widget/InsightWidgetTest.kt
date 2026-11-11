@@ -89,7 +89,7 @@ class InsightWidgetTest {
     private fun alpha(bitmap: Bitmap, x: Int, y: Int) = Color.alpha(bitmap.getPixel(x, y))
 
     @Test
-    fun `4x2 shows today, the month and the chart, without categories`() = runGlanceAppWidgetUnitTest {
+    fun `4x2 shows today, the month and the chart, without categories`() = runGlanceAppWidgetUnitTest(GLANCE_TIMEOUT) {
         setContext(context)
         setAppWidgetSize(DpSize(300.dp, 120.dp))
         provideComposable { InsightWidgetContent(snapshot(), Intent("analysis")) }
@@ -109,10 +109,12 @@ class InsightWidgetTest {
         assertThat(categoryRows(225.dp, 3)).isEqualTo(1)
         assertThat(categoryRows(300.dp, 3)).isEqualTo(3)
         assertThat(categoryRows(400.dp, 2)).isEqualTo(2)
+        // Larger text, taller rows: fewer fit.
+        assertThat(categoryRows(300.dp, 5, fontScale = 1.3f)).isEqualTo(2)
     }
 
     @Test
-    fun `tall sizes add the top three categories`() = runGlanceAppWidgetUnitTest {
+    fun `tall sizes add the top three categories`() = runGlanceAppWidgetUnitTest(GLANCE_TIMEOUT) {
         setContext(context)
         setAppWidgetSize(DpSize(300.dp, 300.dp))
         provideComposable { InsightWidgetContent(snapshot(), Intent("analysis")) }

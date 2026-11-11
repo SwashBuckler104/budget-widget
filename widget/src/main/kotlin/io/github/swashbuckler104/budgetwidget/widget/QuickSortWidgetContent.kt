@@ -245,8 +245,14 @@ private fun RowScope.Chip(focus: Transaction, category: Category, height: Dp) {
         actionParametersOf(WidgetKeys.transaction to focus.id, WidgetKeys.category to category.id),
     )
     ChipBox(action, height, label, GlanceTheme.colors.secondaryContainer) {
-        Label(category.emoji, size = 16.sp, maxLines = 1)
-        Label(shortLabel(category.name), size = 10.sp, maxLines = 1, color = GlanceTheme.colors.onSecondaryContainer)
+        Label(category.emoji, size = 16.sp, maxLines = 1, maxScale = CONTROL_FONT_SCALE)
+        Label(
+            shortLabel(category.name),
+            size = 10.sp,
+            maxLines = 1,
+            color = GlanceTheme.colors.onSecondaryContainer,
+            maxScale = CONTROL_FONT_SCALE,
+        )
     }
 }
 
@@ -255,7 +261,9 @@ private fun RowScope.Chip(focus: Transaction, category: Category, height: Dp) {
 private fun RowScope.TextChip(text: String, action: Action, height: Dp, primary: Boolean = false) {
     val background = if (primary) GlanceTheme.colors.primary else GlanceTheme.colors.surfaceVariant
     val content = if (primary) GlanceTheme.colors.onPrimary else GlanceTheme.colors.onSurfaceVariant
-    ChipBox(action, height, text, background) { Label(text, size = 13.sp, bold = true, maxLines = 1, color = content) }
+    ChipBox(action, height, text, background) {
+        Label(text, size = 13.sp, bold = true, maxLines = 1, color = content, maxScale = CONTROL_FONT_SCALE)
+    }
 }
 
 @Composable
@@ -308,6 +316,7 @@ private fun Label(
     muted: Boolean = false,
     color: ColorProvider? = null,
     maxLines: Int = Int.MAX_VALUE,
+    maxScale: Float = MAX_FONT_SCALE,
 ) {
     Text(
         text = text,
@@ -315,7 +324,7 @@ private fun Label(
         maxLines = maxLines,
         style = TextStyle(
             color = color ?: if (muted) GlanceTheme.colors.onSurfaceVariant else GlanceTheme.colors.onSurface,
-            fontSize = size.capped(),
+            fontSize = size.capped(maxScale),
             fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal,
         ),
     )

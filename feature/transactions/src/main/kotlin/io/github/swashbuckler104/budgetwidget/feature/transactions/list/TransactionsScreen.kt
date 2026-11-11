@@ -576,11 +576,10 @@ private fun messageTexts(): (TransactionsMessage) -> String {
         val r = resources
         when (message) {
             is TransactionsMessage.Sorted -> {
-                val sorted = r.getQuantityString(R.plurals.transactions_msg_sorted, message.count, message.count)
                 if (message.skipped == 0) {
-                    sorted
+                    r.getQuantityString(R.plurals.transactions_msg_sorted, message.count, message.count)
                 } else {
-                    sorted + " · " +
+                    r.getQuantityString(R.plurals.transactions_msg_sorted_count, message.count, message.count) + " · " +
                         r.getQuantityString(R.plurals.transactions_msg_skipped, message.skipped, message.skipped)
                 }
             }

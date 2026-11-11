@@ -213,3 +213,9 @@ deliberate deviation. Newest at the bottom. Status is Accepted unless stated.
   - The picker survives rotation.
   - A newer snackbar replaces an older one.
   - "Report wrong amount" closes the sheet so its confirmation is visible.
+- **Sheet forms keep their input** across leaving the tab and process death: form values live in a `SheetForm` saved by the composable that shows the sheet. A `ModalBottomSheet` is its own window, and `rememberSaveable` inside it was dropped (found on the emulator after a widget tap).
+- **Large text (200%):**
+  - The three Analysis stat cards stack full width.
+  - Widget text grows only up to 1.3x, while chip and button labels in fixed-height boxes don't grow at all (they keep full TalkBack labels).
+  - Insight category rows are sized for the scaled text.
+- Glance widget tests run with a 15 s harness timeout instead of 2 s: the first test of a class missed 2 s under a loaded full build (a flake, not a hang).

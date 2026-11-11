@@ -33,12 +33,24 @@ private val BrandGlanceColors = ColorProviders(light = BrandColors.light, dark =
  * larger text was clipped at 200% (chip labels cut in half, footer buttons cut off).
  */
 @Composable
-internal fun TextUnit.capped(): TextUnit {
+internal fun TextUnit.capped(max: Float = MAX_FONT_SCALE): TextUnit {
     val scale = LocalContext.current.resources.configuration.fontScale
-    return if (scale <= MAX_FONT_SCALE) this else (value * MAX_FONT_SCALE / scale).sp
+    return if (scale <= max) this else (value * max / scale).sp
 }
 
-private const val MAX_FONT_SCALE = 1.3f
+/** How much larger widget text may get than its design size. */
+internal const val MAX_FONT_SCALE = 1.3f
+
+/**
+ * Chip and button labels in fixed-height boxes don't grow at all (they were clipped at 1.3x on
+ * the emulator); every chip and button has a full TalkBack label instead.
+ */
+internal const val CONTROL_FONT_SCALE = 1f
+
+/** The font scale widget text actually renders at (see [capped]). */
+@Composable
+internal fun widgetFontScale(): Float =
+    LocalContext.current.resources.configuration.fontScale.coerceIn(1f, MAX_FONT_SCALE)
 
 /** Income green and spending red, fixed hues tuned per theme (see [MoneyColors]). */
 internal object WidgetMoney {

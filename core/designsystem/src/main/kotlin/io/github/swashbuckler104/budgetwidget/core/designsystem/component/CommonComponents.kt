@@ -138,6 +138,9 @@ fun StatCard(
                 value,
                 style = valueStyle.tabular().copy(color = valueColor),
                 maxLines = 1,
+                // No wrapping, so too-wide text counts as overflow and shrinks ("+₹1,30,507"
+                // otherwise broke after the "+" and showed only that at 200% font).
+                softWrap = false,
                 autoSize = TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = valueStyle.fontSize),
             )
             if (caption != null) {

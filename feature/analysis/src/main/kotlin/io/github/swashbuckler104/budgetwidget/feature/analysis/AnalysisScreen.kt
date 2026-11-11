@@ -10,6 +10,8 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -305,6 +307,7 @@ private fun StatusRow(streak: Int, pending: Int, onSortInbox: () -> Unit) {
 }
 
 /** Spent as the hero, with the comparison; income, net and average per day beneath. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun Summary(analysis: MonthAnalysis, current: Boolean) {
     val money = BudgetTheme.money
@@ -350,7 +353,13 @@ private fun Summary(analysis: MonthAnalysis, current: Boolean) {
                 }
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Three across at normal sizes; one per row once large text can't fit a third of the width.
+        val perRow = if (LocalDensity.current.fontScale > LARGE_FONT) 1 else STATS
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            maxItemsInEachRow = perRow,
+        ) {
             StatCard(
                 compact = true,
                 label = stringResource(R.string.analysis_income),
@@ -694,6 +703,8 @@ private fun monthLabel(month: YearMonth, current: YearMonth): String = month.for
 private val SWIPE_DISTANCE = 72.dp
 private const val TO_SORT_EMOJI = "📥"
 private const val TO_SORT_ID = -1L
+private const val LARGE_FONT = 1.3f
+private const val STATS = 3
 private const val DONUT_WIDTH = 0.62f
 private const val CENTER_TEXT_WIDTH = 0.4f
 private const val PERCENT = 100
