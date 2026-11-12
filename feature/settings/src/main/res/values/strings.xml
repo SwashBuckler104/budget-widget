@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">Settings</string>
+    <string name="settings_open">Settings</string>
+    <string name="settings_back">Back</string>
+    <string name="settings_section_notifications">Notifications</string>
+    <string name="settings_notifications">Transaction notifications</string>
+    <string name="settings_notifications_summary">Ask for a category as soon as a bank SMS arrives</string>
+    <string name="settings_min_amount">Only for amounts of at least</string>
+    <string name="settings_min_amount_summary">0 notifies for every amount</string>
+    <string name="settings_rupee_prefix">₹</string>
+    <string name="settings_blocked">Notifications are blocked for this app</string>
+    <string name="settings_allow">Allow</string>
+    <string name="settings_section_sorting">Sorting</string>
+    <string name="settings_auto_sort">Auto-sort known merchants</string>
+    <string name="settings_auto_sort_summary">Sort merchants you have confirmed 3 or more times without asking</string>
+</resources>

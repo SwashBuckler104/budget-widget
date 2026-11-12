@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- SCOPE.md F3/F6. Runtime permission on Android 13+; asked for in Settings. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application>
+        <!-- Notification action buttons. Only our own PendingIntents reach it. -->
+        <receiver
+            android:name=".NotificationActionReceiver"
+            android:exported="false" />
+    </application>
+</manifest>

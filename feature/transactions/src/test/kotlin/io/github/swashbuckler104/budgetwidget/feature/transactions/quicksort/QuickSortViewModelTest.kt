@@ -8,6 +8,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
 import io.github.swashbuckler104.budgetwidget.core.data.category.CategoryRepository
+import io.github.swashbuckler104.budgetwidget.core.data.inbox.InboxEvents
 import io.github.swashbuckler104.budgetwidget.core.data.repository.TransactionRepository
 import io.github.swashbuckler104.budgetwidget.core.data.sort.SortTransactionUseCase
 import io.github.swashbuckler104.budgetwidget.core.data.suggest.SuggestionEngine
@@ -69,7 +70,7 @@ class QuickSortViewModelTest {
         TransactionRepository(db.transactionDao(), db.unparsedSmsDao()),
         CategoryRepository(db),
         SuggestionEngine(db) { now },
-        SortTransactionUseCase(db) { now },
+        SortTransactionUseCase(db, { now }, InboxEvents(emptySet())),
     ) { now }
 
     private suspend fun QuickSortViewModel.await(predicate: (QuickSortUiState) -> Boolean) = withTimeout(TIMEOUT_MS) {

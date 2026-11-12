@@ -80,6 +80,18 @@ interface TransactionDao {
     )
     fun observeWithAccount(id: Long): Flow<TransactionWithAccount?>
 
+    @Query(
+        """
+        SELECT t.*, a.bankName AS bankName, a.last4 AS accountLast4
+        FROM transactions t LEFT JOIN account a ON a.id = t.accountId
+        WHERE t.id = :id
+        """,
+    )
+    suspend fun getWithAccount(id: Long): TransactionWithAccount?
+
+    @Query("SELECT id FROM transactions WHERE status = 'PENDING'")
+    suspend fun pendingIds(): List<Long>
+
     /** Marks [id] as sorted into [categoryId] (a leaf). Clears any earlier ignore. */
     @Query(
         """
