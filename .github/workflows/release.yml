@@ -76,12 +76,9 @@ jobs:
           apksigner="$(find "${ANDROID_HOME}/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)/apksigner"
           "${apksigner}" verify --verbose --print-certs app/build/outputs/apk/release/app-release.apk
           mkdir -p dist
-          apk="dist/budget-widget-${GITHUB_REF_NAME}.apk"
-          cp app/build/outputs/apk/release/app-release.apk "${apk}"
-          # Same file under a fixed name, so releases/latest/download/budget-widget.apk always
+          # One APK under a fixed name, so releases/latest/download/budget-widget.apk always
           # serves the newest version (the README's one-tap download link).
-          cp "${apk}" dist/budget-widget.apk
-          (cd dist && sha256sum "$(basename "${apk}")" > "$(basename "${apk}").sha256")
+          cp app/build/outputs/apk/release/app-release.apk dist/budget-widget.apk
           (cd dist && sha256sum budget-widget.apk > budget-widget.apk.sha256)
           cat dist/*.sha256
 
