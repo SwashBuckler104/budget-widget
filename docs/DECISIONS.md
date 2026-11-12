@@ -287,3 +287,14 @@ deliberate deviation. Newest at the bottom. Status is Accepted unless stated.
   - The release crash in ADR-0029 has the same shape.
 - **Cause:** KSP2 runs in the Gradle daemon (`KspAAWorkerAction`). Concurrent KSP tasks share its cached analysis classloader, and with it the analysis engine's global state. Run one after the other, the same tasks never fail.
 - **Fix:** a shared build service with one permit (`build-logic/.../KspSerialization.kt`), used by every KSP task through the Hilt and Room convention plugins. All other tasks still run in parallel. KSP costs a few seconds per module, and running it serially also lowers peak memory in the 9 GB build slice. `scripts/check-hilt-viewmodels.sh` stays as the backstop.
+
+## ADR-0035: Glowing cyberpunk colors in the category palette
+- **Why:** the owner wanted a cyberpunk feel: glowing neon colors and a white, in the style of common dark-mode SaaS palettes.
+- **Palette:** 22 shades. The 12 from ADR-0032 stay, joined by travertine gold, amber, rose neon, electric violet, periwinkle, electric cobalt, terminal cyan, mint, electric chartreuse and a glowing white. The bar against black drops from 7:1 to 4.5:1 (WCAG AA), because the deeper neons (violet 5:1, cobalt and rose 5.7:1) are the point of the set. Colors are drawn as fills, never as body text.
+- **Glow:** each swatch in the category editor sits in a halo of its own color, fading out radially, so the picker reads as neon on dark surfaces.
+- **Seeds:** the default category colors follow the owner's own reassignment on their phone: Food & Drinks lavender, Shopping lemon, Housing silver, Vehicle orange, Financial expenses aqua, Family pink. Existing installs keep whatever the user picked; there is no migration.
+
+## ADR-0036: Public open-source release
+- **Why:** v1 was scoped for the developer and family. The owner decided on 2026-11-12 to publish it for everyone.
+- **What changed:** the audience in SCOPE.md, plus the files a public project needs: a code of conduct, a security policy using GitHub private vulnerability reporting (sensitive, because the app reads financial SMS), a pull request template and a feature request form. The README links them.
+- **What did not change:** the product, distribution (signed APKs on GitHub Releases, Obtainium-friendly, F-Droid and Play later) and the hard constraints. In particular there is still no `INTERNET` permission.
