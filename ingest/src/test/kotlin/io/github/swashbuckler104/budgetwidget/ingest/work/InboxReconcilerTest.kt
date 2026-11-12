@@ -82,8 +82,8 @@ class InboxReconcilerTest {
         inbox.messages += hdfc(100, at = now - 20 * DAY)
         inbox.messages += hdfc(200, at = now - 5 * DAY)
         assertThat(reconciler.backfill(now - 30 * DAY)).isEqualTo(InboxReconciler.Result.Scanned(2, inserted = 2))
-        val rows = db.transactionDao().observeAllWithAccount().first()
-        assertThat(rows.map { it.transaction.isBackfill }).containsExactly(true, true)
+        val rows = db.transactionDao().observeRows().first()
+        assertThat(rows.map { it.isBackfill }).containsExactly(true, true)
         assertThat(checkpoint.get()).isEqualTo(now - 5 * DAY)
     }
 
@@ -113,8 +113,8 @@ class InboxReconcilerTest {
         return InboxReconciler(inbox, checkpoint, pipeline()) { now } to checkpoint
     }
 
-    private suspend fun amounts() = db.transactionDao().observeAllWithAccount().first().map {
-        it.transaction.amountPaise
+    private suspend fun amounts() = db.transactionDao().observeRows().first().map {
+        it.amountPaise
     }
 
     private fun hdfc(rupees: Int, at: Long) = RawSms(

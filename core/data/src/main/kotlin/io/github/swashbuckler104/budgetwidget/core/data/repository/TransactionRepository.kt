@@ -1,9 +1,14 @@
 package io.github.swashbuckler104.budgetwidget.core.data.repository
 
+import io.github.swashbuckler104.budgetwidget.core.database.dao.AccountDao
 import io.github.swashbuckler104.budgetwidget.core.database.dao.TransactionDao
 import io.github.swashbuckler104.budgetwidget.core.database.dao.UnparsedSmsDao
+import io.github.swashbuckler104.budgetwidget.core.database.entity.AccountEntity
+import io.github.swashbuckler104.budgetwidget.core.database.model.TransactionRow
 import io.github.swashbuckler104.budgetwidget.core.database.model.TransactionWithAccount
+import io.github.swashbuckler104.budgetwidget.core.model.Account
 import io.github.swashbuckler104.budgetwidget.core.model.Transaction
+import io.github.swashbuckler104.budgetwidget.core.model.TransactionDetail
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -11,9 +16,10 @@ import kotlinx.coroutines.flow.map
 class TransactionRepository @Inject constructor(
     private val transactionDao: TransactionDao,
     private val unparsedSmsDao: UnparsedSmsDao,
+    private val accountDao: AccountDao,
 ) {
-    /** Every transaction, newest first. */
-    fun observeTransactions(): Flow<List<Transaction>> = transactionDao.observeAllWithAccount().map { rows ->
+    /** Every transaction, newest first (list rows: no SMS body). */
+    fun observeTransactions(): Flow<List<Transaction>> = transactionDao.observeRows().map { rows ->
         rows.map { it.toModel() }
     }
 
@@ -28,6 +34,21 @@ class TransactionRepository @Inject constructor(
     }
 
     fun observeTransaction(id: Long): Flow<Transaction?> = transactionDao.observeWithAccount(id).map { it?.toModel() }
+
+    /** One transaction with its original SMS, for the edit sheet; null once it is deleted. */
+    fun observeDetail(id: Long): Flow<TransactionDetail?> = transactionDao.observeWithAccount(id).map { row ->
+        row?.let {
+            TransactionDetail(
+                transaction = it.toModel(),
+                smsSender = it.transaction.smsSender,
+                smsBody = it.transaction.smsBody,
+                reference = it.transaction.reference,
+                balanceAfterPaise = it.transaction.balanceAfterPaise,
+            )
+        }
+    }
+
+    fun observeAccounts(): Flow<List<Account>> = accountDao.observeAll().map { rows -> rows.map { it.toModel() } }
 
     suspend fun get(id: Long): Transaction? = transactionDao.getWithAccount(id)?.toModel()
 
@@ -53,5 +74,33 @@ private fun TransactionWithAccount.toModel() = with(transaction) {
         categoryId = categoryId,
         autoCategorized = autoCategorized,
         note = note,
+        accountId = accountId,
+        ignoreReason = ignoreReason,
+        editedByUser = editedByUser,
     )
 }
+
+private fun TransactionRow.toModel() = Transaction(
+    id = id,
+    source = source,
+    amountPaise = amountPaise,
+    direction = direction,
+    parserType = parserType,
+    merchantDisplay = merchantDisplay,
+    bankName = bankName,
+    accountLast4 = accountLast4,
+    occurredAt = occurredAt,
+    isCard = isCard,
+    status = status,
+    isBackfill = isBackfill,
+    duplicateOfId = duplicateOfId,
+    merchantKey = merchantKey,
+    categoryId = categoryId,
+    autoCategorized = autoCategorized,
+    note = note,
+    accountId = accountId,
+    ignoreReason = ignoreReason,
+    editedByUser = editedByUser,
+)
+
+private fun AccountEntity.toModel() = Account(id, bankName, last4, nickname, kind, hidden)

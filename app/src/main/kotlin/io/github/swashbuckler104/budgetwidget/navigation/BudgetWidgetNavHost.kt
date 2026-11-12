@@ -28,7 +28,7 @@ import io.github.swashbuckler104.budgetwidget.R
 import io.github.swashbuckler104.budgetwidget.feature.analysis.AnalysisRoute
 import io.github.swashbuckler104.budgetwidget.feature.categories.CategoriesRoute
 import io.github.swashbuckler104.budgetwidget.feature.settings.SettingsRoute
-import io.github.swashbuckler104.budgetwidget.feature.transactions.debug.DebugTransactionsRoute
+import io.github.swashbuckler104.budgetwidget.feature.transactions.list.TransactionsRoute
 import kotlin.reflect.KClass
 import kotlinx.serialization.Serializable
 
@@ -97,7 +97,7 @@ fun BudgetWidgetNavHost(onOpenQuickSort: (transactionId: Long?) -> Unit, modifie
                 AnalysisRoute(onSortInbox = { onOpenQuickSort(null) }, onOpenSettings = openSettings)
             }
             composable<TransactionsDestination> {
-                DebugTransactionsRoute(onOpenQuickSort = onOpenQuickSort, onOpenSettings = openSettings)
+                TransactionsRoute(onOpenQuickSort = onOpenQuickSort, onOpenSettings = openSettings)
             }
             composable<CategoriesDestination> { CategoriesRoute() }
             composable<SettingsDestination> { SettingsRoute(onBack = { navController.popBackStack() }) }

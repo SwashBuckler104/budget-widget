@@ -95,7 +95,7 @@ class DaoTest {
     fun `transactions list carries the account's bank and last4`() = runTest {
         val accountId = db.accountDao().insert(account("Axis Bank", "4321"))
         db.transactionDao().insertOrIgnore(txn("x", accountId))
-        val row = db.transactionDao().observeAllWithAccount().first().single()
+        val row = db.transactionDao().observeRows().first().single()
         assertThat(row.bankName).isEqualTo("Axis Bank")
         assertThat(row.accountLast4).isEqualTo("4321")
     }

@@ -81,7 +81,7 @@ class TransactionNotifierTest {
                 },
             )
         val clock = { now }
-        val repo = TransactionRepository(db.transactionDao(), db.unparsedSmsDao())
+        val repo = TransactionRepository(db.transactionDao(), db.unparsedSmsDao(), db.accountDao())
         notifier = TransactionNotifier(
             context,
             repo,

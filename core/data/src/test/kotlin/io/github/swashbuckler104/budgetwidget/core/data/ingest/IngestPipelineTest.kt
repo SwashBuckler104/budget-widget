@@ -128,7 +128,7 @@ class IngestPipelineTest {
         repeat(2) { pipeline.ingest(RawSms(BANK, "Your OTP is 123456", 1), IngestOrigin.REALTIME) }
         repeat(210) { i -> pipeline.ingest(RawSms(BANK, "promo $i", 10L + i), IngestOrigin.RECONCILE) }
         assertThat(db.unparsedSmsDao().count()).isEqualTo(200)
-        assertThat(db.transactionDao().observeAllWithAccount().first()).isEmpty()
+        assertThat(db.transactionDao().observeRows().first()).isEmpty()
     }
 
     @Test
