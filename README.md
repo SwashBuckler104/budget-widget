@@ -58,9 +58,19 @@ Every other **Settings → ...** is inside Budget Widget: tap the ⚙ gear at th
    version. (All versions are on the [releases page](https://github.com/SwashBuckler104/budget-widget/releases).)
 2. Open the downloaded file. If Android says your browser isn't allowed to install apps, tap
    **Settings**, turn on **Allow from this source**, and go back.
-3. **Play Protect** may show *"Unsafe app blocked"* or *"App scan recommended"*. Tap
-   **More details → Install anyway**. It appears for every app that isn't from the Play Store.
-4. Tap **Install**, then **Open**.
+3. Tap **Install**. Google Play Protect may step in, because the app reads SMS and isn't from the
+   Play Store:
+   - *"Unsafe app blocked"* or *"App scan recommended"*: tap **More details → Install anyway**.
+   - *"App blocked to protect your device"* with only an **OK** button: this is Google's fraud
+     protection, active in India and some other countries. It blocks every app that can read SMS
+     when installed from a browser or file manager, and it can't be skipped. Tap **OK**, then:
+     1. Open the **Play Store**, tap your profile picture, then **Play Protect → ⚙ (top right)**.
+     2. Turn off **Scan apps with Play Protect** and confirm.
+     3. Open the downloaded `budget-widget.apk` again (Files app → **Downloads**) and install it.
+     4. Go back to Play Protect settings and turn scanning **on** again. The app stays installed.
+4. Tap **Open**.
+
+The APK is about 4 MB, so a download that stops at 3.7 MB has finished.
 
 ### 2. First launch
 
@@ -116,7 +126,8 @@ the screen:
 
 ### Updating
 
-Tap the same [download link](https://github.com/SwashBuckler104/budget-widget/releases/latest/download/budget-widget.apk) and install the APK over the old one. Your data stays.
+Tap the same [download link](https://github.com/SwashBuckler104/budget-widget/releases/latest/download/budget-widget.apk) and install the APK over the old one. Your data stays. If Play Protect blocks the
+update, use the same steps as in [Download and install](#1-download-and-install).
 [Obtainium](https://github.com/ImranR98/Obtainium) can watch this repository and update the app for
 you.
 
@@ -135,6 +146,7 @@ you.
 
 | Problem | What to do |
 |---|---|
+| *"App blocked to protect your device"* when installing | Turn off Play Protect scanning while you install; see step 1. |
 | A payment didn't show up | Check that the bank sent an SMS at all. Then look in **Settings → Unparsed bank SMS**: messages the parser couldn't read, and alerts from banks it doesn't know yet, land there. |
 | Notifications arrive late or not at all | Do step 3 above. In the app, check **Settings → Transaction notifications** and the minimum amount; also check the phone's notification settings for Budget Widget. |
 | SMS permission switch is greyed out | Follow the *Allow restricted settings* steps in step 2. |
