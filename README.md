@@ -1,5 +1,9 @@
 # Budget Widget
 
+[![CI](https://github.com/SwashBuckler104/budget-widget/actions/workflows/ci.yml/badge.svg)](https://github.com/SwashBuckler104/budget-widget/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/SwashBuckler104/budget-widget)](https://github.com/SwashBuckler104/budget-widget/releases/latest)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
+
 **Inbox Zero for your money.** Every bank, card and UPI SMS becomes a card in an inbox. You sort
 it in one tap from a notification, a home-screen widget or the app, and you "close the day"
 before midnight to keep your streak.
@@ -23,6 +27,7 @@ before midnight to keep your streak.
 - **A habit, not a chore.** One tap to categorize, a daily deadline, a streak, and a Quick-Sort widget.
 - **Private by construction.** The app has **no INTERNET permission**. Nothing leaves your phone, and you can check this yourself in *Settings → Apps → Budget Widget → Permissions*.
 - **Small and simple.** No accounts, no ads, no analytics, no AI.
+- **Free and open source.** For everyone, under the AGPL-3.0. Read the code, build it yourself, or help improve it.
 
 Supported banks for v1: Kotak, Federal, Jupiter, slice, Axis, SBI, HDFC. The parser supports
 many more, and any bank it recognises will work.
@@ -153,6 +158,14 @@ The baseline profile in `app/src/release/generated/` is regenerated on an emulat
 [baselineprofile/README.md](baselineprofile/README.md).
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the module layout and conventions.
+
+## Contributing
+
+Contributions are welcome, especially SMS formats from banks the parser doesn't recognise yet.
+Use the [issue templates](https://github.com/SwashBuckler104/budget-widget/issues/new/choose) to
+report a bug or an SMS format, and read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull
+request. Everyone taking part follows the [code of conduct](CODE_OF_CONDUCT.md). Report security
+or privacy problems privately, as described in [SECURITY.md](SECURITY.md).
 
 ## Privacy
 

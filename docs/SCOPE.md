@@ -2,7 +2,7 @@
 
 > **Positioning:** *Inbox Zero for your money.* Every bank SMS becomes a card in an inbox. You sort it in one tap — from a notification, a home-screen widget, or the app — and you "close the day" before midnight.
 >
-> **Audience (v1):** the developer and family (≈2–6 Android phones), installed from GitHub Releases. Built Play-policy-compliant from day one so Play Store remains an option later.
+> **Audience (v1):** everyone with an Android phone and bank SMS alerts. Public, free and open source (AGPL-3.0), installed from GitHub Releases. Built Play-policy-compliant from day one so Play Store remains an option later. (Widened from "the developer and family" on 2026-11-12, ADR-0036.)
 >
 > **Status:** Phase 2 output — final scope for implementation. Date: 2026-11-08.
 
@@ -33,8 +33,8 @@
 | SMS parsing | **Reuse PennyWise `parser-core`** (AGPL-3.0) via git submodule, pinned commit | 190+ bank parsers incl. all of ours; pure Kotlin, no Android deps; has tests |
 | License | **AGPL-3.0** for our repo | Required by reusing AGPL code. Credit PennyWise in README + NOTICE. Don't use the "PennyWise" name/branding (see their TRADEMARKS.md) |
 | Platform | Native Android, Kotlin, Jetpack Compose | Quality-grade UI, Glance widgets |
-| minSdk / targetSdk | **26 (Android 8.0) / 36 (Android 16)** | Matches parser-core; covers family phones |
-| Distribution | GitHub Releases (signed APK), Obtainium-friendly; F-Droid/Play later | Family-first; permissions granted manually |
+| minSdk / targetSdk | **26 (Android 8.0) / 36 (Android 16)** | Matches parser-core; covers nearly every phone in use |
+| Distribution | GitHub Releases (signed APK), Obtainium-friendly; F-Droid/Play later | Public open source; permissions granted manually |
 | Network | **No `INTERNET` permission** — enforced in CI | Strongest privacy guarantee for an SMS-reading app |
 | Money type | `Long` paise everywhere in our code | No floating-point errors |
 
@@ -212,7 +212,7 @@ third_party/pennywise      — git submodule (pinned commit), NOT modified
 - `:parser-core/build.gradle.kts` = `kotlin("jvm")` (JVM 17 target is fine for Android) with
   `sourceSets.main.kotlin.srcDirs("../third_party/pennywise/parser-core/src/main/kotlin", "../third_party/pennywise/parser-core/src/commonMain/kotlin")`, test srcDirs + resources from upstream `src/test`, dependency `org.jetbrains.kotlinx:kotlinx-datetime:0.7.1`. If any upstream test file needs JUnit 5, wire JUnit Platform for this module only.
 - **Our code never imports parser classes outside `:ingest`.** `:ingest` exposes `SmsParser` interface → `ParsedSms` (our type). This anti-corruption layer lets us swap/upgrade the parser safely.
-- **Our own golden tests:** `:ingest` contains anonymized real SMS from family phones (one file per bank: Kotak, Federal, Jupiter, Slice, Axis, SBI, HDFC) with expected amount/direction/merchant/last4. Upgrading the submodule must keep these green.
+- **Our own golden tests:** `:ingest` contains anonymized real SMS from real phones (one file per bank: Kotak, Federal, Jupiter, Slice, Axis, SBI, HDFC) with expected amount/direction/merchant/last4. Upgrading the submodule must keep these green.
 - Upgrade procedure documented in `docs/PARSER_UPGRADE.md` (bump submodule → run upstream tests + golden tests → review diff of bank parsers we use).
 
 ### Tech stack (use latest **stable** versions at implementation time; verify each)
@@ -267,7 +267,7 @@ Export Room schemas to `core/database/schemas/` and write a migration test for e
 
 ## 8. Distribution
 - GitHub Actions: on tag `v*` → build release APK signed with keystore from repo secrets → create GitHub Release with changelog + SHA-256.
-- README: install guide for family — download, Play Protect warning ("More details → Install anyway"), "Allow restricted settings", grant SMS, add widget. Include screenshots.
+- README: install guide for everyone — download, Play Protect warning ("More details → Install anyway"), "Allow restricted settings", grant SMS, add widget. Include screenshots.
 - `fastlane/metadata/android/en-US/` structure from day one (F-Droid/Obtainium/IzzyOnDroid friendly).
 - Note: Android developer verification goes global in 2027 — register as a developer before then to keep sideloaded installs working on certified devices.
 
@@ -283,8 +283,8 @@ Export Room schemas to `core/database/schemas/` and write a migration test for e
 | Notification fatigue | Users disable everything | Grouping, threshold, widget as calm alternative, evening nudge only once |
 | Auto-sort removes the mindful moment | Habit loss | Auto-sort OFF by default; "Review auto-sorted" filter |
 | Glance limits (no live timers, update throttling, no custom drawing) | Widget UX gaps | Coarse time text, debounced updates, bitmap-rendered charts |
-| Sideload friction (Play Protect, restricted settings, 2027 verification) | Family can't install | Illustrated install guide; register developer identity; Play route kept open |
-| Parser misses a family bank format | Missing data | Unparsed SMS list → add golden test → contribute fix upstream |
+| Sideload friction (Play Protect, restricted settings, 2027 verification) | Users can't install | Illustrated install guide; register developer identity; Play route kept open |
+| Parser misses a user's bank format | Missing data | Unparsed SMS list → add golden test → contribute fix upstream |
 | Backup file leakage | Privacy | Warning now; encrypted backup in v1.1 |
 
 ---
