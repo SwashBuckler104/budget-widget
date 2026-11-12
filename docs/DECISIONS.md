@@ -155,3 +155,17 @@ deliberate deviation. Newest at the bottom. Status is Accepted unless stated.
 - **Undo:** every destructive action (sort, ignore, merge, keep both, back to inbox, delete) snapshots the affected rows, plus the merchant rules a sort taught, and the snackbar's Undo writes them back as they were, including `sortedAt`, so a day close isn't skewed.
 - **The M1 debug screen is gone.** "Check SMS now" and "Import last 30 days" moved to the overflow menu until onboarding and settings take them over (M8).
 - **Design:** a brand palette (teal, seed #006B5E) for devices without dynamic color, fixed money colors (income green, spending red), tuned for light and dark and derived from the active scheme. Signs are always written out. List amounts stay neutral, with red only on totals and the inbox, so a long list isn't a wall of red. Amounts use tabular figures.
+
+## ADR-0022: Analysis tab (M6)
+- **One calculation, `MonthAnalysis.compute`** (pure, in `:core:data`, unit-tested), over the same list rows the Transactions tab observes. It covers totals, categories, daily and cumulative series and top merchants. The Insight widget (M7) reuses it, so the app and the widget can't disagree.
+- **Definitions** (ADR-0020's spending rule throughout):
+  - **Spent:** outgoing, not ignored, not transfer-kind; pending counts.
+  - **Income:** the incoming mirror.
+  - **Net** = income - spent.
+  - **Per day** = spent / days elapsed (whole month for past months).
+  - **Comparison:** the current month is compared with the previous month **up to the same day of month** (a fair "so far"); a past month is compared with the whole month before.
+- **Categories:** the donut groups spending by top-level category, plus a grey **"To sort"** slice for spending not sorted yet, so the total always adds up. Tapping a slice or its row shows the subcategory breakdown and "See N transactions". A subcategory row or a top merchant opens the same list too.
+- **Drill-down = the Transactions screen** with a fixed filter (category or merchant search, month range, account), in the Analysis tab's back stack (`DrillDownDestination`). There is no second list implementation.
+- **Charts are custom Canvas composables** in `:core:designsystem` (donut, bars with a dashed average line and today highlighted, cumulative lines, proportion bars), not Vico. That adds no dependency for four simple charts, matches the theme exactly, and every chart has a TalkBack summary (largest values, average, running totals).
+- **Month switcher:** arrows plus horizontal swipe, bounded by the oldest transaction's month and the current month. The account filter appears when there are 2+ accounts.
+- Averages and the three small cards show whole rupees (`formatInrRounded`). The hero total keeps paise.

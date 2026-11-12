@@ -117,11 +117,13 @@ fun StatCard(
     valueColor: Color = MaterialTheme.colorScheme.onSurface,
     caption: String? = null,
     captionColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    compact: Boolean = false,
 ) {
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
     ) {
+        val valueStyle = if (compact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
                 label,
@@ -130,7 +132,7 @@ fun StatCard(
             )
             Text(
                 value,
-                style = MaterialTheme.typography.titleLarge.tabular(),
+                style = valueStyle.tabular(),
                 color = valueColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
