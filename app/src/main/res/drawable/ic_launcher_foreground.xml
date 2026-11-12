@@ -1,16 +1,78 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive icon foreground: wallet inside a 75% budget ring, inside the 66dp safe zone (ADR-0037). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M32,56L42,56L46,63L62,63L66,56L76,56L76,72Q76,77 71,77L37,77Q32,77 32,72Z" />
-    <path
-        android:pathData="M42,40L50,48L66,32"
-        android:strokeWidth="6"
-        android:strokeColor="#FFFFFFFF"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round" />
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.92"
+        android:scaleY="0.92">
+        <!-- Ring track -->
+        <path
+            android:pathData="M54,25a29,29 0,1 1,0 58a29,29 0,1 1,0 -58"
+            android:strokeWidth="5"
+            android:strokeColor="#FF8C92AC"
+            android:strokeAlpha="0.22" />
+        <!-- Progress arc, 75% clockwise from 12 o'clock -->
+        <path
+            android:pathData="M54,25A29,29 0,1 1,25 54"
+            android:strokeWidth="5"
+            android:strokeLineCap="round">
+            <aapt:attr name="android:strokeColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="25"
+                    android:startY="25"
+                    android:endX="83"
+                    android:endY="83">
+                    <item android:offset="0" android:color="#FFC3C8E8" />
+                    <item android:offset="1" android:color="#FF8C92AC" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <!-- Card peeking out of the wallet -->
+        <group
+            android:pivotX="52"
+            android:pivotY="43"
+            android:rotation="-9">
+            <path android:pathData="M43.2,37H60.8A2.2,2.2 0,0 1,63 39.2V46.8A2.2,2.2 0,0 1,60.8 49H43.2A2.2,2.2 0,0 1,41 46.8V39.2A2.2,2.2 0,0 1,43.2 37Z">
+                <aapt:attr name="android:fillColor">
+                    <gradient
+                        android:type="linear"
+                        android:startX="41"
+                        android:startY="43"
+                        android:endX="63"
+                        android:endY="43">
+                        <item android:offset="0" android:color="#FF8C92AC" />
+                        <item android:offset="1" android:color="#FFA9AFCB" />
+                    </gradient>
+                </aapt:attr>
+            </path>
+        </group>
+        <!-- Wallet body -->
+        <path android:pathData="M41.5,43H66.5A4.5,4.5 0,0 1,71 47.5V62.5A4.5,4.5 0,0 1,66.5 67H41.5A4.5,4.5 0,0 1,37 62.5V47.5A4.5,4.5 0,0 1,41.5 43Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="54"
+                    android:startY="43"
+                    android:endX="54"
+                    android:endY="67">
+                    <item android:offset="0" android:color="#FFF2F4F8" />
+                    <item android:offset="1" android:color="#FFD5D9E4" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <!-- Clasp and snap -->
+        <path
+            android:fillColor="#FF8C92AC"
+            android:pathData="M63,50H68A5,5 0,0 1,68 60H63A5,5 0,0 1,63 50Z" />
+        <path
+            android:fillColor="#FF22223B"
+            android:pathData="M62,55a2,2 0,1 0,4 0a2,2 0,1 0,-4 0" />
+    </group>
 </vector>

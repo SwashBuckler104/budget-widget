@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Themed (monochrome) icon: same shapes as the foreground, one color, clasp cut out (ADR-0037). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.92"
+        android:scaleY="0.92">
+        <path
+            android:pathData="M54,25a29,29 0,1 1,0 58a29,29 0,1 1,0 -58"
+            android:strokeWidth="5"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeAlpha="0.35" />
+        <path
+            android:pathData="M54,25A29,29 0,1 1,25 54"
+            android:strokeWidth="5"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeLineCap="round" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:fillType="evenOdd"
+            android:pathData="M41.5,43L42.6,38.4Q43.1,36.3 45.2,36.6L63.9,39.6Q65.6,39.9 65.4,41.6L65.2,43ZM41.5,43H66.5Q71,43 71,47.5V62.5Q71,67 66.5,67H41.5Q37,67 37,62.5V47.5Q37,43 41.5,43ZM63,50H68A5,5 0,0 1,68 60H63A5,5 0,0 1,63 50Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M63,55a2,2 0,1 0,4 0a2,2 0,1 0,-4 0" />
+    </group>
+</vector>

@@ -298,3 +298,9 @@ deliberate deviation. Newest at the bottom. Status is Accepted unless stated.
 - **Why:** v1 was scoped for the developer and family. The owner decided on 2026-11-12 to publish it for everyone.
 - **What changed:** the audience in SCOPE.md, plus the files a public project needs: a code of conduct, a security policy using GitHub private vulnerability reporting (sensitive, because the app reads financial SMS), a pull request template and a feature request form. The README links them.
 - **What did not change:** the product, distribution (signed APKs on GitHub Releases, Obtainium-friendly, F-Droid and Play later) and the hard constraints. In particular there is still no `INTERNET` permission.
+
+## ADR-0037: Wallet-in-a-ring launcher icon
+- **Why:** the first icon (a white tray and tick on green) did not say "budget". The owner picked a wallet inside a circular budget-progress ring in the Smoky Quartz & Periwinkle palette (`#181824`, `#22223B`, `#8C92AC`, `#F2F4F8`).
+- **Layers:** a radial-gradient background drawable, a foreground with a 75% progress arc, the wallet, a card and a clasp, all scaled to 92% so the ring stays inside the 66dp safe zone, and a separate monochrome drawable for themed icons (the clasp is cut out so it reads in one color).
+- **Store icon:** the 512x512 PNG is the same artwork, full bleed, in `app/src/main/ic_launcher-playstore.png` and `fastlane/metadata/android/en-US/images/icon.png`. SVG sources are in `docs/icon/`.
+- **No text:** no letters or currency symbols, so the icon works in every language and at 32px.

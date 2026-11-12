@@ -8,6 +8,9 @@
 it in one tap from a notification, a home-screen widget or the app, and you "close the day"
 before midnight to keep your streak.
 
+**[⬇ Download the latest APK](https://github.com/SwashBuckler104/budget-widget/releases/latest/download/budget-widget.apk)** - open this link on your Android phone, install, done.
+The [installation guide](#installation-guide) walks through the few prompts Android shows.
+
 > **Status:** v1.0, the MVP (milestones M0-M8 of [docs/SCOPE.md](docs/SCOPE.md)): SMS import,
 > notifications with one-tap categories, the Quick-Sort and Insight widgets, the Transactions and
 > Analysis tabs, onboarding, backup/restore and CSV export. New here? Jump to the
@@ -51,8 +54,8 @@ Every other **Settings → ...** is inside Budget Widget: tap the ⚙ gear at th
 
 ### 1. Download and install
 
-1. On your phone, open the [latest release](https://github.com/SwashBuckler104/budget-widget/releases/latest)
-   and tap `budget-widget-vX.Y.Z.apk` under **Assets**.
+1. On your phone, tap **[Download the latest APK](https://github.com/SwashBuckler104/budget-widget/releases/latest/download/budget-widget.apk)**. It always downloads the newest
+   version. (All versions are on the [releases page](https://github.com/SwashBuckler104/budget-widget/releases).)
 2. Open the downloaded file. If Android says your browser isn't allowed to install apps, tap
    **Settings**, turn on **Allow from this source**, and go back.
 3. **Play Protect** may show *"Unsafe app blocked"* or *"App scan recommended"*. Tap
@@ -113,7 +116,7 @@ the screen:
 
 ### Updating
 
-Download the new APK from the latest release and install it over the old one. Your data stays.
+Tap the same [download link](https://github.com/SwashBuckler104/budget-widget/releases/latest/download/budget-widget.apk) and install the APK over the old one. Your data stays.
 [Obtainium](https://github.com/ImranR98/Obtainium) can watch this repository and update the app for
 you.
 
@@ -138,8 +141,8 @@ you.
 | Widget shows old data | Open the app once; widgets refresh on every change. If it persists, remove and re-add the widget. |
 | A bank you use isn't recognised | Copy the message from **Unparsed bank SMS**, remove your name and account number, and open a [bank format issue](https://github.com/SwashBuckler104/budget-widget/issues/new/choose). |
 
-**Verifying a download (optional):** every release has a `.sha256` file next to the APK. Compare
-it with `sha256sum budget-widget-vX.Y.Z.apk`.
+**Verifying a download (optional):** every APK on a release has a `.sha256` file next to it.
+Compare it with `sha256sum budget-widget.apk`.
 
 ## Build from source
 
