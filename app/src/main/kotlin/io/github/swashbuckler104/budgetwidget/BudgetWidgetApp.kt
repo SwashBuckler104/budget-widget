@@ -1,8 +1,10 @@
 package io.github.swashbuckler104.budgetwidget
 
 import android.app.Application
+import android.os.Build
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import androidx.work.ExperimentalConfigurationApi
 import dagger.hilt.android.HiltAndroidApp
 import io.github.swashbuckler104.budgetwidget.core.data.category.CategorySeeder
 import io.github.swashbuckler104.budgetwidget.core.data.ingest.SmsSync
@@ -31,7 +33,13 @@ class BudgetWidgetApp :
     // WorkManager initializes on demand with this config (its startup initializer is removed in
     // the manifest), so workers get Hilt dependencies.
     override val workManagerConfiguration: Configuration
-        get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
+        @OptIn(ExperimentalConfigurationApi::class)
+        get() = Configuration.Builder()
+            .setWorkerFactory(workerFactory)
+            // Android 16 ignores JobInfo's important-while-foreground flag and logs a warning for
+            // every job that requests it; older releases still honor it.
+            .setMarkingJobsAsImportantWhileForeground(Build.VERSION.SDK_INT < Build.VERSION_CODES.BAKLAVA)
+            .build()
 
     override fun onCreate() {
         super.onCreate()
