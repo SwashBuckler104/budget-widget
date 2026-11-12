@@ -55,6 +55,10 @@ gradlePlugin {
             id = libs.plugins.bw.android.room.get().pluginId
             implementationClass = "budgetwidget.buildlogic.AndroidRoomConventionPlugin"
         }
+        register("androidTest") {
+            id = libs.plugins.bw.android.test.get().pluginId
+            implementationClass = "budgetwidget.buildlogic.AndroidTestConventionPlugin"
+        }
         register("hilt") {
             id = libs.plugins.bw.hilt.get().pluginId
             implementationClass = "budgetwidget.buildlogic.HiltConventionPlugin"

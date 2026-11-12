@@ -50,6 +50,9 @@ sealed interface IngestOutcome {
     data object BalanceUpdated : IngestOutcome
 
     data class Unparsed(val reason: UnparsedReason) : IngestOutcome
+
+    /** From a scan that started before the data was replaced (restore, start fresh): dropped. */
+    data object Superseded : IngestOutcome
 }
 
 /**
@@ -64,15 +67,42 @@ class IngestPipeline @Inject constructor(
     private val clock: WallClock,
     private val autoSort: AutoSortSetting,
     private val events: InboxEvents,
+    private val dismissals: UnparsedDismissals = UnparsedDismissals.None,
 ) {
     private val mutex = Mutex()
 
-    suspend fun ingest(sms: RawSms, origin: IngestOrigin): IngestOutcome = withContext(Dispatchers.IO) {
-        // Step 1: never parse or persist messages from senders that aren't banks.
-        if (!parser.isKnownBankSender(sms.sender)) return@withContext IngestOutcome.NotFinancial
-        val result = parser.parse(sms)
+    /** Bumped under [mutex] whenever the stored data is replaced wholesale. */
+    @Volatile
+    private var generation = 0L
+
+    /** For scans: pass it to every [ingest] call so messages read before a data replace are dropped. */
+    fun generation(): Long = generation
+
+    /**
+     * Runs [block] with ingestion paused, then marks every scan that started earlier as stale.
+     * Restore and "start fresh" use it, so a scan already iterating the inbox can't write old
+     * messages into the new data (ADR-0027).
+     */
+    suspend fun <T> replacingData(block: suspend () -> T): T = mutex.withLock {
+        generation++
+        block()
+    }
+
+    /** [scanGeneration]: [generation] when the calling scan started; null for a single new SMS. */
+    suspend fun ingest(sms: RawSms, origin: IngestOrigin, scanGeneration: Long? = null): IngestOutcome = withContext(
+        Dispatchers.IO,
+    ) {
+        // Step 1: never parse messages from senders that aren't banks. One that still reads like a
+        // bank alert is kept in the unparsed list, so a missing parser shows up (ADR-0028).
+        val result = when {
+            parser.isKnownBankSender(sms.sender) -> parser.parse(sms)
+            parser.looksLikeUnknownBankAlert(sms) -> SmsParseResult.Unparsed(UnparsedReason.UNKNOWN_SENDER)
+            else -> return@withContext IngestOutcome.NotFinancial
+        }
         val autoSortEnabled = autoSort.enabled()
+        val dismissedUpTo = if (result is SmsParseResult.Unparsed) dismissals.upTo() else null
         val outcome = mutex.withLock {
+            if (scanGeneration != null && scanGeneration != generation) return@withLock IngestOutcome.Superseded
             db.withTransaction {
                 when (result) {
                     is SmsParseResult.Transaction -> store(result.parsed, origin, autoSortEnabled)
@@ -84,16 +114,20 @@ class IngestPipeline @Inject constructor(
                     }
 
                     is SmsParseResult.Unparsed -> {
-                        db.unparsedSmsDao().insertCapped(
-                            UnparsedSmsEntity(
-                                sender = sms.sender,
-                                bodyHash = sha256(sms.body),
-                                // Only known bank senders reach this point (step 1).
-                                body = sms.body,
-                                receivedAt = sms.receivedAt,
-                                reason = result.reason,
-                            ),
-                        )
+                        // Deleted from the list by the user: a rescan must not bring it back.
+                        val dismissed = dismissedUpTo?.let { sms.receivedAt <= it } ?: false
+                        if (!dismissed) {
+                            db.unparsedSmsDao().insertCapped(
+                                UnparsedSmsEntity(
+                                    sender = sms.sender,
+                                    bodyHash = sha256(sms.body),
+                                    // Only bank senders and bank-like alerts reach this point (step 1).
+                                    body = sms.body,
+                                    receivedAt = sms.receivedAt,
+                                    reason = result.reason,
+                                ),
+                            )
+                        }
                         IngestOutcome.Unparsed(result.reason)
                     }
                 }

@@ -19,6 +19,13 @@ interface AccountDao {
     @Insert
     suspend fun insert(account: AccountEntity): Long
 
+    /** A blank [nickname] is stored as null, so the bank name shows again. */
+    @Query("UPDATE account SET nickname = NULLIF(TRIM(:nickname), '') WHERE id = :id")
+    suspend fun setNickname(id: Long, nickname: String?)
+
+    @Query("UPDATE account SET hidden = :hidden WHERE id = :id")
+    suspend fun setHidden(id: Long, hidden: Boolean)
+
     @Query("UPDATE account SET lastBalancePaise = :balancePaise WHERE id = :id")
     suspend fun updateBalance(id: Long, balancePaise: Long)
 }

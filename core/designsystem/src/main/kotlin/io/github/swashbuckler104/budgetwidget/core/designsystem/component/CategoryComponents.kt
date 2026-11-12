@@ -16,11 +16,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import io.github.swashbuckler104.budgetwidget.core.designsystem.theme.BudgetTheme
 import io.github.swashbuckler104.budgetwidget.core.model.Category
 import io.github.swashbuckler104.budgetwidget.core.model.CategoryGroup
 
@@ -32,7 +32,7 @@ fun CategoryAvatar(emoji: String, colorArgb: Int, modifier: Modifier = Modifier,
         modifier = modifier
             .size(size)
             .clip(CircleShape)
-            .background(Color(colorArgb).copy(alpha = 0.22f))
+            .background(BudgetTheme.categoryContainer(colorArgb))
             .clearAndSetSemantics { },
     ) {
         Text(

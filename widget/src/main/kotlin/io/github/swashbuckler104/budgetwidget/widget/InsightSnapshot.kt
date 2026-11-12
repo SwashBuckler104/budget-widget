@@ -1,8 +1,9 @@
 package io.github.swashbuckler104.budgetwidget.widget
 
 import io.github.swashbuckler104.budgetwidget.core.data.WallClock
+import io.github.swashbuckler104.budgetwidget.core.data.analysis.AnalysisPeriod
 import io.github.swashbuckler104.budgetwidget.core.data.analysis.CategorySpend
-import io.github.swashbuckler104.budgetwidget.core.data.analysis.MonthAnalysis
+import io.github.swashbuckler104.budgetwidget.core.data.analysis.PeriodAnalysis
 import io.github.swashbuckler104.budgetwidget.core.data.category.CategoryRepository
 import io.github.swashbuckler104.budgetwidget.core.data.repository.TransactionRepository
 import io.github.swashbuckler104.budgetwidget.core.model.Category
@@ -47,8 +48,8 @@ internal data class InsightSnapshot(
             }.associateBy { it.id }
             val today = Instant.ofEpochMilli(nowMillis).atZone(zone).toLocalDate()
             val month = YearMonth.from(today)
-            val analysis = MonthAnalysis.compute(transactions, categories, month, today, zone)
-            val week = MonthAnalysis.lastDays(transactions, categories, today, zone, DAYS)
+            val analysis = PeriodAnalysis.compute(transactions, categories, AnalysisPeriod.Month(month), today, zone)
+            val week = PeriodAnalysis.lastDays(transactions, categories, today, zone, DAYS)
             return InsightSnapshot(
                 todaySpentPaise = week.last(),
                 monthSpentPaise = analysis.spentPaise,

@@ -32,7 +32,10 @@ import androidx.navigation.toRoute
 import io.github.swashbuckler104.budgetwidget.R
 import io.github.swashbuckler104.budgetwidget.feature.analysis.AnalysisRoute
 import io.github.swashbuckler104.budgetwidget.feature.categories.CategoriesRoute
+import io.github.swashbuckler104.budgetwidget.feature.settings.AboutRoute
+import io.github.swashbuckler104.budgetwidget.feature.settings.AccountsRoute
 import io.github.swashbuckler104.budgetwidget.feature.settings.SettingsRoute
+import io.github.swashbuckler104.budgetwidget.feature.settings.UnparsedRoute
 import io.github.swashbuckler104.budgetwidget.feature.transactions.list.TransactionsRoute
 import kotlin.reflect.KClass
 import kotlinx.serialization.Serializable
@@ -48,6 +51,15 @@ data object CategoriesDestination
 
 @Serializable
 data object SettingsDestination
+
+@Serializable
+data object AccountsDestination
+
+@Serializable
+data object UnparsedDestination
+
+@Serializable
+data object AboutDestination
 
 /** Analysis drill-down: the transactions behind a category or merchant in one month. */
 @Serializable
@@ -168,7 +180,17 @@ fun BudgetWidgetNavHost(
                 TransactionsRoute(onOpenQuickSort = onOpenQuickSort, onOpenSettings = openSettings)
             }
             composable<CategoriesDestination> { CategoriesRoute() }
-            composable<SettingsDestination> { SettingsRoute(onBack = { navController.popBackStack() }) }
+            composable<SettingsDestination> {
+                SettingsRoute(
+                    onBack = { navController.popBackStack() },
+                    onOpenAccounts = { navController.navigate(AccountsDestination) { launchSingleTop = true } },
+                    onOpenSmsIssues = { navController.navigate(UnparsedDestination) { launchSingleTop = true } },
+                    onOpenAbout = { navController.navigate(AboutDestination) { launchSingleTop = true } },
+                )
+            }
+            composable<AccountsDestination> { AccountsRoute(onBack = { navController.popBackStack() }) }
+            composable<UnparsedDestination> { UnparsedRoute(onBack = { navController.popBackStack() }) }
+            composable<AboutDestination> { AboutRoute(onBack = { navController.popBackStack() }) }
         }
     }
 }

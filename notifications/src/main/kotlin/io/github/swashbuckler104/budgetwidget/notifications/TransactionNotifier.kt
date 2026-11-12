@@ -70,6 +70,9 @@ internal class TransactionNotifier @Inject constructor(
 
     override suspend fun onSorted(transactionId: Long) = cancel(transactionId)
 
+    // Restored ids may now belong to other transactions: no posted button may act on them.
+    override suspend fun onDataReplaced() = cancelAll()
+
     /** Re-posts [transactionId] quietly with fresh buttons (a button's category went away). */
     suspend fun refresh(transactionId: Long) = post(transactionId, silent = true)
 

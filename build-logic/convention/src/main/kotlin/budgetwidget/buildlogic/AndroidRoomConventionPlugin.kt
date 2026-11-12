@@ -13,6 +13,7 @@ class AndroidRoomConventionPlugin : Plugin<Project> {
         with(target) {
             pluginManager.apply("com.google.devtools.ksp")
             pluginManager.apply("androidx.room")
+            runKspSerially()
 
             extensions.configure<RoomExtension> {
                 schemaDirectory("$projectDir/schemas")

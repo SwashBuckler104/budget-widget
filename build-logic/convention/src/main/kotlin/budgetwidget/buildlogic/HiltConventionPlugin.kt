@@ -9,6 +9,7 @@ class HiltConventionPlugin : Plugin<Project> {
         with(target) {
             pluginManager.apply("com.google.devtools.ksp")
             pluginManager.apply("com.google.dagger.hilt.android")
+            runKspSerially()
 
             dependencies {
                 add("implementation", libs.library("hilt-android"))

@@ -4,6 +4,11 @@ plugins {
     alias(libs.plugins.bw.hilt)
 }
 
+android {
+    // Applied to the app's release build: keeps what Glance instantiates by reflection.
+    defaultConfig.consumerProguardFiles("consumer-rules.pro")
+}
+
 dependencies {
     implementation(projects.core.model)
     implementation(projects.core.data)

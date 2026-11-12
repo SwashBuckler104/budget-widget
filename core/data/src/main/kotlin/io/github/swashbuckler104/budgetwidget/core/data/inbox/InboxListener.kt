@@ -13,4 +13,7 @@ interface InboxListener {
 
     /** [transactionId] left the inbox: categorized, ignored or marked as a duplicate. */
     suspend fun onSorted(transactionId: Long) {}
+
+    /** Every transaction was replaced or removed at once (restore, start fresh): ids mean nothing now. */
+    suspend fun onDataReplaced() {}
 }

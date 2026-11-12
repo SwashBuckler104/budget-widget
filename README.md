@@ -1,14 +1,25 @@
 # Budget Widget
 
+[![CI](https://github.com/SwashBuckler104/budget-widget/actions/workflows/ci.yml/badge.svg)](https://github.com/SwashBuckler104/budget-widget/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/SwashBuckler104/budget-widget)](https://github.com/SwashBuckler104/budget-widget/releases/latest)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
+
 **Inbox Zero for your money.** Every bank, card and UPI SMS becomes a card in an inbox. You sort
 it in one tap from a notification, a home-screen widget or the app, and you "close the day"
 before midnight to keep your streak.
 
-> **Status:** early development (milestone M2, categories). The app reads bank SMS, lets you sort
-> each transaction in one tap from the Quick-Sort sheet, and learns merchants. Notifications and
-> widgets come next. See [docs/SCOPE.md](docs/SCOPE.md) for the v1.0 plan.
+> **Status:** v1.0, the MVP (milestones M0-M8 of [docs/SCOPE.md](docs/SCOPE.md)): SMS import,
+> notifications with one-tap categories, the Quick-Sort and Insight widgets, the Transactions and
+> Analysis tabs, onboarding, backup/restore and CSV export. New here? Jump to the
+> [installation guide](#installation-guide).
 
-<!-- Screenshots: added in M8 (fastlane/metadata/android/en-US/images/phoneScreenshots/). -->
+## Features
+
+- **Inbox of new payments.** Every bank SMS becomes a transaction waiting to be sorted. A notification offers your daily categories (Groceries, Restaurant, Public transport) as buttons; the **Quick-Sort widget** shows the next payment with category chips.
+- **Close the day.** Sort everything before midnight to keep a streak, with an optional evening reminder.
+- **Analysis.** Any week, month, year or date range: spending and income pie charts with drill-down, daily or monthly bars, the trend against the period before, and top merchants. The **Insight widget** shows today, this month and the last 7 days.
+- **Transactions.** Search, filters, edit, manual cash entries, bulk actions, swipe with undo, and duplicate detection when two banks report the same payment.
+- **Your data.** CSV export, JSON backup and restore, and "start fresh", all through files you choose.
 
 ## Why
 
@@ -16,29 +27,116 @@ before midnight to keep your streak.
 - **A habit, not a chore.** One tap to categorize, a daily deadline, a streak, and a Quick-Sort widget.
 - **Private by construction.** The app has **no INTERNET permission**. Nothing leaves your phone, and you can check this yourself in *Settings → Apps → Budget Widget → Permissions*.
 - **Small and simple.** No accounts, no ads, no analytics, no AI.
+- **Free and open source.** For everyone, under the AGPL-3.0. Read the code, build it yourself, or help improve it.
 
 Supported banks for v1: Kotak, Federal, Jupiter, slice, Axis, SBI, HDFC. The parser supports
 many more, and any bank it recognises will work.
 
-## Install (for family)
+## Installation guide
 
-Budget Widget is installed from GitHub Releases, not the Play Store, so Android asks a few extra
-questions the first time.
+Budget Widget is installed from GitHub Releases, not the Play Store. Setup takes about five
+minutes; Android asks a few extra questions the first time because the app is sideloaded.
 
-1. **Download.** On your phone, open the [latest release](https://github.com/SwashBuckler104/budget-widget/releases/latest) and tap `budget-widget-vX.Y.Z.apk`.
-2. **Allow the install.** If Android says your browser isn't allowed to install apps, tap **Settings**, turn on **Allow from this source**, then go back.
-3. **Play Protect.** If you see *"Unsafe app blocked"* or *"App scan recommended"*, tap **More details → Install anyway**. This shows up because the app isn't from the Play Store. It isn't a virus warning about this app.
-4. **Allow SMS ("restricted settings").** Open the app and allow SMS when asked. On Android 13 and newer, SMS access for sideloaded apps is blocked at first, and the switch may be greyed out with a *"Restricted setting"* message. To unlock it:
+Below, **Settings → Apps → ...** and **Settings → Battery → ...** are in the phone's Settings app.
+Every other **Settings → ...** is inside Budget Widget: tap the ⚙ gear at the top of the
+**Analysis** tab.
+
+### Before you start
+
+- An Android phone running **Android 8.0 or newer**, with your bank's SIM in it.
+- Your bank must send **SMS alerts** for transactions. The app reads SMS only: if a bank (or an
+  account, such as a salary account) sends alerts by app notification or email alone, those
+  transactions can't appear. Most banks let you turn SMS alerts on in their app or at a branch.
+- About 30 MB of free space.
+
+### 1. Download and install
+
+1. On your phone, open the [latest release](https://github.com/SwashBuckler104/budget-widget/releases/latest)
+   and tap `budget-widget-vX.Y.Z.apk` under **Assets**.
+2. Open the downloaded file. If Android says your browser isn't allowed to install apps, tap
+   **Settings**, turn on **Allow from this source**, and go back.
+3. **Play Protect** may show *"Unsafe app blocked"* or *"App scan recommended"*. Tap
+   **More details → Install anyway**. It appears for every app that isn't from the Play Store.
+4. Tap **Install**, then **Open**.
+
+### 2. First launch
+
+A short setup walks you through seven steps (tap **Next** to move on):
+
+1. **Welcome.** What the app does, and that nothing leaves your phone.
+2. **Reading bank SMS.** Tap **Allow SMS access**. On Android 13 and newer, Android blocks SMS
+   access for sideloaded apps at first: you see *"Android blocked the request"* or a greyed-out
+   *"Restricted setting"* switch. To unlock it:
    1. Open **Settings → Apps → Budget Widget**.
-   2. Tap the **⋮** menu (top right) → **Allow restricted settings**, and confirm with your PIN or fingerprint.
-   3. Go to **Permissions → SMS → Allow**.
-5. **Allow notifications** when asked. That's how new transactions reach you.
-6. **Add the widget.** Long-press an empty spot on your home screen → **Widgets** → **Budget Widget** → drag **Quick-Sort** onto the screen.
-7. **Keep it alive (Xiaomi, Oppo, Vivo, Realme, Samsung).** Some phones stop background apps aggressively. In **Settings → Apps → Budget Widget → Battery**, choose **Unrestricted**. On Xiaomi, Oppo and Vivo also turn on **Autostart**. The app catches up on missed SMS anyway, but this makes notifications arrive on time.
+   2. Tap **⋮** (top right) → **Allow restricted settings**, and confirm with your PIN or
+      fingerprint. (If the option isn't there yet, tap **Allow SMS access** once more so Android
+      registers the block, then come back.)
+   3. Go to **Permissions → SMS → Allow**, and return to the app.
+3. **Notifications.** Tap **Allow notifications**. New transactions arrive as notifications with
+   category buttons.
+4. **Battery.** Tips for instant alerts; see step 3 below.
+5. **Where to start.** Import the last 30 or 90 days of bank SMS from your inbox, or
+   **Start fresh** to track only payments from now on. You can import older SMS later from
+   **Settings → Import older SMS**.
+6. **Your categories.** A starter set with subcategories. Rename, add, reorder or archive them any
+   time in the **Categories** tab.
+7. **Widget.** Tap **Add the widget** to put the Quick-Sort widget on your home screen, then
+   **Start**.
 
-**Updating:** download the new APK and install it over the old one. Your data stays. You can also
-use [Obtainium](https://github.com/ImranR98/Obtainium) with this repository's URL to get updates
-automatically.
+### 3. Keep notifications on time (important on Samsung, Xiaomi, Oppo, Vivo, Realme)
+
+Many phones put background apps to sleep, which delays or drops notifications. The app catches up
+on missed SMS every few hours anyway, but to get them instantly:
+
+- **All phones:** **Settings → Apps → Budget Widget → Battery → Unrestricted**.
+- **Samsung:** also open **Settings → Battery → Background usage limits** and make sure Budget
+  Widget is not under *Sleeping apps* or *Deep sleeping apps*.
+- **Xiaomi, Oppo, Vivo, Realme:** also turn on **Autostart** for Budget Widget (in the app's
+  settings page or the phone's security app).
+
+### 4. Add widgets
+
+Long-press an empty spot on your home screen → **Widgets** → **Budget Widget**, then drag one onto
+the screen:
+
+- **Quick-Sort** (4x2 by default, resizable): the next payment to sort with one-tap category chips.
+- **Insight** (4x2 or larger): today, this month and the last 7 days; larger sizes add your top
+  categories.
+
+### 5. Start your budget
+
+- Already imported history but want the budget to begin today? **Settings → Start fresh** deletes
+  all transactions and tracks from now on. Categories, merchant rules and settings stay (take a
+  backup first if you might want the history back).
+- Make one small payment. Within seconds you should get a notification: tap a category and you're
+  done. Sort everything before midnight to keep your streak.
+
+### Updating
+
+Download the new APK from the latest release and install it over the old one. Your data stays.
+[Obtainium](https://github.com/ImranR98/Obtainium) can watch this repository and update the app for
+you.
+
+### Back up, move phones, reinstall
+
+- **Settings → Back up** saves everything (transactions, categories, merchant rules, settings) to a
+  file you choose. The file isn't encrypted, so keep it somewhere safe. **Settings → Restore**
+  loads it on any phone, replacing what's there. **Settings → Export to CSV** gives a spreadsheet.
+- Uninstalling deletes all app data, and Android's cloud backup is turned off for this app. Back up
+  first.
+- *"App not installed"* or *"package conflicts"* when updating means the installed copy was signed
+  with a different key (for example a build made from source). Back up, uninstall, install the
+  release APK, then restore.
+
+### Troubleshooting
+
+| Problem | What to do |
+|---|---|
+| A payment didn't show up | Check that the bank sent an SMS at all. Then look in **Settings → Unparsed bank SMS**: messages the parser couldn't read, and alerts from banks it doesn't know yet, land there. |
+| Notifications arrive late or not at all | Do step 3 above. In the app, check **Settings → Transaction notifications** and the minimum amount; also check the phone's notification settings for Budget Widget. |
+| SMS permission switch is greyed out | Follow the *Allow restricted settings* steps in step 2. |
+| Widget shows old data | Open the app once; widgets refresh on every change. If it persists, remove and re-add the widget. |
+| A bank you use isn't recognised | Copy the message from **Unparsed bank SMS**, remove your name and account number, and open a [bank format issue](https://github.com/SwashBuckler104/budget-widget/issues/new/choose). |
 
 **Verifying a download (optional):** every release has a `.sha256` file next to the APK. Compare
 it with `sha256sum budget-widget-vX.Y.Z.apk`.
@@ -56,7 +154,18 @@ echo "sdk.dir=$HOME/Android/Sdk" > local.properties   # or set ANDROID_HOME
 ./gradlew spotlessCheck lint test assembleRelease      # what CI runs
 ```
 
+The baseline profile in `app/src/release/generated/` is regenerated on an emulator; see
+[baselineprofile/README.md](baselineprofile/README.md).
+
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the module layout and conventions.
+
+## Contributing
+
+Contributions are welcome, especially SMS formats from banks the parser doesn't recognise yet.
+Use the [issue templates](https://github.com/SwashBuckler104/budget-widget/issues/new/choose) to
+report a bug or an SMS format, and read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull
+request. Everyone taking part follows the [code of conduct](CODE_OF_CONDUCT.md). Report security
+or privacy problems privately, as described in [SECURITY.md](SECURITY.md).
 
 ## Privacy
 

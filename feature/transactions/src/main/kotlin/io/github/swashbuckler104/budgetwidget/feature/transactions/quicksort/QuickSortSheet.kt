@@ -6,9 +6,11 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
@@ -32,9 +34,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -147,16 +149,17 @@ internal fun QuickSortContent(
         )
         if (transaction.merchantKey != null) {
             val rememberLabel = stringResource(R.string.quicksort_remember, transaction.merchantDisplay.orEmpty())
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            // The whole row is the switch: one large target, and TalkBack reads the label with
+            // the on/off state (the switch alone had no name).
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .toggleable(value = remember, role = Role.Switch, onValueChange = { remember = it }),
+            ) {
                 Text(rememberLabel, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                Switch(
-                    checked = remember,
-                    onCheckedChange = { remember = it },
-                    modifier = Modifier.semantics {
-                        stateDescription =
-                            rememberLabel
-                    },
-                )
+                Switch(checked = remember, onCheckedChange = null)
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {

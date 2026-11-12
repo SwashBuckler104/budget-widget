@@ -3,7 +3,6 @@ package io.github.swashbuckler104.budgetwidget.widget
 import android.content.Intent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -58,7 +57,7 @@ internal fun InsightWidgetContent(snapshot: InsightSnapshot, open: Intent?) {
         modifier = GlanceModifier
             .fillMaxSize()
             .appWidgetBackground()
-            .background(GlanceTheme.colors.widgetBackground)
+            .background(WidgetSurfaces.background)
             .cornerRadius(20.dp)
             .padding(horizontal = PADDING, vertical = 12.dp)
             .let { m -> open?.let { m.clickable(actionStartActivity(it)) } ?: m },
@@ -200,13 +199,13 @@ private fun CategoryRow(spend: CategorySpend, monthPaise: Long, width: Dp) {
             Label(formatInrRounded(spend.totalPaise), 13.sp, bold = true, maxLines = 1)
         }
         val fraction = if (monthPaise > 0) spend.totalPaise.toFloat() / monthPaise else 0f
-        val color = spend.category?.let { ColorProvider(Color(it.colorArgb)) } ?: GlanceTheme.colors.outline
+        val color = spend.category?.let { categoryColorProvider(it.colorArgb) } ?: GlanceTheme.colors.outline
         Box(
             modifier = GlanceModifier
                 .fillMaxWidth()
                 .height(BAR)
                 .cornerRadius(3.dp)
-                .background(GlanceTheme.colors.surfaceVariant),
+                .background(WidgetSurfaces.track),
         ) {
             Box(
                 modifier = GlanceModifier

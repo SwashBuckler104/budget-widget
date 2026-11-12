@@ -224,3 +224,77 @@ deliberate deviation. Newest at the bottom. Status is Accepted unless stated.
 - **Family** (expense): Transfer, Lend; D-Mart, Kirana, Groceries; Other. The owner created it on their phone and asked for it in the seed set. New installs get it before Investments, with its own color (cyan 800).
 - **Seeds are versioned per group:** each group records the seed version that introduced it, and the seeder adds only groups newer than the version an install already has. The earlier "re-run the whole list on a version bump" would have re-created seeds the user deleted.
 - **Adoption instead of duplicates:** a new group first looks for an unseeded category with the same name (ignoring case) at the same level and marks it as the seed, keeping the user's name, icon, color, kind and order. Its same-named subcategories are adopted the same way; missing ones are added after the user's own. Without this, an install that already has its own "Family" would get a second one.
+
+## ADR-0027: Release polish (M8)
+- **Analysis periods** (owner's request on 2026-11-11: "total income and expenditure throughout the app duration is useless"): Week / Month / Year / Range segments. Weeks run Monday to Sunday; a year, and any range over 92 days, is charted by month. Every period compares with the one just before it, up to the same point while it's current. The category donut has a Spending / Income toggle, and income drill-downs list money in. The chosen period is kept in saved state. The Insight widget keeps its month view.
+- **Backup format:** plain JSON with its own schema (`format`, `version` 1), not the Room entities, so a database migration can never silently change it. Restore replaces everything in one transaction and rolls back on broken references. Unknown keys are ignored and newer versions refused. Settings travel with it. The unparsed SMS list doesn't (it is local diagnostics). The backup records its seed version, so seed groups added later are adopted on restore (ADR-0026).
+- **CSV export:** RFC 4180, signed rupees (money out is negative), category and subcategory columns. SMS bodies are left out. Text cells starting with `= + - @` get a leading quote so spreadsheets don't run them as formulas.
+- **Start fresh:** deletes transactions, closed days and the unparsed list; keeps categories, merchant rules, names and accounts. It sets an import floor (`IngestCheckpointStore.startAt`) so the reconcile scan's 10-minute overlap can't bring older SMS back, and restarts day tracking. An explicit "Import older SMS" may still re-import, because the user asked for it.
+- **Data replaced** (restore, start fresh) is a new `InboxListener` event. The notifier cancels every transaction notification, because a restored id may now belong to another transaction.
+- **Onboarding** shows once on a fresh install. An upgrade that already has transactions skips it (decided once, stored). Every permission is optional: the step's button reads "Not now" until it's granted. The SMS step is the prominent disclosure (SCOPE.md §7). A denial without a dialog shows the restricted-settings guide with an App info button. The battery step opens App info (no `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`) and adds the Samsung sleeping-apps tip on Samsung phones.
+- **Theme:** System / Light / Dark plus wallpaper colors (Android 12+). The main activity draws nothing until settings load, so the wrong theme never flashes, and system bar icons follow the chosen theme.
+- **Accounts** can be nicknamed and hidden from filters (their transactions still count). **About** checks the installed package's permissions before showing the no-internet badge.
+- **Baseline profile** from a `:baselineprofile` generator (fresh install, setup, every tab). It is checked in under `app/src/release/generated/`, and profileinstaller compiles it on sideloaded installs. Generation is manual, so CI needs no device.
+- **Accessibility pass:** every screen was audited on the emulator. A script reads uiautomator dumps and flags clickable nodes without a label or under 48 dp. It found two real issues, both fixed: the Transactions FAB exposed no label (Material 3's extended FAB didn't publish its text; TalkBack said "Button"), and Quick-Sort's "Remember for <merchant>" switch had no name, with its label misused as the state description. ATF checks in Robolectric tests were tried and dropped, because a deliberately broken control passed them, so they gave false confidence.
+- **SMS card follows the permission:** Transactions re-checks SMS access on resume (granted in App info on the restricted-settings path) and imports at once when it appears.
+
+## ADR-0028: Keep bank-like alerts from unknown senders
+- **Problem:** the owner's Jupiter account alerts never appeared, and nothing said why. Upstream's "Jupiter" parser only matches the Edge CSB credit card sender (`XX-JTEDGE`), and SMS from senders no parser knows were dropped silently (SCOPE.md F2 step 1).
+- **Decision:** a message from an unknown sender is kept in the unparsed list as `UNKNOWN_SENDER` when it clearly reads as a transaction alert. All of these must hold: a registered business header (never a phone number, never a promotional `-P` header); a rupee amount; a money-movement verb (credited, debited, spent, ...); an account word (A/c, card, UPI, ...); and no OTP or verification code. It is never parsed into a transaction or notified. The list stays capped at 200 and is user-deletable.
+- **Why it's still within hard constraint 4:** such a message is a financial message by every reasonable reading, and it is exactly what the "Unparsed bank SMS" list exists for (a parser bug report). The heuristic is deliberately strict, and its tests pin the personal, promotional and OTP cases that must stay out.
+- **Next step:** with one real (anonymised) sample from the list, a parser for that bank can be added in `:ingest`, or upstream.
+
+## ADR-0029: The release build must contain every view model
+- **Found** while generating the baseline profile: the release APK crashed on its first tab with `NoSuchMethodException: TransactionsViewModel.<init>`. Incremental KSP had left `:feature:transactions` with no release Hilt output, and Gradle still treated the task as up to date. So the release component lacked `TransactionsViewModel` and `QuickSortViewModel`. Debug builds were fine, and every device test so far had used debug builds.
+- **Fix:** `ksp.incremental=false` (full KSP runs cost seconds). `scripts/check-hilt-viewmodels.sh` fails CI and the release workflow if a variant's Hilt component misses any `@HiltViewModel` found in the sources.
+- **Practice:** before a release, install the release APK (signed with any key) on the emulator and walk through setup and every tab.
+
+## ADR-0030: Follow-ups from the M8 review
+- **Data replacement is atomic against ingestion:** restore and start fresh run under the ingest pipeline's lock and bump a generation counter. Every inbox scan records the generation when it starts, and the pipeline drops its messages once that generation is stale. A backfill still iterating when the user taps "Start fresh" can no longer refill the data. The steps after the commit (notification cleanup, settings, seeds, checkpoint) run non-cancellable, so leaving the screen mid-way can't leave notification buttons on reused ids.
+- **Restoring an older backup** rewinds the scan checkpoint to the backup's time, never forward. It drops a newer "start fresh" floor and requests a scan, so SMS received since the backup come back.
+- **File work** (backup, export, restore) runs on the IO dispatcher. It falls back from write mode "wt" to "w" for providers that refuse truncation, and maps any provider error to "couldn't use that file". Cancellation still propagates.
+- **Onboarding is decided once:** on first launch the app stores whether setup is needed (an upgrade with data skips it). A setting written or an SMS imported during setup can no longer re-decide it.
+- **Blocked SMS access** = no dialog shown (the result arrives in under 400 ms) or the rationale flag dropped (a second denial). A dismissed dialog can be asked again. The granted state comes from the system, not the result map.
+- **Comparisons** use calendar arithmetic (same day last week, month or year), so leap years line up. A monthly custom range lays the previous range onto its own buckets by day offset.
+- **Smaller fixes:**
+  - The heuristic needs "Rs"/"INR" as a word of its own, and excludes OTPs glued to digits as well as PIN/MPIN messages.
+  - The Hilt guard accepts class modifiers and annotations between, fails on unmatched annotations, and matches whole words.
+  - A hidden or replaced account no longer stays as an invisible Analysis filter.
+  - The nudge notification follows replaced data.
+  - Copied unparsed SMS are marked sensitive on the clipboard.
+
+## ADR-0031: Release QA follow-ups (M8 emulator round)
+- **Blocker, fixed:** in the R8 release build every Quick-Sort widget button failed (`NoSuchMethodException: SortChipAction.<init>`). Glance creates `ActionCallback` classes by reflection, R8 removed their no-arg constructors, and debug builds hid it. `:widget` now ships a consumer keep rule. `scripts/check-release-reflection.sh` reads the release dex and fails CI if any `ActionCallback` lost its constructor; a build without the rule was confirmed to fail it.
+- **Onboarding's notifications step** had no Allow button (the launcher was wired up but unreachable). It has one now.
+- **Bank-like alerts from unknown senders** were only caught by the inbox scan, because the SMS receiver filtered on known banks alone. The receiver now uses the same rule as the pipeline (ADR-0028).
+- **Deleted unparsed SMS stay deleted:** deleting records a "dismissed up to" time, and the pipeline won't record unparsed messages received at or before it. Otherwise the scan's 10-minute overlap re-added them. The trade-off: an older unparsed message not stored yet also stays out, which only matters for a later "Import older SMS".
+- **Undo snackbar** sits above the keyboard (it was hidden behind it while search had focus). **Range picker** has a compact one-line headline ("1 Oct - 5 Nov"); the default display-size headline wrapped at normal text size and filled the dialog at 200%. **Period segments** shrink their text instead of truncating ("Mon…").
+
+## ADR-0032: Bright category colors, darkened on light surfaces
+- **Why:** the owner found the old palette (Material 800 shades: brown, indigo, deep red) too dark on the black theme, where slices and avatars almost vanished. They asked for light yellow, pink, neon shades.
+- **Palette:** 12 bright shades, one per hue family (lemon yellow, neon orange, coral, hot pink, magenta, lavender, blue, sky, aqua, neon green, lime, silver). Each is at least 7:1 against black. `CategoryPalette` in `:core:model` is the single source; the editor and the seeds use it.
+- **Stored value is the bright shade.** On a light surface it is drawn darker with `CategoryPalette.forLightSurface`: same hue and saturation, with HSL lightness lowered until it reaches 3:1 against white, the WCAG level for graphics. That way a lemon-yellow slice is still visible on white. The app uses `BudgetTheme.categoryColor`, and the widget uses a day/night color provider.
+- **Existing data:** DB 4 -> 5 has no schema change. Its migration moves each old palette or seed color to its bright counterpart. Restoring an older backup applies the same mapping. Colors outside the old palette are kept as they are.
+
+## ADR-0033: Translucent widgets
+- **Why:** the owner found the opaque widgets heavy on the home screen.
+- **How:** backgrounds are color resources with alpha (`widget/src/main/res/color*`): 66% by day and 58% at night. On Android 12+ the base is the wallpaper's Material You neutral. Because the launcher resolves the resources, day/night and wallpaper changes still need no redraw. The transaction card is a glass overlay. Ignore and the bar tracks are a quiet tint, and category chips are tonal at about 75%. The filled "More" button and today's bar stay opaque, so the main actions still stand out. Launchers can't blur behind RemoteViews, so the alpha levels keep text readable on busy wallpapers instead.
+
+## ADR-0034: KSP tasks run one at a time
+- **Found** while verifying ADR-0032: clean parallel builds failed intermittently. Two of three `--rerun-tasks` builds failed, and so did one ordinary CI run.
+  - KSP reported `android.content.ContentResolver` "could not be resolved" in `:feature:settings`.
+  - `:core:data:kspReleaseKotlin` "succeeded" but left no output directory, so Hilt missed `WallClock`, `AutoSortSetting` and `UnparsedDismissals`.
+  - The release crash in ADR-0029 has the same shape.
+- **Cause:** KSP2 runs in the Gradle daemon (`KspAAWorkerAction`). Concurrent KSP tasks share its cached analysis classloader, and with it the analysis engine's global state. Run one after the other, the same tasks never fail.
+- **Fix:** a shared build service with one permit (`build-logic/.../KspSerialization.kt`), used by every KSP task through the Hilt and Room convention plugins. All other tasks still run in parallel. KSP costs a few seconds per module, and running it serially also lowers peak memory in the 9 GB build slice. `scripts/check-hilt-viewmodels.sh` stays as the backstop.
+
+## ADR-0035: Glowing cyberpunk colors in the category palette
+- **Why:** the owner wanted a cyberpunk feel: glowing neon colors and a white, in the style of common dark-mode SaaS palettes.
+- **Palette:** 22 shades. The 12 from ADR-0032 stay, joined by travertine gold, amber, rose neon, electric violet, periwinkle, electric cobalt, terminal cyan, mint, electric chartreuse and a glowing white. The bar against black drops from 7:1 to 4.5:1 (WCAG AA), because the deeper neons (violet 5:1, cobalt and rose 5.7:1) are the point of the set. Colors are drawn as fills, never as body text.
+- **Glow:** each swatch in the category editor sits in a halo of its own color, fading out radially, so the picker reads as neon on dark surfaces.
+- **Seeds:** the default category colors follow the owner's own reassignment on their phone: Food & Drinks lavender, Shopping lemon, Housing silver, Vehicle orange, Financial expenses aqua, Family pink. Existing installs keep whatever the user picked; there is no migration.
+
+## ADR-0036: Public open-source release
+- **Why:** v1 was scoped for the developer and family. The owner decided on 2026-11-12 to publish it for everyone.
+- **What changed:** the audience in SCOPE.md, plus the files a public project needs: a code of conduct, a security policy using GitHub private vulnerability reporting (sensitive, because the app reads financial SMS), a pull request template and a feature request form. The README links them.
+- **What did not change:** the product, distribution (signed APKs on GitHub Releases, Obtainium-friendly, F-Droid and Play later) and the hard constraints. In particular there is still no `INTERNET` permission.

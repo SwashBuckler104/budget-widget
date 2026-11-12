@@ -14,6 +14,12 @@ interface SmsParser {
     /** Cheap sender check. Messages from other senders are never parsed or stored. */
     fun isKnownBankSender(sender: String): Boolean
 
+    /**
+     * For a sender that is not a known bank: whether the message still clearly reads as a bank
+     * transaction alert, so it is kept in the unparsed list for a parser fix (ADR-0028).
+     */
+    fun looksLikeUnknownBankAlert(sms: RawSms): Boolean = false
+
     fun parse(sms: RawSms): SmsParseResult
 }
 
@@ -42,4 +48,20 @@ enum class UnparsedReason {
 
     /** Parsed, but the user reported the amount as wrong from the edit sheet (SCOPE.md F7). */
     WRONG_AMOUNT,
+
+    /** No parser knows the sender, but the message reads like a bank transaction alert (ADR-0028). */
+    UNKNOWN_SENDER,
 }
+
+/**
+ * A stored message no parser turned into a transaction (SCOPE.md F2 "Unparsed bank SMS"), shown in
+ * Settings so the user can copy it for a parser bug report, or delete it. [body] can be null for
+ * entries recorded without one.
+ */
+data class UnparsedSms(
+    val id: Long,
+    val sender: String,
+    val body: String?,
+    val receivedAt: Long,
+    val reason: UnparsedReason,
+)

@@ -33,6 +33,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -44,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import io.github.swashbuckler104.budgetwidget.core.data.category.CategoryRepository
 import io.github.swashbuckler104.budgetwidget.core.data.category.CategoryResult
 import io.github.swashbuckler104.budgetwidget.core.designsystem.component.CategoryAvatar
+import io.github.swashbuckler104.budgetwidget.core.designsystem.theme.BudgetTheme
 import io.github.swashbuckler104.budgetwidget.core.model.CategoryKind
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -137,12 +140,23 @@ internal fun CategoryEditorSheet(
                     CATEGORY_COLORS.forEachIndexed { index, color ->
                         val selected = color == state.colorArgb
                         val label = stringResource(R.string.categories_editor_color_n, index + 1)
+                        val swatch = BudgetTheme.categoryColor(color)
                         Box(
                             modifier = Modifier
                                 .size(48.dp)
-                                .padding(4.dp)
+                                .drawBehind {
+                                    // Neon glow: the swatch color fading out around it.
+                                    drawCircle(
+                                        Brush.radialGradient(
+                                            0.55f to swatch.copy(alpha = 0.7f),
+                                            1f to Color.Transparent,
+                                            radius = size.minDimension / 2,
+                                        ),
+                                    )
+                                }
+                                .padding(7.dp)
                                 .clip(CircleShape)
-                                .background(Color(color))
+                                .background(swatch)
                                 .then(
                                     if (selected) {
                                         Modifier.border(

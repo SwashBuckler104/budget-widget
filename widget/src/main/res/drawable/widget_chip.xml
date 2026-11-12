@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Translucent widget surface (docs/DECISIONS.md ADR-0033); the color lives in res/color*. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/widget_chip" />
+    <corners android:radius="12dp" />
+</shape>

@@ -31,7 +31,9 @@ internal class InboxReconciler @Inject constructor(
         val now = clock.nowMillis()
         val after = checkpoint.get()?.let { it - OVERLAP.inWholeMilliseconds }
             ?: (now - FIRST_RUN_LOOKBACK.inWholeMilliseconds)
-        return scan(after, IngestOrigin.RECONCILE)
+        // After "start fresh", older messages stay out even within the overlap.
+        val floor = checkpoint.floor()?.let { it - 1 }
+        return scan(if (floor != null) maxOf(after, floor) else after, IngestOrigin.RECONCILE)
     }
 
     /** Imports messages after [sinceMillis] (epoch ms, UTC), flagged as backfill. */
@@ -39,13 +41,15 @@ internal class InboxReconciler @Inject constructor(
 
     private suspend fun scan(afterMillis: Long, origin: IngestOrigin): Result {
         if (!inbox.canRead()) return Result.NoPermission
+        // A restore or "start fresh" during the scan makes everything it still reads stale.
+        val generation = pipeline.generation()
         // A message dated in the future (clock changes) must not push the checkpoint past now.
         val ceiling = clock.nowMillis()
         var count = 0
         var inserted = 0
         var newest = Long.MIN_VALUE
         inbox.forEachSince(afterMillis) { sms ->
-            if (pipeline.ingest(sms, origin) is IngestOutcome.Inserted) inserted++
+            if (pipeline.ingest(sms, origin, generation) is IngestOutcome.Inserted) inserted++
             count++
             newest = maxOf(newest, minOf(sms.receivedAt, ceiling))
             if (count % CHECKPOINT_EVERY == 0) checkpoint.advanceTo(newest)

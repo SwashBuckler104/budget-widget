@@ -15,6 +15,8 @@ class InboxEvents @Inject constructor(private val listeners: Set<@JvmSuppressWil
 
     suspend fun sorted(transactionId: Long) = each { it.onSorted(transactionId) }
 
+    suspend fun dataReplaced() = each { it.onDataReplaced() }
+
     private suspend fun each(block: suspend (InboxListener) -> Unit) {
         for (listener in listeners) {
             try {

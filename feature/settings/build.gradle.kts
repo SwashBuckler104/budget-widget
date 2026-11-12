@@ -7,6 +7,8 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.core.ktx)
 
+    testImplementation(projects.core.database)
+    testImplementation(libs.androidx.room.runtime)
     testImplementation(libs.turbine)
     testImplementation(libs.androidx.datastore.preferences)
 }

@@ -2,15 +2,18 @@ package io.github.swashbuckler104.budgetwidget.widget
 
 import android.os.Build
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceTheme
+import androidx.glance.ImageProvider
 import androidx.glance.LocalContext
 import androidx.glance.color.ColorProvider
 import androidx.glance.material3.ColorProviders
 import androidx.glance.unit.ColorProvider
 import io.github.swashbuckler104.budgetwidget.core.designsystem.theme.BrandColors
 import io.github.swashbuckler104.budgetwidget.core.designsystem.theme.MoneyColors
+import io.github.swashbuckler104.budgetwidget.core.model.CategoryPalette
 
 /**
  * Widgets follow the wallpaper (dynamic color) on Android 12+, like the app, and use the app's
@@ -57,3 +60,19 @@ internal object WidgetMoney {
     val income: ColorProvider = ColorProvider(day = MoneyColors.light.income, night = MoneyColors.dark.income)
     val spend: ColorProvider = ColorProvider(day = MoneyColors.light.spend, night = MoneyColors.dark.spend)
 }
+
+/**
+ * Translucent surfaces (docs/DECISIONS.md ADR-0033): shape drawables whose colors live in
+ * `res/color*`. The launcher resolves them, so day/night and wallpaper changes need no redraw.
+ */
+internal object WidgetSurfaces {
+    val background: ImageProvider get() = ImageProvider(R.drawable.widget_background)
+    val glass: ImageProvider get() = ImageProvider(R.drawable.widget_glass)
+    val quiet: ImageProvider get() = ImageProvider(R.drawable.widget_quiet)
+    val chip: ImageProvider get() = ImageProvider(R.drawable.widget_chip)
+    val track: ImageProvider get() = ImageProvider(R.drawable.widget_track)
+}
+
+/** A category's bright stored color at night, its darker same-hue shade by day (ADR-0032). */
+internal fun categoryColorProvider(argb: Int): ColorProvider =
+    ColorProvider(day = Color(CategoryPalette.forLightSurface(argb)), night = Color(argb))

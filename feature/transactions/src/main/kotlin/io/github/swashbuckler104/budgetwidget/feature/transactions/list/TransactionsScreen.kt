@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -65,10 +66,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.swashbuckler104.budgetwidget.core.data.edit.EditResult
 import io.github.swashbuckler104.budgetwidget.core.data.list.DayGroup
@@ -108,10 +111,18 @@ fun TransactionsRoute(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val editing by viewModel.editing.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    var smsGranted by remember {
-        mutableStateOf(
-            SMS_PERMISSIONS.all { ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED },
-        )
+    fun hasSms() = SMS_PERMISSIONS.all {
+        ContextCompat.checkSelfPermission(context, it) ==
+            PackageManager.PERMISSION_GRANTED
+    }
+    var smsGranted by remember { mutableStateOf(hasSms()) }
+    // Access granted in App info (the restricted-settings path) arrives while we're paused:
+    // re-check on every resume, and import right away when it newly appears.
+    LifecycleResumeEffect(Unit) {
+        val now = hasSms()
+        if (now && !smsGranted) viewModel.syncNow()
+        smsGranted = now
+        onPauseOrDispose {}
     }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
         smsGranted = result.values.all { it }
@@ -282,14 +293,18 @@ internal fun TransactionsScreen(
         },
         floatingActionButton = {
             if (!state.selecting && !state.drillDown) {
+                // The label goes on the icon: Material 3's extended FAB didn't expose its text to
+                // accessibility services on Android 16 (found by a UI dump: TalkBack read "Button").
+                val addLabel = stringResource(R.string.transactions_add)
                 ExtendedFloatingActionButton(
                     onClick = callbacks.onAdd,
-                    icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
-                    text = { Text(stringResource(R.string.transactions_add)) },
+                    icon = { Icon(Icons.Rounded.Add, contentDescription = addLabel) },
+                    text = { Text(addLabel, modifier = Modifier.clearAndSetSemantics {}) },
                 )
             }
         },
-        snackbarHost = { SnackbarHost(snackbar) },
+        // Above the keyboard: with search focused, Undo was hidden behind it and a tap typed instead.
+        snackbarHost = { SnackbarHost(snackbar, modifier = Modifier.imePadding()) },
     ) { padding ->
         Column(
             modifier = Modifier

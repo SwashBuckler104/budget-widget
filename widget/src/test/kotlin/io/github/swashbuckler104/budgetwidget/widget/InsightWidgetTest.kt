@@ -35,9 +35,9 @@ class InsightWidgetTest {
     private val now = today.atTime(18, 0).toInstant(zone).toEpochMilli()
 
     private val food =
-        Category(1, null, "Food & Drinks", "🍽️", 0xFFEF6C00.toInt(), CategoryKind.EXPENSE, 0, false, true)
+        Category(1, null, "Food & Drinks", "🍽️", 0xFFFFAB40.toInt(), CategoryKind.EXPENSE, 0, false, true)
     private val fuel =
-        Category(2, null, "Fuel", "⛽", 0xFF455A64.toInt(), CategoryKind.EXPENSE, 1, false, true)
+        Category(2, null, "Fuel", "⛽", 0xFFCFD8DC.toInt(), CategoryKind.EXPENSE, 1, false, true)
     private val savings = Category(3, null, "Savings", "🏦", 0, CategoryKind.TRANSFER, 2, false, true)
     private val groups = listOf(food, fuel, savings).map { CategoryGroup(it, emptyList()) }
 

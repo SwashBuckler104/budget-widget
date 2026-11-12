@@ -61,7 +61,7 @@ internal fun QuickSortWidgetContent(snapshot: WidgetSnapshot, intents: WidgetInt
         modifier = GlanceModifier
             .fillMaxSize()
             .appWidgetBackground()
-            .background(GlanceTheme.colors.widgetBackground)
+            .background(WidgetSurfaces.background)
             .cornerRadius(20.dp)
             .padding(10.dp),
     ) {
@@ -200,7 +200,7 @@ private fun Card(snapshot: WidgetSnapshot, focus: Transaction, intents: WidgetIn
             .fillMaxWidth()
             .padding(top = 4.dp)
             .cornerRadius(14.dp)
-            .background(GlanceTheme.colors.surface)
+            .background(WidgetSurfaces.glass)
             .clickable(actionStartActivity(intents.transaction(focus.id)))
             .padding(horizontal = 10.dp, vertical = 6.dp),
     ) {
@@ -244,7 +244,7 @@ private fun RowScope.Chip(focus: Transaction, category: Category, height: Dp) {
     val action = actionRunCallback<SortChipAction>(
         actionParametersOf(WidgetKeys.transaction to focus.id, WidgetKeys.category to category.id),
     )
-    ChipBox(action, height, label, GlanceTheme.colors.secondaryContainer) {
+    ChipBox(action, height, label, WidgetSurfaces.chip) {
         Label(category.emoji, size = 16.sp, maxLines = 1, maxScale = CONTROL_FONT_SCALE)
         Label(
             shortLabel(category.name),
@@ -259,9 +259,9 @@ private fun RowScope.Chip(focus: Transaction, category: Category, height: Dp) {
 /** Footer actions: [primary] is the filled one (More), the rest are quiet (Ignore). */
 @Composable
 private fun RowScope.TextChip(text: String, action: Action, height: Dp, primary: Boolean = false) {
-    val background = if (primary) GlanceTheme.colors.primary else GlanceTheme.colors.surfaceVariant
+    val fill = if (primary) null else WidgetSurfaces.quiet
     val content = if (primary) GlanceTheme.colors.onPrimary else GlanceTheme.colors.onSurfaceVariant
-    ChipBox(action, height, text, background) {
+    ChipBox(action, height, text, fill) {
         Label(text, size = 13.sp, bold = true, maxLines = 1, color = content, maxScale = CONTROL_FONT_SCALE)
     }
 }
@@ -271,7 +271,8 @@ private fun RowScope.ChipBox(
     action: Action,
     height: Dp,
     description: String,
-    background: ColorProvider,
+    /** A translucent drawable, or null for the solid primary fill. */
+    fill: ImageProvider?,
     content: @Composable () -> Unit,
 ) {
     Box(modifier = GlanceModifier.defaultWeight().height(height).padding(2.dp)) {
@@ -280,7 +281,7 @@ private fun RowScope.ChipBox(
             verticalAlignment = Alignment.CenterVertically,
             modifier = GlanceModifier
                 .fillMaxSize()
-                .background(background)
+                .let { if (fill != null) it.background(fill) else it.background(GlanceTheme.colors.primary) }
                 .cornerRadius(12.dp)
                 .clickable(action)
                 .semantics { contentDescription = description },

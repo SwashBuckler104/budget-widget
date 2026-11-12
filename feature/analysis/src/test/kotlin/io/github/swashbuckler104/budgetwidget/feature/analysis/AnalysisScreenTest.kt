@@ -1,6 +1,7 @@
 package io.github.swashbuckler104.budgetwidget.feature.analysis
 
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -9,10 +10,12 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
-import io.github.swashbuckler104.budgetwidget.core.data.analysis.MonthAnalysis
+import io.github.swashbuckler104.budgetwidget.core.data.analysis.AnalysisPeriod
+import io.github.swashbuckler104.budgetwidget.core.data.analysis.PeriodAnalysis
 import io.github.swashbuckler104.budgetwidget.core.model.Category
 import io.github.swashbuckler104.budgetwidget.core.model.CategoryKind
 import io.github.swashbuckler104.budgetwidget.core.model.Direction
@@ -31,10 +34,11 @@ class AnalysisScreenTest {
     @get:Rule
     val compose = createComposeRule()
 
-    private val housing = Category(1, null, "Housing", "🏠", 0xFF5D4037.toInt(), CategoryKind.EXPENSE, 0, false, true)
-    private val rent = Category(2, 1, "Rent", "🔑", 0xFF5D4037.toInt(), CategoryKind.EXPENSE, 0, false, true)
-    private val power = Category(3, 1, "Electricity", "💡", 0xFF5D4037.toInt(), CategoryKind.EXPENSE, 1, false, true)
-    private val categories = listOf(housing, rent, power).associateBy { it.id }
+    private val housing = Category(1, null, "Housing", "🏠", 0xFFFFF176.toInt(), CategoryKind.EXPENSE, 0, false, true)
+    private val rent = Category(2, 1, "Rent", "🔑", 0xFFFFF176.toInt(), CategoryKind.EXPENSE, 0, false, true)
+    private val power = Category(3, 1, "Electricity", "💡", 0xFFFFF176.toInt(), CategoryKind.EXPENSE, 1, false, true)
+    private val salary = Category(4, null, "Salary", "💼", 0xFF7CFF6B.toInt(), CategoryKind.INCOME, 1, false, true)
+    private val categories = listOf(housing, rent, power, salary).associateBy { it.id }
     private val month = YearMonth.of(2026, 11)
 
     private fun tx(id: Long, day: Int, amount: Long, category: Long?, merchant: String) = Transaction(
@@ -48,38 +52,45 @@ class AnalysisScreenTest {
 
     private val calls = mutableListOf<String>()
 
-    private fun show(analysis: MonthAnalysis, streak: Int = 3, pending: Int = 1) = compose.setContent {
+    private val today = LocalDate.of(2026, 11, 10)
+
+    private fun show(analysis: PeriodAnalysis, streak: Int = 3, pending: Int = 1) = compose.setContent {
         AnalysisScreen(
             state = AnalysisUiState(
                 loading = false,
-                month = month,
-                currentMonth = month,
-                firstMonth = month.minusMonths(1),
+                period = analysis.period,
+                today = today,
+                firstDate = LocalDate.of(2026, 10, 1),
                 analysis = analysis,
                 pending = pending,
             ),
             streak = streak,
             actions = AnalysisActions(
-                onShiftMonth = { calls += "shift:$it" },
+                onShift = { calls += "shift:$it" },
+                onSelectKind = { calls += "kind:$it" },
+                onSelectRange = { start, end -> calls += "range:$start:$end" },
                 onSelectAccount = { calls += "account:$it" },
                 onSortInbox = { calls += "sort" },
                 onOpenSettings = { calls += "settings" },
-                onDrillDown = { title, category, merchant ->
-                    calls += "drill:$title:$category:${merchant?.merchantKey}"
+                onDrillDown = { title, category, merchant, income ->
+                    calls += "drill:$title:$category:${merchant?.merchantKey}" + if (income) ":in" else ""
                 },
             ),
         )
     }
 
-    private fun analysis() = MonthAnalysis.compute(
+    private fun analysis(
+        extra: List<Transaction> = emptyList(),
+        period: AnalysisPeriod = AnalysisPeriod.Month(month),
+    ) = PeriodAnalysis.compute(
         listOf(
             tx(1, 1, 18_000_00, rent.id, "Landlord"),
             tx(2, 2, 1_500_00, power.id, "BESCOM"),
             tx(3, 3, 300_00, null, "Cafe"),
-        ),
+        ) + extra,
         categories,
-        month,
-        LocalDate.of(2026, 11, 10),
+        period,
+        today,
         ZoneOffset.UTC,
     )
 
@@ -87,17 +98,21 @@ class AnalysisScreenTest {
     fun `summary, streak and inbox chips, and month arrows`() {
         show(analysis())
         // The hero card and the donut's center both show the month's total.
+        scrollTo("Where it went")
         compose.onAllNodesWithText("₹19,800").assertCountEquals(2)
+        compose.onNode(hasScrollAction()).performScrollToIndex(0)
         compose.onNodeWithText("🔥 3-day streak").assertExists()
         compose.onNodeWithText("📥 1 to sort").performClick()
-        compose.onNodeWithContentDescription("Previous month").performClick()
-        assertThat(calls).containsExactly("sort", "shift:-1").inOrder()
+        compose.onNodeWithContentDescription("Previous").performClick()
+        compose.onNodeWithText("Year").performClick()
+        assertThat(calls).containsExactly("sort", "shift:-1", "kind:YEAR").inOrder()
     }
 
     @Test
     fun `tapping a category shows subcategories and drills down`() {
         show(analysis())
-        compose.onNodeWithText("Housing").performScrollTo().performClick()
+        scrollTo("Housing")
+        compose.onNodeWithText("Housing").performClick()
         compose.onNodeWithText("Rent").performScrollTo().assertExists()
         compose.onNodeWithText("See 2 transactions").performScrollTo().performClick()
         compose.onNodeWithText("Rent").performScrollTo().performClick()
@@ -108,9 +123,34 @@ class AnalysisScreenTest {
         ).containsExactly("drill:Housing:1:null", "drill:Rent:2:null", "drill:Landlord:0:landlord").inOrder()
     }
 
+    private fun scrollTo(text: String) {
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText(text))
+    }
+
     @Test
-    fun `an empty month says so`() {
-        show(MonthAnalysis.compute(emptyList(), categories, month, LocalDate.of(2026, 11, 10), ZoneOffset.UTC), 0, 0)
-        compose.onNodeWithText("Nothing this month").assertExists()
+    fun `an empty period says so`() {
+        show(PeriodAnalysis.compute(emptyList(), categories, AnalysisPeriod.Month(month), today, ZoneOffset.UTC), 0, 0)
+        compose.onNodeWithText("Nothing in this period").assertExists()
+    }
+
+    @Test
+    fun `income gets its own donut and drills down to money in`() {
+        val pay = tx(4, 5, 60_000_00, salary.id, "Employer").copy(direction = Direction.IN)
+        show(analysis(listOf(pay)))
+        scrollTo("Where it went")
+        // The segmented button, not the Income stat card.
+        compose.onNode(hasText("Income") and hasClickAction()).performScrollTo().performClick()
+        compose.onNodeWithText("Where it came from").assertExists()
+        compose.onNodeWithText("Received").assertExists()
+        compose.onNodeWithText("Salary").performScrollTo().performClick()
+        compose.onNodeWithText("See 1 transaction").performScrollTo().performClick()
+        assertThat(calls).containsExactly("drill:Salary:${salary.id}:null:in")
+    }
+
+    @Test
+    fun `a custom range shows its dates and compares with the days before`() {
+        show(analysis(period = AnalysisPeriod.Custom(LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 3))))
+        compose.onNodeWithText("1 Nov - 3 Nov").assertExists()
+        compose.onNodeWithContentDescription("Previous").assertDoesNotExist()
     }
 }

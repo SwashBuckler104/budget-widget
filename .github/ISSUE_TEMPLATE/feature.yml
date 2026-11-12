@@ -1,0 +1,22 @@
+name: Feature request
+description: Suggest an improvement.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        v1 scope is fixed (see docs/SCOPE.md), so new features are planned for later versions.
+        Features that need internet access, accounts, ads or analytics are out of scope for good.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe what you are trying to do and what gets in the way today.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like to happen?
+    validations:
+      required: false

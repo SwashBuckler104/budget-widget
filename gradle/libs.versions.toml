@@ -21,6 +21,9 @@ kotlinxSerialization = "1.12.0"
 androidxNavigation = "2.10.2"
 reorderable = "3.1.0"
 androidxGlance = "1.2.0"
+androidxBenchmark = "1.5.0"
+androidxUiautomator = "2.4.1"
+androidxProfileinstaller = "1.4.1"
 
 # Must match upstream parser-core (third_party/pennywise/parser-core/build.gradle.kts).
 # Bump only together with the submodule; see docs/PARSER_UPGRADE.md.
@@ -60,6 +63,9 @@ androidx-glance-appwidget = { group = "androidx.glance", name = "glance-appwidge
 androidx-glance-material3 = { group = "androidx.glance", name = "glance-material3", version.ref = "androidxGlance" }
 androidx-glance-appwidget-testing = { group = "androidx.glance", name = "glance-appwidget-testing", version.ref = "androidxGlance" }
 reorderable = { group = "sh.calvin.reorderable", name = "reorderable", version.ref = "reorderable" }
+androidx-profileinstaller = { group = "androidx.profileinstaller", name = "profileinstaller", version.ref = "androidxProfileinstaller" }
+androidx-benchmark-macro-junit4 = { group = "androidx.benchmark", name = "benchmark-macro-junit4", version.ref = "androidxBenchmark" }
+androidx-test-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version.ref = "androidxUiautomator" }
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "androidxCore" }
@@ -92,6 +98,8 @@ spotless-gradlePlugin = { group = "com.diffplug.spotless", name = "spotless-plug
 android-application = { id = "com.android.application", version.ref = "androidGradlePlugin" }
 android-library = { id = "com.android.library", version.ref = "androidGradlePlugin" }
 android-lint = { id = "com.android.lint", version.ref = "androidGradlePlugin" }
+android-test = { id = "com.android.test", version.ref = "androidGradlePlugin" }
+androidx-baselineprofile = { id = "androidx.baselineprofile", version.ref = "androidxBenchmark" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
@@ -106,6 +114,7 @@ bw-android-library = { id = "bw.android.library" }
 bw-android-compose = { id = "bw.android.compose" }
 bw-android-feature = { id = "bw.android.feature" }
 bw-android-room = { id = "bw.android.room" }
+bw-android-test = { id = "bw.android.test" }
 bw-hilt = { id = "bw.hilt" }
 bw-jvm-library = { id = "bw.jvm.library" }
 bw-spotless = { id = "bw.spotless" }
