@@ -63,11 +63,14 @@ Every other **Settings → ...** is inside Budget Widget: tap the ⚙ gear at th
    - *"Unsafe app blocked"* or *"App scan recommended"*: tap **More details → Install anyway**.
    - *"App blocked to protect your device"* with only an **OK** button: this is Google's fraud
      protection, active in India and some other countries. It blocks every app that can read SMS
-     when installed from a browser or file manager, and it can't be skipped. Tap **OK**, then:
-     1. Open the **Play Store**, tap your profile picture, then **Play Protect → ⚙ (top right)**.
-     2. Turn off **Scan apps with Play Protect** and confirm.
-     3. Open the downloaded `budget-widget.apk` again (Files app → **Downloads**) and install it.
-     4. Go back to Play Protect settings and turn scanning **on** again. The app stays installed.
+     when installed from a browser or file manager, and it can't be skipped. Pause Play Protect
+     only until the app is installed:
+     1. Tap **OK**.
+     2. Open the **Play Store**, tap your profile picture, then **Settings → Play Protect**.
+     3. Turn off **Scan apps with Play Protect** and confirm.
+     4. Open the downloaded `budget-widget.apk` again (Files app → **Downloads**) and install it.
+     5. **Turn Play Protect back on:** return to **Play Store → Settings → Play Protect** and turn
+        **Scan apps with Play Protect** on again. Budget Widget stays installed and keeps working.
 4. Tap **Open**.
 
 The APK is about 4 MB, so a download that stops at 3.7 MB has finished.
@@ -146,7 +149,7 @@ you.
 
 | Problem | What to do |
 |---|---|
-| *"App blocked to protect your device"* when installing | Turn off Play Protect scanning while you install; see step 1. |
+| *"App blocked to protect your device"* when installing | Pause Play Protect (**Play Store → Settings → Play Protect → Scan apps with Play Protect**) until the app is installed, then turn it back on; see step 1. |
 | A payment didn't show up | Check that the bank sent an SMS at all. Then look in **Settings → Unparsed bank SMS**: messages the parser couldn't read, and alerts from banks it doesn't know yet, land there. |
 | Notifications arrive late or not at all | Do step 3 above. In the app, check **Settings → Transaction notifications** and the minimum amount; also check the phone's notification settings for Budget Widget. |
 | SMS permission switch is greyed out | Follow the *Allow restricted settings* steps in step 2. |
