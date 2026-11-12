@@ -41,7 +41,7 @@ internal object SeedCategories {
                 c("restaurants", "Restaurant, Fast-food", "🍔"),
                 c("drinks_alcohol", "Drinks, Alcohol", "🍺"),
             ),
-            0xFFFFAB40.toInt(),
+            0xFFA99BFF.toInt(),
             CategoryKind.EXPENSE,
         ),
         SeedGroup(
@@ -57,7 +57,7 @@ internal object SeedCategories {
                 c("pets", "Pets, Animals", "🐶"),
                 c("stationery_tools", "Stationery, Tools", "🔧"),
             ),
-            0xFFFF6FB5.toInt(),
+            0xFFFFF176.toInt(),
             CategoryKind.EXPENSE,
         ),
         SeedGroup(
@@ -69,7 +69,7 @@ internal object SeedCategories {
                 c("maintenance", "Maintenance, Repairs", "🔨"),
                 c("rent", "Rent", "🔑"),
             ),
-            0xFFFFF176.toInt(),
+            0xFFCFD8DC.toInt(),
             CategoryKind.EXPENSE,
         ),
         SeedGroup(
@@ -94,7 +94,7 @@ internal object SeedCategories {
                 c("vehicle_maintenance", "Vehicle maintenance", "🛠️"),
                 c("vehicle_accessories", "Vehicle accessories", "🔩"),
             ),
-            0xFFCFD8DC.toInt(),
+            0xFFFFAB40.toInt(),
             CategoryKind.EXPENSE,
         ),
         SeedGroup(
@@ -136,7 +136,7 @@ internal object SeedCategories {
                 // under Income, so the two cancel out (owner's choice, ADR-0018).
                 c("self_transfer_out", "Self Transfer", "↔️"),
             ),
-            0xFFFF7A7A.toInt(),
+            0xFF4DFFF0.toInt(),
             CategoryKind.EXPENSE,
         ),
         SeedGroup(
@@ -148,7 +148,7 @@ internal object SeedCategories {
                 c("family_groceries", "D-Mart, Kirana, Groceries", "🛒"),
                 c("family_other", "Other", "🤝"),
             ),
-            0xFF4DFFF0.toInt(),
+            0xFFFF6FB5.toInt(),
             CategoryKind.EXPENSE,
             since = 2,
         ),

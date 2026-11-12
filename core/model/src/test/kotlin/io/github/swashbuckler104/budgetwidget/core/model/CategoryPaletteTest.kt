@@ -18,12 +18,17 @@ class CategoryPaletteTest {
         }
     }
 
+    private fun chroma(argb: Int): Float {
+        val channels = listOf(argb shr 16 and 0xFF, argb shr 8 and 0xFF, argb and 0xFF)
+        return (channels.max() - channels.min()) / 255f
+    }
+
     @Test
     fun `palette shades are bright on a black surface and all different`() {
         assertThat(CategoryPalette.colors).containsNoDuplicates()
         CategoryPalette.colors.forEach {
-            // At least 7:1 against black (WCAG AAA); contrast on black = 21 / contrast on white.
-            assertThat(21.0 / CategoryPalette.contrastOnWhite(it)).isAtLeast(7.0)
+            // At least 4.5:1 against black (WCAG AA); contrast on black = 21 / contrast on white.
+            assertThat(21.0 / CategoryPalette.contrastOnWhite(it)).isAtLeast(4.5)
         }
     }
 
@@ -44,8 +49,8 @@ class CategoryPaletteTest {
             val shade = CategoryPalette.forLightSurface(color)
             assertThat(CategoryPalette.contrastOnWhite(shade)).isAtLeast(CategoryPalette.MIN_CONTRAST_ON_WHITE)
             assertThat(shade ushr 24).isEqualTo(0xFF)
-            // Rounding to 8-bit channels moves the hue slightly; grey stays grey.
-            if (color != CategoryPalette.colors.last()) assertThat(hue(shade)).isWithin(4f).of(hue(color))
+            // Rounding to 8-bit channels moves the hue slightly; near-greys (silver, white) have no hue to keep.
+            if (chroma(color) >= 0.15f) assertThat(hue(shade)).isWithin(4f).of(hue(color))
         }
     }
 

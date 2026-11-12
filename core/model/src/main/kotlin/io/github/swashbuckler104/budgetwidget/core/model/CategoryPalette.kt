@@ -5,24 +5,34 @@ import kotlin.math.pow
 import kotlin.math.roundToInt
 
 /**
- * Category colors (docs/DECISIONS.md ADR-0032). The stored value is the bright, pastel or neon
+ * Category colors (docs/DECISIONS.md ADR-0032, ADR-0035). The stored value is the bright, pastel or neon
  * shade that reads well on a dark or black surface; on a light surface it is drawn darker with
  * [forLightSurface], keeping the hue, so a lemon-yellow slice stays visible on white.
  */
 object CategoryPalette {
     val colors: List<Int> = listOf(
         0xFFFFF176, // lemon yellow
+        0xFFEAB308, // travertine gold
+        0xFFF59E0B, // amber glow
         0xFFFFAB40, // neon orange
         0xFFFF7A7A, // coral
+        0xFFF43F5E, // rose neon
         0xFFFF6FB5, // hot pink
         0xFFE07CFF, // magenta
+        0xFF8B5CF6, // electric violet
         0xFFA99BFF, // lavender
+        0xFF8C92AC, // periwinkle
+        0xFF3B82F6, // electric cobalt
         0xFF7AA7FF, // blue
         0xFF5CD3FF, // sky
         0xFF4DFFF0, // aqua
+        0xFF64FFDA, // terminal cyan
+        0xFF10B981, // mint glow
         0xFF7CFF6B, // neon green
+        0xFF7FFF00, // electric chartreuse
         0xFFD4FF4A, // lime
         0xFFCFD8DC, // silver
+        0xFFFFFFFF, // glowing white
     ).map { it.toInt() }
 
     /** Pre-1.0 dark palette (and its seeds) to the bright shade of the same family. */
