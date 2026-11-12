@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.swashbuckler104.budgetwidget.core.datastore.NotificationSettings
+import io.github.swashbuckler104.budgetwidget.core.datastore.NudgeSettings
 import io.github.swashbuckler104.budgetwidget.core.datastore.SettingsStore
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
@@ -16,13 +17,18 @@ import kotlinx.coroutines.launch
 data class SettingsUiState(
     val loaded: Boolean = false,
     val notifications: NotificationSettings = NotificationSettings(),
+    val nudge: NudgeSettings = NudgeSettings(),
     val autoSort: Boolean = false,
 )
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(private val settings: SettingsStore) : ViewModel() {
-    val state: StateFlow<SettingsUiState> = combine(settings.notifications, settings.autoSort) { notifications, auto ->
-        SettingsUiState(loaded = true, notifications = notifications, autoSort = auto)
+    val state: StateFlow<SettingsUiState> = combine(settings.notifications, settings.nudge, settings.autoSort) {
+            notifications,
+            nudge,
+            auto,
+        ->
+        SettingsUiState(loaded = true, notifications = notifications, nudge = nudge, autoSort = auto)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), SettingsUiState())
 
     fun setNotificationsEnabled(enabled: Boolean) = launch { settings.setNotificationsEnabled(enabled) }
@@ -35,6 +41,11 @@ class SettingsViewModel @Inject constructor(private val settings: SettingsStore)
 
     fun setAutoSort(enabled: Boolean) = launch { settings.setAutoSort(enabled) }
 
+    fun setNudgeEnabled(enabled: Boolean) = launch { settings.setNudgeEnabled(enabled) }
+
+    /** [hour] 0-23 and [minute] 0-59, local time. */
+    fun setNudgeTime(hour: Int, minute: Int) = launch { settings.setNudgeMinute(hour * MINUTES_PER_HOUR + minute) }
+
     private fun launch(block: suspend () -> Unit) {
         viewModelScope.launch { block() }
     }
@@ -42,6 +53,7 @@ class SettingsViewModel @Inject constructor(private val settings: SettingsStore)
     companion object {
         private const val STOP_TIMEOUT_MS = 5_000L
         private const val PAISE_PER_RUPEE = 100L
+        private const val MINUTES_PER_HOUR = 60
 
         /** Up to ₹99,99,99,999 (9 digits) so the paise value can never overflow. */
         const val MAX_RUPEE_DIGITS = 9

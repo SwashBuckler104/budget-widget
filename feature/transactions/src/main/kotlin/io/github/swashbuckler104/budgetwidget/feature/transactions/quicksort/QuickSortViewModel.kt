@@ -42,6 +42,8 @@ data class QuickSortUiState(
     /** Pending and from an earlier local day (SCOPE.md §3 "Overdue"). */
     val overdue: Boolean = false,
     val suggestions: List<Category> = emptyList(),
+    /** [suggestions] are computed for the shown transaction (false while they load). */
+    val suggestionsReady: Boolean = false,
     val groups: List<CategoryGroup> = emptyList(),
     /** The opened transaction was sorted, or the inbox is empty. */
     val finished: Boolean = false,
@@ -115,6 +117,7 @@ class QuickSortViewModel @Inject constructor(
                     localDate(transaction.occurredAt) < localDate(clock.nowMillis()),
             // Never show chips computed for the previous transaction.
             suggestions = if (suggestedFor == transaction?.id) chips else emptyList(),
+            suggestionsReady = suggestedFor == transaction?.id,
             groups = allGroups,
             finished = fixedDone || transaction == null,
             singleTransaction = fixedId != null,

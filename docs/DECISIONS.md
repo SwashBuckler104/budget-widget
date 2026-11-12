@@ -105,6 +105,37 @@ deliberate deviation. Newest at the bottom. Status is Accepted unless stated.
 - **Stale buttons:** notification and widget actions pass `requirePending`, so a button on a transaction already sorted elsewhere does nothing. If the button's category was archived or deleted since, the notification is re-posted silently with fresh buttons.
 - **Title** `-₹450 · Swiggy`: the sign is spelled out next to the red/green accent, because color must never be the only signal (SCOPE.md §6). The lock screen gets a public version without amount, merchant or account.
 - **Stays until sorted** (`autoCancel = false`): tapping opens the Quick-Sort sheet; if the user backs out unsorted, the prompt is still there.
-- **Grouping:** a silent summary (`GROUP_ALERT_CHILDREN`) appears at 2+ notifications and goes away below 2. The count comes from the active notifications, adjusted for the change in flight, because the system list can lag a post.
+- **Grouping:** a silent summary (`GROUP_ALERT_CHILDREN`) appears at 2+ notifications and stays until the last child goes: cancelling a group summary makes Android cancel all its children too (found on the emulator: the last pending notification vanished), and with one child the system shows that child alone. The notifier keeps the set of posted notifications in memory under its lock (seeded from the system once per process), because the system list is updated asynchronously and can lag several posts in a burst. Swipes come back through each notification's delete intent. The status is re-checked under the lock right before posting, so a sort landing meanwhile can't leave an orphan.
 - **Permission:** `POST_NOTIFICATIONS` (allowlisted). Settings shows a "blocked" card with Allow, which asks once and opens system settings only after "don't ask again". The onboarding prompt comes in M8.
 - **Settings** gets a screen now (gear on Analysis and Transactions). It holds notifications and the auto-sort toggle from ADR-0018; M8 fills in the rest of SCOPE.md F9.
+
+## ADR-0020: Quick-Sort widget and closing the day (M4)
+- **Widget = Glance, four responsive breakpoints:**
+  - 2x2 (110 dp): the count, or "Sorted ✓" with the streak.
+  - 4x2 short (250x110 dp): 4 chips plus Ignore and More, arrows in the header. Many launchers give a 4x2 widget only about 110 dp of height.
+  - 4x2 standard (250x180 dp): 6 chips plus the `‹ Ignore More ›` footer.
+  - 4x3+ (250x240 dp): standard plus the next two.
+  - Amounts are signed. Chips have a TalkBack label ("Sort as …"). The arrows are auto-mirrored for RTL.
+- **Per-instance position:** each widget instance stores its current transaction **id** (not an index) in its Glance state, so a new SMS doesn't shift what you're looking at. Sorting moves on to the item that took its place. Chip, Ignore and arrow actions are Glance `ActionCallback`s, and the chip and Ignore sorts use `requirePending`.
+- **Refreshing:**
+  - In-process, a debounced (500 ms) observer calls `updateAll` after any write to transactions, categories or recorded days. It watches cheap change signals (a `COUNT(*)` query that Room re-runs on each invalidation), never the rows. Every write happens in our process, so nothing is missed.
+  - Entry points that may die right after (ingest and reconcile workers, notification buttons, day alarms) call `InboxWidgets.refreshNow()` before returning.
+  - `refreshNow()` also bumps a process-wide signal the snapshot flow listens to: `updateAll` only recomposes a widget whose Glance session is alive, which would otherwise keep time-based text (countdown, Overdue, today) stale after a tick or clock change.
+  - `updatePeriodMillis = 0`: no periodic wakeups.
+- **Day alarms:** inexact `AlarmManager.setWindow` (10 min window; SCOPE.md allows it, no exact-alarm permission).
+  - Ticks at 00:05, 21:00, 22:00 and 23:00 (non-wakeup) record finished days and refresh the countdown (`~3/2/1 h left`).
+  - A separate wakeup alarm sends the nudge.
+  - Each alarm re-arms itself. Every process start and every nudge-setting change re-arm both (they're lost on reboot; we have no boot receiver, ADR-0013). So do clock and time-zone changes and app updates (`TIME_SET`, `TIMEZONE_CHANGED`, `MY_PACKAGE_REPLACED` to a non-exported receiver).
+  - A nudge alarm posts only if it fires on its own day within 1 h of its time. A later delivery (Doze, or a 23:55 nudge landing after midnight) is skipped, because "left to sort today" would be wrong, and the next day's nudge stays armed. The last nudge day is stored, so re-arming never nudges twice.
+  - The armed nudge time is stored. Re-arming (process start, alarms, clock changes) keeps that exact nudge if it is due and hasn't run, so a restart while its alarm was pending doesn't lose it; otherwise the next time still ahead is armed. A time the user picks only counts if it is still ahead, and since only an armed alarm can be resumed, a later restart can't bring back a time moved into the past.
+  - A nudge still up from an earlier day is cleared at the next tick.
+  - Every process start redraws the widgets: re-arming can replace a non-wakeup tick that was still waiting while the screen was off.
+- **Closing a day is computed, not sampled at midnight:** schema v3 adds `transactions.sortedAt` (when a row first left the inbox; the migration fills it from `updatedAt`).
+  - A day closed if no non-backfill transaction was created before its local midnight and still unsorted then.
+  - Days are recorded once, after they end, whenever any alarm, the app start or the widget runs. A late or missed midnight gives the same answer.
+  - Tracking starts the first time this runs (no judging the past). Catch-up is capped at 62 days.
+- **Streak:** consecutive closed days ending yesterday, **plus today once the inbox is empty**, so sorting the last item shows the reward at once. A new transaction takes today back out.
+- **"Today ₹X" (spent):** outgoing, not ignored, and not sorted into a transfer-kind category (self transfers and investments aren't spending). Pending ones count. M6 reuses this definition.
+- **Overdue vs closing:** "Overdue" follows SCOPE.md §3 (`occurredAt`, the SMS time); closing a day uses `createdAt` (when we stored it). An SMS stamped 23:59:50 but delivered after midnight shows as overdue yet doesn't count against the day before, which is the lenient choice for the streak.
+- **Streak display:** on the widget's empty state and in the Analysis header (SCOPE.md F6).
+- **Nudge:** stays until the inbox is clear (like transaction notifications, it stands for work still waiting) and its count follows each sort. "N transactions left to sort today" (non-backfill pending) with "Sort now" and the streak at stake. Its own channel "Evening reminder" (default importance). Cancelled when the inbox is cleared. On at 21:00 by default; Settings has the switch and a time picker.

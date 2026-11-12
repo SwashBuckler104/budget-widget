@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_quicksort_label">Quick-Sort</string>
+    <string name="widget_quicksort_description">Sort new transactions in one tap</string>
+    <plurals name="widget_to_sort">
+        <item quantity="one">%1$d to sort</item>
+        <item quantity="other">%1$d to sort</item>
+    </plurals>
+    <!-- Under the big number in the 2x2 widget. -->
+    <plurals name="widget_to_sort_label">
+        <item quantity="one">to sort</item>
+        <item quantity="other">to sort</item>
+    </plurals>
+    <string name="widget_closes_midnight">closes at midnight</string>
+    <plurals name="widget_hours_left">
+        <item quantity="one">~%1$d h left</item>
+        <item quantity="other">~%1$d h left</item>
+    </plurals>
+    <string name="widget_sorted">Sorted ✓</string>
+    <string name="widget_all_sorted">All sorted ✓</string>
+    <!-- %1$s: amount spent today, e.g. ₹1,240. -->
+    <string name="widget_today">Today %1$s</string>
+    <plurals name="widget_streak">
+        <item quantity="one">🔥 %1$d-day streak</item>
+        <item quantity="other">🔥 %1$d-day streak</item>
+    </plurals>
+    <string name="widget_overdue">Overdue</string>
+    <string name="widget_ignore">Ignore</string>
+    <string name="widget_more">More</string>
+    <string name="widget_previous">Previous transaction</string>
+    <string name="widget_next">Next transaction</string>
+    <!-- TalkBack label of a category chip. %1$s: category name. -->
+    <string name="widget_sort_as">Sort as %1$s</string>
+    <string name="widget_up_next">Up next</string>
+    <string name="widget_unknown_merchant">Unknown merchant</string>
+    <string name="widget_preview_header">3 to sort · closes at midnight</string>
+    <string name="widget_preview_card">-₹450 · Swiggy</string>
+    <string name="widget_preview_chips">🛒  🍔  ⛽  🚌  💊  📱</string>
+</resources>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SCOPE.md F4: 2x2 compact, 4x2 standard (the default), 4x3+ large. Updates are pushed by the
+     app (data changes, day alarms), so updatePeriodMillis is 0: no periodic wakeups.
+     API 31+ adds the default 4x2 size and the picker preview: see xml-v31. Keep both in sync. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/widget_quicksort_description"
+    android:initialLayout="@layout/glance_default_loading_layout"
+    android:minWidth="110dp"
+    android:minHeight="110dp"
+    android:minResizeWidth="110dp"
+    android:minResizeHeight="110dp"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="0"
+    android:widgetCategory="home_screen" />

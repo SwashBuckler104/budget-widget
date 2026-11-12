@@ -22,12 +22,12 @@ class NotificationActionReceiver : BroadcastReceiver() {
     @EntryPoint
     @InstallIn(SingletonComponent::class)
     internal interface Entry {
-        fun handler(): NotificationActionHandler
+        fun notificationActionHandler(): NotificationActionHandler
     }
 
     override fun onReceive(context: Context, intent: Intent) {
         val command = NotificationCommand.fromIntent(intent) ?: return
-        val handler = EntryPointAccessors.fromApplication(context, Entry::class.java).handler()
+        val handler = EntryPointAccessors.fromApplication(context, Entry::class.java).notificationActionHandler()
         val pending = goAsync()
         scope.launch {
             try {

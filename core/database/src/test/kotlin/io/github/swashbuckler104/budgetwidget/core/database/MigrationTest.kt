@@ -46,6 +46,36 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun `2 to 3 adds sortedAt and fills it for sorted rows only`() {
+        helper.createDatabase(DB, 2).use { db ->
+            db.execSQL(
+                "INSERT INTO category (id, parentId, name, iconKey, colorArgb, kind, sortOrder, archived, isSeed) VALUES (7, NULL, 'Food', '🍽️', 0, 'EXPENSE', 0, 0, 0)",
+            )
+            listOf(
+                "('a', 'CATEGORIZED', 7, 500)",
+                "('b', 'IGNORED', NULL, 600)",
+                "('c', 'PENDING', NULL, 700)",
+            ).forEach {
+                db.execSQL(
+                    """
+                    INSERT INTO transactions (txnHash, status, categoryId, updatedAt, source, amountPaise, direction,
+                      occurredAt, isCard, autoCategorized, isBackfill, editedByUser, createdAt)
+                    VALUES ${it.dropLast(1)}, 'SMS', 100, 'OUT', 1, 0, 0, 0, 0, 1)
+                    """,
+                )
+            }
+        }
+
+        helper.runMigrationsAndValidate(DB, 3, true).use { db ->
+            db.query("SELECT txnHash, sortedAt FROM transactions ORDER BY txnHash").use {
+                val rows =
+                    buildMap { while (it.moveToNext()) put(it.getString(0), if (it.isNull(1)) null else it.getLong(1)) }
+                assertThat(rows).containsExactly("a", 500L, "b", 600L, "c", null)
+            }
+        }
+    }
+
     private companion object {
         const val DB = "migration-test"
     }

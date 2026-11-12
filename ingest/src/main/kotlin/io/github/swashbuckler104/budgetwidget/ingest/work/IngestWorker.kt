@@ -10,7 +10,9 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import io.github.swashbuckler104.budgetwidget.core.data.inbox.InboxWidgets
 import io.github.swashbuckler104.budgetwidget.core.data.ingest.IngestOrigin
+import io.github.swashbuckler104.budgetwidget.core.data.ingest.IngestOutcome
 import io.github.swashbuckler104.budgetwidget.core.data.ingest.IngestPipeline
 import io.github.swashbuckler104.budgetwidget.core.model.sms.RawSms
 
@@ -20,6 +22,7 @@ internal class IngestWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
     private val pipeline: IngestPipeline,
+    private val widgets: InboxWidgets,
 ) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         val sender = inputData.getString(KEY_SENDER)
@@ -27,7 +30,9 @@ internal class IngestWorker @AssistedInject constructor(
         val receivedAt = inputData.getLong(KEY_RECEIVED_AT, -1)
         if (sender == null || body == null || receivedAt < 0) return Result.failure()
         return try {
-            pipeline.ingest(RawSms(sender, body, receivedAt), IngestOrigin.REALTIME)
+            val outcome = pipeline.ingest(RawSms(sender, body, receivedAt), IngestOrigin.REALTIME)
+            // The process may be gone soon after: put the new transaction on the widgets now.
+            if (outcome is IngestOutcome.Inserted) widgets.refreshNow()
             Result.success()
         } catch (_: SQLException) {
             // Storage hiccup (disk full, locked): retry with backoff; reconcile is the final net.

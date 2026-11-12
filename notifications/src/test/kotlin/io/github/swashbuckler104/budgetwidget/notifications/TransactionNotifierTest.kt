@@ -12,6 +12,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
 import io.github.swashbuckler104.budgetwidget.core.data.inbox.InboxEvents
+import io.github.swashbuckler104.budgetwidget.core.data.inbox.InboxWidgets
 import io.github.swashbuckler104.budgetwidget.core.data.inbox.QuickSortLauncher
 import io.github.swashbuckler104.budgetwidget.core.data.ingest.IngestOrigin
 import io.github.swashbuckler104.budgetwidget.core.data.repository.TransactionRepository
@@ -53,6 +54,7 @@ class TransactionNotifierTest {
     private lateinit var handler: NotificationActionHandler
     private val now = 1_700_000_000_000L
     private var account = 0L
+    private var widgetRefreshes = 0
 
     private val launcher = object : QuickSortLauncher {
         override fun transaction(context: Context, transactionId: Long) = Intent("sort").putExtra("id", transactionId)
@@ -88,7 +90,15 @@ class TransactionNotifierTest {
             TransactionNotificationFactory(context, launcher),
             clock,
         )
-        handler = NotificationActionHandler(SortTransactionUseCase(db, clock, InboxEvents(setOf(notifier))), notifier)
+        handler = NotificationActionHandler(
+            SortTransactionUseCase(db, clock, InboxEvents(setOf(notifier))),
+            notifier,
+            object : InboxWidgets {
+                override suspend fun refreshNow() {
+                    widgetRefreshes++
+                }
+            },
+        )
     }
 
     private suspend fun category(name: String, archived: Boolean = false) = db.categoryDao().insert(
@@ -192,7 +202,7 @@ class TransactionNotifierTest {
     }
 
     @Test
-    fun `two or more get a silent summary that goes away again`() = runTest {
+    fun `two or more get a silent summary that stays until the last child goes`() = runTest {
         wire()
         category("Food")
         val a = txn("a")
@@ -206,7 +216,13 @@ class TransactionNotifierTest {
         assertThat(summary.group).isEqualTo(TransactionNotificationFactory.GROUP)
 
         notifier.cancel(a)
-        assertThat(manager.activeNotifications.map { it.tag }).containsExactly("txn:$b")
+        // The summary stays while a child is up: cancelling it would cancel b's notification too
+        // (Android cancels a summary's children; the Robolectric shadow doesn't model that).
+        assertThat(transactionNotifications().map { it.tag }).containsExactly("txn:$b")
+        val summary2 = manager.activeNotifications.single { it.notification.isGroupSummary() }.notification
+        assertThat(summary2.title()).isEqualTo("1 transaction to sort")
+        notifier.cancel(b)
+        assertThat(manager.activeNotifications).isEmpty()
     }
 
     @Test
@@ -225,6 +241,7 @@ class TransactionNotifierTest {
         // Like the sheet's default, a notification sort teaches the merchant rule.
         assertThat(db.merchantRuleDao().get("swiggy")!!.categoryId).isEqualTo(food)
         assertThat(manager.activeNotifications).isEmpty()
+        assertThat(widgetRefreshes).isEqualTo(1)
     }
 
     @Test
@@ -291,8 +308,42 @@ class TransactionNotifierTest {
         notifier.onPendingAdded(b, IngestOrigin.REALTIME)
         db.transactionDao().ignore(a, IgnoreReason.USER, now) // sorted without the listener
         notifier.pruneStale()
-        assertThat(manager.activeNotifications.map { it.tag }).containsExactly("txn:$b")
+        assertThat(transactionNotifications().map { it.tag }).containsExactly("txn:$b")
         notifier.cancelAll()
+        assertThat(manager.activeNotifications).isEmpty()
+    }
+
+    @Test
+    fun `the summary counts every posted notification and follows swipes`() = runTest {
+        wire()
+        category("Food")
+        val ids = listOf(txn("a"), txn("b"), txn("c"))
+        ids.forEach { notifier.onPendingAdded(it, IngestOrigin.REALTIME) }
+        fun summaryTitle() = manager.activeNotifications.singleOrNull {
+            it.notification.isGroupSummary()
+        }?.notification?.title()
+        assertThat(summaryTitle()).isEqualTo("3 transactions to sort")
+        // Every notification carries a delete intent that reports the swipe back.
+        assertThat(transactionNotifications().all { it.notification.deleteIntent != null }).isTrue()
+
+        manager.cancel("txn:${ids[0]}", 1) // what a swipe does to the system list
+        handler.handle(NotificationCommand.Dismissed(ids[0]))
+        assertThat(summaryTitle()).isEqualTo("2 transactions to sort")
+        handler.handle(NotificationCommand.Dismissed(ids[1]))
+        assertThat(summaryTitle()).isEqualTo("1 transaction to sort") // kept while a child is up
+        handler.handle(NotificationCommand.Dismissed(ids[2]))
+        assertThat(summaryTitle()).isNull()
+        assertThat(db.transactionDao().get(ids[0])!!.status).isEqualTo(TransactionStatus.PENDING)
+    }
+
+    @Test
+    fun `refreshing a transaction sorted meanwhile removes its notification instead`() = runTest {
+        wire()
+        category("Food")
+        val id = txn("a")
+        notifier.onPendingAdded(id, IngestOrigin.REALTIME)
+        db.transactionDao().ignore(id, IgnoreReason.USER, now) // sorted, listener not yet run
+        notifier.refresh(id)
         assertThat(manager.activeNotifications).isEmpty()
     }
 

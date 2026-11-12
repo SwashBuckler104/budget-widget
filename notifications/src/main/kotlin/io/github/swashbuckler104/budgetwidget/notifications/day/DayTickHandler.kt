@@ -1,0 +1,40 @@
+package io.github.swashbuckler104.budgetwidget.notifications.day
+
+import io.github.swashbuckler104.budgetwidget.core.data.WallClock
+import io.github.swashbuckler104.budgetwidget.core.data.day.DayCloseRepository
+import io.github.swashbuckler104.budgetwidget.core.data.inbox.InboxWidgets
+import io.github.swashbuckler104.budgetwidget.core.datastore.SettingsStore
+import java.time.Instant
+import java.time.ZoneId
+import javax.inject.Inject
+import kotlinx.coroutines.flow.first
+
+/** What a day alarm (or a clock change) does. Every step is idempotent. */
+internal class DayTickHandler @Inject constructor(
+    private val scheduler: DayTickScheduler,
+    private val days: DayCloseRepository,
+    private val widgets: InboxWidgets,
+    private val nudge: NudgeNotifier,
+    private val settings: SettingsStore,
+    private val clock: WallClock,
+) {
+    enum class Kind { TICK, NUDGE, CLOCK_CHANGED }
+
+    suspend fun handle(kind: Kind) {
+        val nudgeSettings = settings.nudge.first()
+        val now = Instant.ofEpochMilli(clock.nowMillis()).atZone(ZoneId.systemDefault())
+        val today = now.toLocalDate().toEpochDay()
+        // A nudge still up from an earlier day says "today" about a day that is over.
+        if (settings.lastNudgeEpochDay() != today) nudge.cancel()
+        if (kind == Kind.NUDGE && nudgeSettings.enabled) {
+            if (DaySchedule.isNudgeDue(now, nudgeSettings.minuteOfDay) && settings.lastNudgeEpochDay() != today) {
+                // Mark first: a re-arm must not schedule today's nudge again.
+                settings.setLastNudgeEpochDay(today)
+                nudge.nudge()
+            }
+        }
+        scheduler.arm()
+        days.closeFinishedDays()
+        widgets.refreshNow()
+    }
+}

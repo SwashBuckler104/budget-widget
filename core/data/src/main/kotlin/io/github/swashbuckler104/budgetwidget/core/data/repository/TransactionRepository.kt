@@ -17,6 +17,9 @@ class TransactionRepository @Inject constructor(
         rows.map { it.toModel() }
     }
 
+    /** Emits after any write to transactions (inserts, sorts, edits); carries no data. */
+    fun observeChanges(): Flow<Unit> = transactionDao.observeCount().map { }
+
     fun observeUnparsedCount(): Flow<Int> = unparsedSmsDao.observeCount()
 
     /** The inbox: every PENDING transaction, oldest first (SCOPE.md §3). */

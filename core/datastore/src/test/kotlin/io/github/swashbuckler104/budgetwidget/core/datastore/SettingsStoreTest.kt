@@ -45,4 +45,24 @@ class SettingsStoreTest {
         store.setNotifyMinAmountPaise(-1)
         assertThat(store.notifications.first().minAmountPaise).isEqualTo(0)
     }
+
+    @Test
+    fun `nudge defaults to 21_00 and day markers start empty`() = runTest {
+        val store =
+            SettingsStore(
+                PreferenceDataStoreFactory.create(scope = backgroundScope) {
+                    tmp.root.resolve("settings.preferences_pb")
+                },
+            )
+        assertThat(store.nudge.first()).isEqualTo(NudgeSettings(enabled = true, minuteOfDay = 1260))
+        assertThat(store.lastNudgeEpochDay()).isNull()
+        assertThat(store.dayTrackingSince()).isNull()
+        store.setNudgeEnabled(false)
+        store.setNudgeMinute(24 * 60 + 30)
+        store.setLastNudgeEpochDay(20_000)
+        store.setDayTrackingSince(19_999)
+        assertThat(store.nudge.first()).isEqualTo(NudgeSettings(enabled = false, minuteOfDay = 30))
+        assertThat(store.lastNudgeEpochDay()).isEqualTo(20_000)
+        assertThat(store.dayTrackingSince()).isEqualTo(19_999)
+    }
 }
