@@ -20,10 +20,14 @@ data class TransactionFilter(
     val status: StatusFilter? = null,
     val fromMillis: Long? = null,
     val toMillis: Long? = null,
+    /** One merchant exactly (Analysis "Top merchants" drill-down). */
+    val merchantKey: String? = null,
+    /** Leave ignored ones out, so a drill-down list adds up to the total it came from. */
+    val hideIgnored: Boolean = false,
 ) {
     val isActive: Boolean
         get() = query.isNotBlank() || categoryId != null || accountId != null || direction != null ||
-            status != null || fromMillis != null || toMillis != null
+            status != null || fromMillis != null || toMillis != null || merchantKey != null || hideIgnored
 
     /**
      * [parentOf] gives a category's parent id (null for a top-level one), [categoryName] its name;
@@ -35,6 +39,8 @@ data class TransactionFilter(
         if (fromMillis != null && t.occurredAt < fromMillis) return false
         if (toMillis != null && t.occurredAt >= toMillis) return false
         if (status != null && !status.matches(t)) return false
+        if (merchantKey != null && t.merchantKey != merchantKey) return false
+        if (hideIgnored && t.status == TransactionStatus.IGNORED) return false
         if (categoryId != null) {
             val leaf = t.categoryId ?: return false
             if (leaf != categoryId && parentOf(leaf) != categoryId) return false

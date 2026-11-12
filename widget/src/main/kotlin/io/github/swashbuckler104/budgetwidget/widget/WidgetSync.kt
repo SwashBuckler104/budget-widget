@@ -2,11 +2,11 @@ package io.github.swashbuckler104.budgetwidget.widget
 
 import io.github.swashbuckler104.budgetwidget.core.data.category.CategoryRepository
 import io.github.swashbuckler104.budgetwidget.core.data.day.DayCloseRepository
-import io.github.swashbuckler104.budgetwidget.core.data.inbox.InboxWidgets
 import io.github.swashbuckler104.budgetwidget.core.data.repository.TransactionRepository
 import io.github.swashbuckler104.budgetwidget.core.data.startup.ProcessStartTask
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.combine
@@ -24,21 +24,25 @@ internal class WidgetSync @Inject constructor(
     private val transactions: TransactionRepository,
     private val categories: CategoryRepository,
     private val days: DayCloseRepository,
-    private val widgets: InboxWidgets,
+    private val widgets: GlanceInboxWidgets,
 ) : ProcessStartTask {
     @OptIn(FlowPreview::class)
     override fun start(scope: CoroutineScope) {
-        scope.launch {
-            // Change signals only: every emission means "something was written", no rows are loaded.
-            combine(transactions.observeChanges(), categories.observeGroups(), days.observeLatestDay()) { _, _, _ -> }
-                // The first value is the state at process start, which the widgets already show.
-                .drop(1)
-                .debounce(DEBOUNCE)
-                .collect { widgets.refreshNow() }
-        }
+        // Change signals only: every emission means "something was written", no rows are loaded.
+        // The first value is the state at process start, which the widgets already show.
+        val changes = combine(transactions.observeChanges(), categories.observeGroups(), days.observeLatestDay()) {
+                _,
+                _,
+                _,
+            ->
+        }.drop(1)
+        scope.launch { changes.debounce(QUICK_SORT_DEBOUNCE).collect { widgets.refreshQuickSort() } }
+        // The chart re-renders a bitmap: at most every 2 s while sorting (SCOPE.md F5).
+        scope.launch { changes.debounce(INSIGHT_DEBOUNCE).collect { widgets.refreshInsight() } }
     }
 
     private companion object {
-        val DEBOUNCE = 500.milliseconds
+        val QUICK_SORT_DEBOUNCE = 500.milliseconds
+        val INSIGHT_DEBOUNCE = 2.seconds
     }
 }

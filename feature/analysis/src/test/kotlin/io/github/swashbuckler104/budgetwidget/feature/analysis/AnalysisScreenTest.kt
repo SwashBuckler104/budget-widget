@@ -64,7 +64,9 @@ class AnalysisScreenTest {
                 onSelectAccount = { calls += "account:$it" },
                 onSortInbox = { calls += "sort" },
                 onOpenSettings = { calls += "settings" },
-                onDrillDown = { title, category, query -> calls += "drill:$title:$category:$query" },
+                onDrillDown = { title, category, merchant ->
+                    calls += "drill:$title:$category:${merchant?.merchantKey}"
+                },
             ),
         )
     }
@@ -101,7 +103,9 @@ class AnalysisScreenTest {
         compose.onNodeWithText("Rent").performScrollTo().performClick()
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("Landlord"))
         compose.onNodeWithText("Landlord").performClick()
-        assertThat(calls).containsExactly("drill:Housing:1:", "drill:Rent:2:", "drill:Landlord:0:Landlord").inOrder()
+        assertThat(
+            calls,
+        ).containsExactly("drill:Housing:1:null", "drill:Rent:2:null", "drill:Landlord:0:landlord").inOrder()
     }
 
     @Test

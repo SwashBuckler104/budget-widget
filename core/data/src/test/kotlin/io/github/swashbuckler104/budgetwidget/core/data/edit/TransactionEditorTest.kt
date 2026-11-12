@@ -35,7 +35,7 @@ class TransactionEditorTest {
     fun setUp() {
         db = inMemoryDb()
         val sort = SortTransactionUseCase(db, { now }, InboxEvents(setOf(listener)))
-        editor = TransactionEditor(db, sort, { now })
+        editor = TransactionEditor(db, sort, InboxEvents(setOf(listener)), { now })
     }
 
     @After
@@ -64,7 +64,8 @@ class TransactionEditorTest {
             ),
         )
 
-        assertThat(result).isEqualTo(EditResult.Saved(a))
+        assertThat(result).isInstanceOf(EditResult.Saved::class.java)
+        assertThat((result as EditResult.Saved).renamed).isEqualTo(1)
         with(tx.get(a)!!) {
             assertThat(direction).isEqualTo(Direction.IN)
             assertThat(status).isEqualTo(TransactionStatus.CATEGORIZED)
@@ -217,5 +218,80 @@ class TransactionEditorTest {
         editor.save(TransactionEdit(a, Direction.OUT, null, null, "Swiggy Food", applyNameToMerchant = true))
         assertThat(db.merchantAliasDao().displayName("swiggy")).isEqualTo("Swiggy Food")
         assertThat(UnparsedReason.WRONG_AMOUNT.name).isEqualTo("WRONG_AMOUNT")
+    }
+
+    @Test
+    fun `a bulk sort skips transactions the category can't hold`() = runTest {
+        val food = cat("Food")
+        val pay = db.transactionDao().insertOrIgnore(testTxn("pay"))
+        val salary = db.transactionDao().insertOrIgnore(testTxn("in", direction = Direction.IN))
+
+        val done = editor.categorize(listOf(pay, salary), food, rememberMerchant = false)
+
+        assertThat(done.changed).isEqualTo(1)
+        assertThat(done.skipped).isEqualTo(1)
+        assertThat(db.transactionDao().get(salary)!!.status).isEqualTo(TransactionStatus.PENDING)
+    }
+
+    @Test
+    fun `undo leaves alone a row edited after the action`() = runTest {
+        val food = cat("Food")
+        val a = db.transactionDao().insertOrIgnore(testTxn("a", key = "shop"))
+        val b = db.transactionDao().insertOrIgnore(testTxn("b", key = "other"))
+        val done = editor.categorize(listOf(a, b), food, rememberMerchant = false)
+
+        now += 1_000
+        editor.save(TransactionEdit(a, Direction.OUT, null, "kept", "shop"))
+        assertThat(editor.undo(done.undo!!)).isEqualTo(1)
+
+        assertThat(db.transactionDao().get(a)!!.note).isEqualTo("kept")
+        assertThat(db.transactionDao().get(a)!!.status).isEqualTo(TransactionStatus.CATEGORIZED)
+        assertThat(db.transactionDao().get(b)!!.status).isEqualTo(TransactionStatus.PENDING)
+    }
+
+    @Test
+    fun `a merchant rename can be undone, alias included`() = runTest {
+        val a = db.transactionDao().insertOrIgnore(testTxn("a", key = "swiggy"))
+        val b = db.transactionDao().insertOrIgnore(testTxn("b", key = "swiggy"))
+
+        val saved = editor.save(
+            TransactionEdit(a, Direction.OUT, null, null, "Swiggy Food", applyNameToMerchant = true),
+        )
+            as EditResult.Saved
+        assertThat(saved.renamed).isEqualTo(1)
+        editor.undo(saved.undo!!)
+
+        assertThat(db.transactionDao().get(a)!!.merchantDisplay).isEqualTo("swiggy")
+        assertThat(db.transactionDao().get(b)!!.merchantDisplay).isEqualTo("swiggy")
+        assertThat(db.merchantAliasDao().displayName("swiggy")).isNull()
+    }
+
+    @Test
+    fun `saving an auto-sorted transaction with its category confirms it`() = runTest {
+        val food = cat("Food")
+        val a = db.transactionDao().insertOrIgnore(testTxn("a", key = "shop"))
+        db.transactionDao().categorize(a, food, null, auto = true, now = 1)
+
+        editor.save(TransactionEdit(a, Direction.OUT, food, null, "shop"))
+
+        assertThat(db.transactionDao().get(a)!!.autoCategorized).isFalse()
+        assertThat(db.merchantRuleDao().get("shop")!!.categoryId).isEqualTo(food)
+    }
+
+    @Test
+    fun `a failed sort rolls the whole edit back`() = runTest {
+        val parent = cat("Food")
+        cat("Groceries", parent = parent)
+        val a = db.transactionDao().insertOrIgnore(testTxn("a", key = "shop"))
+
+        val result = editor.save(TransactionEdit(a, Direction.OUT, parent, "lost", "New name"))
+
+        assertThat(result).isEqualTo(EditResult.SortFailed(SortResult.NotALeaf))
+        with(db.transactionDao().get(a)!!) {
+            assertThat(note).isNull()
+            assertThat(merchantDisplay).isEqualTo("shop")
+            assertThat(editedByUser).isFalse()
+        }
+        assertThat(listener.events).isEmpty()
     }
 }

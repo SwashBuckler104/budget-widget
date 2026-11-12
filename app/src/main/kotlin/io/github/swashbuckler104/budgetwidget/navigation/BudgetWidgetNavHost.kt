@@ -14,16 +14,20 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navDeepLink
 import androidx.navigation.toRoute
 import io.github.swashbuckler104.budgetwidget.R
 import io.github.swashbuckler104.budgetwidget.feature.analysis.AnalysisRoute
@@ -54,6 +58,8 @@ data class DrillDownDestination(
     val categoryId: Long = 0,
     val accountId: Long = 0,
     val query: String = "",
+    val merchantKey: String = "",
+    val direction: String = "",
 )
 
 private enum class Tab(val route: Any, val routeClass: KClass<*>, @StringRes val label: Int, val icon: ImageVector) {
@@ -67,10 +73,32 @@ private enum class Tab(val route: Any, val routeClass: KClass<*>, @StringRes val
     CATEGORIES(CategoriesDestination, CategoriesDestination::class, R.string.tab_categories, Icons.Rounded.Category),
 }
 
+/** Must match `InsightWidget.ANALYSIS_URI` in `:widget`. */
+const val ANALYSIS_DEEP_LINK = "budgetwidget://analysis"
+
+/** A deep link that arrived while the activity was running; [id] makes repeats distinct. */
+data class DeepLinkRequest(val uri: String, val id: Long)
+
+private fun NavController.navigateToTab(route: Any) = navigate(route) {
+    popUpTo(graph.findStartDestination().id) { saveState = true }
+    launchSingleTop = true
+    restoreState = true
+}
+
 /** The three tabs with bottom navigation (SCOPE.md F7). */
 @Composable
-fun BudgetWidgetNavHost(onOpenQuickSort: (transactionId: Long?) -> Unit, modifier: Modifier = Modifier) {
+fun BudgetWidgetNavHost(
+    onOpenQuickSort: (transactionId: Long?) -> Unit,
+    modifier: Modifier = Modifier,
+    deepLink: DeepLinkRequest? = null,
+) {
     val navController = rememberNavController()
+    // A widget tap while the app is open: switch tabs like the bottom bar does, so the other tab
+    // (an open edit sheet, typed input) keeps its state. A cold start goes through the NavHost's
+    // own deep-link handling instead.
+    LaunchedEffect(deepLink) {
+        if (deepLink?.uri == ANALYSIS_DEEP_LINK) navController.navigateToTab(AnalysisDestination)
+    }
     val backStack by navController.currentBackStackEntryAsState()
     val onTab =
         backStack?.destination?.let { destination -> Tab.entries.any { destination.hasRoute(it.routeClass) } } ?: true
@@ -83,15 +111,11 @@ fun BudgetWidgetNavHost(onOpenQuickSort: (transactionId: Long?) -> Unit, modifie
                     Tab.entries.forEach { tab ->
                         NavigationBarItem(
                             selected = backStack?.destination?.hasRoute(tab.routeClass) == true,
-                            onClick = {
-                                navController.navigate(tab.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
+                            onClick = { navController.navigateToTab(tab.route) },
                             icon = { Icon(tab.icon, contentDescription = null) },
-                            label = { Text(stringResource(tab.label)) },
+                            label = {
+                                Text(stringResource(tab.label), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            },
                         )
                     }
                 }
@@ -105,13 +129,29 @@ fun BudgetWidgetNavHost(onOpenQuickSort: (transactionId: Long?) -> Unit, modifie
                 .padding(padding)
                 .consumeWindowInsets(padding),
         ) {
-            composable<AnalysisDestination> {
+            // The Insight widget opens Analysis through this link (InsightWidget.ANALYSIS_URI).
+            composable<AnalysisDestination>(
+                deepLinks = listOf(
+                    navDeepLink {
+                        uriPattern = ANALYSIS_DEEP_LINK
+                    },
+                ),
+            ) {
                 AnalysisRoute(
                     onSortInbox = { onOpenQuickSort(null) },
                     onOpenSettings = openSettings,
                     onDrillDown = { d ->
                         navController.navigate(
-                            DrillDownDestination(d.title, d.fromMillis, d.toMillis, d.categoryId, d.accountId, d.query),
+                            DrillDownDestination(
+                                d.title,
+                                d.fromMillis,
+                                d.toMillis,
+                                d.categoryId,
+                                d.accountId,
+                                d.query,
+                                d.merchantKey,
+                                d.direction,
+                            ),
                         )
                     },
                 )

@@ -69,7 +69,7 @@ class TransactionsViewModelTest {
             SavedStateHandle(args),
             TransactionRepository(db.transactionDao(), db.unparsedSmsDao(), db.accountDao()),
             CategoryRepository(db),
-            TransactionEditor(db, sort) { now },
+            TransactionEditor(db, sort, InboxEvents(emptySet())) { now },
             NoSync,
         ) { now }.also { viewModels += it }
     }

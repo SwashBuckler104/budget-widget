@@ -9,12 +9,14 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.swashbuckler104.budgetwidget.core.data.WallClock
+import io.github.swashbuckler104.budgetwidget.core.data.category.CategoryRepository
 import io.github.swashbuckler104.budgetwidget.core.data.inbox.InboxListener
 import io.github.swashbuckler104.budgetwidget.core.data.ingest.IngestOrigin
 import io.github.swashbuckler104.budgetwidget.core.data.repository.TransactionRepository
 import io.github.swashbuckler104.budgetwidget.core.data.suggest.SuggestionEngine
 import io.github.swashbuckler104.budgetwidget.core.data.suggest.SuggestionRequest
 import io.github.swashbuckler104.budgetwidget.core.datastore.SettingsStore
+import io.github.swashbuckler104.budgetwidget.core.model.Direction
 import io.github.swashbuckler104.budgetwidget.core.model.Transaction
 import io.github.swashbuckler104.budgetwidget.core.model.TransactionStatus
 import javax.inject.Inject
@@ -33,6 +35,7 @@ internal class TransactionNotifier @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val transactions: TransactionRepository,
     private val suggestions: SuggestionEngine,
+    private val categories: CategoryRepository,
     private val settings: SettingsStore,
     private val factory: TransactionNotificationFactory,
     private val clock: WallClock,
@@ -103,15 +106,21 @@ internal class TransactionNotifier @Inject constructor(
             return@withLock
         }
         if (!canPost()) return@withLock
-        val chips = suggestions.suggest(
-            SuggestionRequest(
-                transaction.merchantKey,
-                transaction.direction,
-                transaction.amountPaise,
-                transaction.parserType,
-            ),
-            limit = MAX_ACTIONS,
-        )
+        // Payments get the owner's three daily categories (ADR-0024); anything else is sorted from
+        // the widget or the sheet. Incoming money keeps the suggestions, which are income categories.
+        val chips = if (transaction.direction == Direction.OUT) {
+            categories.pickableSeeds(DAILY_SEED_KEYS)
+        } else {
+            suggestions.suggest(
+                SuggestionRequest(
+                    transaction.merchantKey,
+                    transaction.direction,
+                    transaction.amountPaise,
+                    transaction.parserType,
+                ),
+                limit = MAX_ACTIONS,
+            )
+        }
         val duplicateOf = transaction.duplicateOfId?.let { transactions.get(it) }
         val notification = factory.transaction(
             transaction = transaction,

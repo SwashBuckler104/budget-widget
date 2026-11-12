@@ -7,7 +7,9 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -52,6 +54,9 @@ fun DonutChart(
         sweep.animateTo(1f, tween(durationMillis = 600))
     }
     val total = slices.sumOf { it.value }.coerceAtLeast(1)
+    // The tap handler outlives recompositions (keyed on slices only): read the latest values.
+    val currentSelected by rememberUpdatedState(selected)
+    val currentOnSelect by rememberUpdatedState(onSelect)
     Canvas(
         modifier = modifier
             .aspectRatio(1f)
@@ -62,7 +67,7 @@ fun DonutChart(
                     val radius = size.width.coerceAtMost(size.height) / 2f
                     val distance = hypot(tap.x - center.x, tap.y - center.y)
                     if (distance < radius - thickness.toPx() * 1.6f || distance > radius) {
-                        onSelect(null)
+                        currentOnSelect(null)
                         return@detectTapGestures
                     }
                     // Angle from 12 o'clock, clockwise, in [0, 1).
@@ -80,7 +85,7 @@ fun DonutChart(
                     slices.forEachIndexed { index, slice ->
                         val end = start + slice.value.toFloat() / total
                         if (fraction in start..end) {
-                            onSelect(if (selected == index) null else index)
+                            currentOnSelect(if (currentSelected == index) null else index)
                             return@detectTapGestures
                         }
                         start = end

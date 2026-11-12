@@ -41,15 +41,22 @@ internal sealed interface QuickAction {
     data object SamePayment : QuickAction
 }
 
+/**
+ * The buttons on every payment notification: the owner's most frequent daily spending (seed keys
+ * of Groceries, Restaurant/Fast-food and Public transport; ADR-0024).
+ */
+internal val DAILY_SEED_KEYS = listOf("groceries", "restaurants", "public_transport")
+
 /** Android shows at most 3 notification actions. */
 internal const val MAX_ACTIONS = 3
 
 /**
- * SCOPE.md F3: the top suggestions, padded with "Ignore" when there are fewer than 3. A possible
+ * The [categories] (daily shortcuts for payments, suggestions for income), padded with "Ignore"
+ * when there are fewer than 3. A possible
  * duplicate leads with "Same payment" so it isn't counted twice by a quick tap.
  */
-internal fun quickActions(suggestions: List<Category>, possibleDuplicate: Boolean): List<QuickAction> {
+internal fun quickActions(categories: List<Category>, possibleDuplicate: Boolean): List<QuickAction> {
     val lead = if (possibleDuplicate) listOf(QuickAction.SamePayment) else emptyList()
-    val actions = lead + suggestions.take(MAX_ACTIONS - lead.size).map { QuickAction.Sort(it) }
+    val actions = lead + categories.take(MAX_ACTIONS - lead.size).map { QuickAction.Sort(it) }
     return if (actions.size < MAX_ACTIONS) actions + QuickAction.Ignore else actions
 }

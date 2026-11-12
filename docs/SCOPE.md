@@ -176,6 +176,7 @@ Chosen by the owner on 2026-11-09 (replaces the original list; docs/DECISIONS.md
 - **Life & Entertainment:** Gym, Fitness; Books, Audio, Subscription; Sports; Education, Development; TV, Streaming; AI Subscription; Wellness, Beauty
 - **Communication, PC:** Internet; Phone, Cell phone; Software, Apps, Games
 - **Financial Expenses:** Fines; Insurances; Loans, Interest; Taxes; Self Transfer (outgoing leg)
+- **Family:** Transfer, Lend; D-Mart, Kirana, Groceries; Other (added by the owner on 2026-11-11)
 - **Investments** (transfer type): Financial investments (SIP, bonds, etc.); Realty; Savings (emergency fund)
 - **Income:** Salary; Freelancing; Other; Self Transfer (incoming leg)
 

@@ -33,8 +33,10 @@ internal class NotificationActionHandler @Inject constructor(
 
             SortResult.NotPending, SortResult.TransactionNotFound -> notifier.cancel(id)
 
-            // The button's category was archived, deleted or got subcategories since posting.
-            SortResult.CategoryNotFound, SortResult.CategoryArchived, SortResult.NotALeaf -> notifier.refresh(id)
+            // The button's category was archived, deleted or got subcategories since posting, or the
+            // transaction's direction was edited so the category no longer fits.
+            SortResult.CategoryNotFound, SortResult.CategoryArchived, SortResult.NotALeaf, SortResult.KindMismatch ->
+                notifier.refresh(id)
         }
         // The process may die right after the broadcast: redraw widgets before returning.
         if (result == SortResult.Done) widgets.refreshNow()

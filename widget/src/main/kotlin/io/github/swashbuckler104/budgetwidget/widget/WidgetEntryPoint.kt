@@ -15,6 +15,8 @@ import io.github.swashbuckler104.budgetwidget.core.data.sort.SortTransactionUseC
 internal interface WidgetEntryPoint {
     fun loader(): WidgetSnapshotLoader
 
+    fun insightLoader(): InsightSnapshotLoader
+
     fun launcher(): QuickSortLauncher
 
     fun sort(): SortTransactionUseCase

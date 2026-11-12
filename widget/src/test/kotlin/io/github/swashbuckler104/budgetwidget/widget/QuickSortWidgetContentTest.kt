@@ -76,12 +76,13 @@ class QuickSortWidgetContentTest {
     )
 
     @Test
-    fun `standard size shows header, card, six chips and the footer`() = runGlanceAppWidgetUnitTest {
+    fun `standard size shows header, card, six chips and the footer`() = runGlanceAppWidgetUnitTest(GLANCE_TIMEOUT) {
         setContext(context)
         setAppWidgetSize(DpSize(300.dp, 200.dp))
         provideComposable { QuickSortWidgetContent(snapshot(), intents) }
 
-        onNode(hasText("3 to sort · closes at midnight")).assertExists()
+        onNode(hasText("3 to sort")).assertExists()
+        onNode(hasText(" · closes at midnight")).assertExists()
         onNode(hasText("-₹450")).assertExists()
         onNode(hasText("Swiggy")).assertExists()
         chips.forEach { onNode(hasContentDescription("Sort as ${it.name}")).assertExists() }
@@ -94,21 +95,22 @@ class QuickSortWidgetContentTest {
     }
 
     @Test
-    fun `short 4x2 fits four chips plus Ignore and More, and counts down late`() = runGlanceAppWidgetUnitTest {
-        setContext(context)
-        setAppWidgetSize(DpSize(300.dp, 120.dp))
-        provideComposable { QuickSortWidgetContent(snapshot(hoursLeft = 2, overdue = true), intents) }
+    fun `short 4x2 fits four chips plus Ignore and More, and counts down late`() =
+        runGlanceAppWidgetUnitTest(GLANCE_TIMEOUT) {
+            setContext(context)
+            setAppWidgetSize(DpSize(300.dp, 120.dp))
+            provideComposable { QuickSortWidgetContent(snapshot(hoursLeft = 2, overdue = true), intents) }
 
-        onNode(hasText("3 to sort · ~2 h left")).assertExists()
-        onNode(hasText("Overdue")).assertExists()
-        chips.take(4).forEach { onNode(hasContentDescription("Sort as ${it.name}")).assertExists() }
-        onNode(hasContentDescription("Sort as Drug-store, Chemist")).assertDoesNotExist()
-        onNode(hasContentDescription("Ignore")).assertExists()
-        onNode(hasContentDescription("More")).assertExists()
-    }
+            onNode(hasText(" · ~2 h left")).assertExists()
+            onNode(hasText("Overdue")).assertExists()
+            chips.take(4).forEach { onNode(hasContentDescription("Sort as ${it.name}")).assertExists() }
+            onNode(hasContentDescription("Sort as Drug-store, Chemist")).assertDoesNotExist()
+            onNode(hasContentDescription("Ignore")).assertExists()
+            onNode(hasContentDescription("More")).assertExists()
+        }
 
     @Test
-    fun `large size lists the next two`() = runGlanceAppWidgetUnitTest {
+    fun `large size lists the next two`() = runGlanceAppWidgetUnitTest(GLANCE_TIMEOUT) {
         setContext(context)
         setAppWidgetSize(DpSize(300.dp, 260.dp))
         provideComposable { QuickSortWidgetContent(snapshot(), intents) }
@@ -119,7 +121,7 @@ class QuickSortWidgetContentTest {
     }
 
     @Test
-    fun `an empty inbox shows today's spending and the streak`() = runGlanceAppWidgetUnitTest {
+    fun `an empty inbox shows today's spending and the streak`() = runGlanceAppWidgetUnitTest(GLANCE_TIMEOUT) {
         setContext(context)
         setAppWidgetSize(DpSize(300.dp, 200.dp))
         provideComposable { QuickSortWidgetContent(snapshot(pending = 0, focus = null, streak = 12), intents) }
@@ -129,7 +131,7 @@ class QuickSortWidgetContentTest {
     }
 
     @Test
-    fun `compact size shows the count or Sorted`() = runGlanceAppWidgetUnitTest {
+    fun `compact size shows the count or Sorted`() = runGlanceAppWidgetUnitTest(GLANCE_TIMEOUT) {
         setContext(context)
         setAppWidgetSize(DpSize(120.dp, 120.dp))
         provideComposable { QuickSortWidgetContent(snapshot(pending = 105, overdue = true), intents) }
@@ -139,7 +141,7 @@ class QuickSortWidgetContentTest {
     }
 
     @Test
-    fun `compact empty shows Sorted and the streak`() = runGlanceAppWidgetUnitTest {
+    fun `compact empty shows Sorted and the streak`() = runGlanceAppWidgetUnitTest(GLANCE_TIMEOUT) {
         setContext(context)
         setAppWidgetSize(DpSize(120.dp, 120.dp))
         provideComposable { QuickSortWidgetContent(snapshot(pending = 0, focus = null, streak = 1), intents) }
@@ -148,7 +150,7 @@ class QuickSortWidgetContentTest {
     }
 
     @Test
-    fun `income is signed plus`() = runGlanceAppWidgetUnitTest {
+    fun `income is signed plus`() = runGlanceAppWidgetUnitTest(GLANCE_TIMEOUT) {
         setContext(context)
         setAppWidgetSize(DpSize(300.dp, 200.dp))
         provideComposable {

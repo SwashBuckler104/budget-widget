@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -56,6 +57,10 @@ import io.github.swashbuckler104.budgetwidget.core.model.accepts
 import io.github.swashbuckler104.budgetwidget.core.model.formatInr
 import io.github.swashbuckler104.budgetwidget.core.model.parseInrToPaise
 import io.github.swashbuckler104.budgetwidget.feature.transactions.R
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 
 /** What the edit sheet can do besides saving. */
 internal class EditActions(
@@ -75,11 +80,13 @@ internal fun EditTransactionSheet(
     groups: List<CategoryGroup>,
     actions: EditActions,
 ) {
+    // Outside the sheet's window, so typed input survives leaving the tab and process death.
+    val form = rememberSheetForm(detail.transaction.id)
     ModalBottomSheet(
         onDismissRequest = actions.onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
-        EditTransactionContent(detail, categories, groups, actions)
+        EditTransactionContent(detail, categories, groups, actions, form)
     }
 }
 
@@ -90,20 +97,21 @@ internal fun EditTransactionContent(
     categories: Map<Long, Category>,
     groups: List<CategoryGroup>,
     actions: EditActions,
+    form: SheetForm = rememberSheetForm(detail.transaction.id),
 ) {
     val t = detail.transaction
     val manual = t.source == TransactionSource.MANUAL
     val original = t.categoryId?.let(categories::get)
-    var type by rememberSaveable(t.id) { mutableStateOf(EntryType.of(t.direction, original)) }
-    var transferDirection by rememberSaveable(t.id) { mutableStateOf(t.direction) }
-    var categoryId by rememberSaveable(t.id) { mutableStateOf(t.categoryId) }
-    var name by rememberSaveable(t.id) { mutableStateOf(t.merchantDisplay.orEmpty()) }
-    var applyToAll by rememberSaveable(t.id) { mutableStateOf(false) }
-    var note by rememberSaveable(t.id) { mutableStateOf(t.note.orEmpty()) }
-    var remember by rememberSaveable(t.id) { mutableStateOf(true) }
-    var amountText by rememberSaveable(t.id) { mutableStateOf(formatInr(t.amountPaise).removePrefix("₹")) }
-    var occurredAt by rememberSaveable(t.id) { mutableLongStateOf(t.occurredAt) }
-    var showSms by rememberSaveable(t.id) { mutableStateOf(false) }
+    var type by form.field("type") { EntryType.of(t.direction, original) }
+    var transferDirection by form.field("transferDirection") { t.direction }
+    var categoryId by form.field("categoryId") { t.categoryId }
+    var name by form.field("name") { t.merchantDisplay.orEmpty() }
+    var applyToAll by form.field("applyToAll") { false }
+    var note by form.field("note") { t.note.orEmpty() }
+    var remember by form.field("remember") { true }
+    var amountText by form.field("amountText") { formatInr(t.amountPaise).removePrefix("₹") }
+    var occurredAt by form.field("occurredAt") { t.occurredAt }
+    var showSms by form.field("showSms") { false }
 
     val direction = type.direction(transferDirection)
     // A category that no longer fits the type must be chosen again.
@@ -138,7 +146,11 @@ internal fun EditTransactionContent(
                     emphasizeSpend = true,
                 )
                 Text(
-                    listOfNotNull(t.bankName, t.accountLast4?.let { "··$it" }).joinToString(" "),
+                    listOfNotNull(
+                        listOfNotNull(t.bankName, t.accountLast4?.let { "··$it" }).joinToString(" ").ifEmpty { null },
+                        DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
+                            .format(Instant.ofEpochMilli(t.occurredAt).atZone(ZoneId.systemDefault())),
+                    ).joinToString(" · "),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -270,6 +282,7 @@ private fun CheckRow(label: String, checked: Boolean, onCheck: (Boolean) -> Unit
             .toggleable(value = checked, role = Role.Checkbox, onValueChange = onCheck),
     ) {
         Checkbox(checked = checked, onCheckedChange = null)
+        Spacer(Modifier.width(8.dp))
         Text(label, style = MaterialTheme.typography.bodyMedium)
     }
 }
@@ -284,11 +297,13 @@ internal fun AddTransactionSheet(
     onAdd: (ManualTransaction) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    // Outside the sheet's window, so typed input survives leaving the tab and process death.
+    val form = rememberSheetForm(ADD_FORM)
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
-        AddTransactionContent(groups, categories, nowMillis, onAdd)
+        AddTransactionContent(groups, categories, nowMillis, onAdd, form)
     }
 }
 
@@ -298,15 +313,16 @@ internal fun AddTransactionContent(
     categories: Map<Long, Category>,
     nowMillis: Long,
     onAdd: (ManualTransaction) -> Unit,
+    form: SheetForm = rememberSheetForm(ADD_FORM),
 ) {
-    var amountText by rememberSaveable { mutableStateOf("") }
-    var type by rememberSaveable { mutableStateOf(EntryType.EXPENSE) }
-    var transferDirection by rememberSaveable { mutableStateOf(Direction.OUT) }
-    var categoryId by rememberSaveable { mutableStateOf<Long?>(null) }
-    var name by rememberSaveable { mutableStateOf("") }
-    var note by rememberSaveable { mutableStateOf("") }
-    var occurredAt by rememberSaveable { mutableLongStateOf(nowMillis) }
-    var triedSave by rememberSaveable { mutableStateOf(false) }
+    var amountText by form.field("amountText") { "" }
+    var type by form.field("type") { EntryType.EXPENSE }
+    var transferDirection by form.field("transferDirection") { Direction.OUT }
+    var categoryId by form.field<Long?>("categoryId") { null }
+    var name by form.field("name") { "" }
+    var note by form.field("note") { "" }
+    var occurredAt by form.field("occurredAt") { nowMillis }
+    var triedSave by form.field("triedSave") { false }
 
     val direction = type.direction(transferDirection)
     val category = categoryId?.let(categories::get)?.takeIf { it.kind == type.kind }
@@ -367,5 +383,6 @@ internal fun AddTransactionContent(
     }
 }
 
+private const val ADD_FORM = "add"
 private const val MAX_NAME = 60
 private const val MAX_NOTE = 500

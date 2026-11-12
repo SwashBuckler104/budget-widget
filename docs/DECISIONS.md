@@ -169,3 +169,58 @@ deliberate deviation. Newest at the bottom. Status is Accepted unless stated.
 - **Charts are custom Canvas composables** in `:core:designsystem` (donut, bars with a dashed average line and today highlighted, cumulative lines, proportion bars), not Vico. That adds no dependency for four simple charts, matches the theme exactly, and every chart has a TalkBack summary (largest values, average, running totals).
 - **Month switcher:** arrows plus horizontal swipe, bounded by the oldest transaction's month and the current month. The account filter appears when there are 2+ accounts.
 - Averages and the three small cards show whole rupees (`formatInrRounded`). The hero total keeps paise.
+
+## ADR-0023: Insight widget and widget styling (M7)
+- **Content (SCOPE.md F5):**
+  - Today's spending.
+  - This month so far with ▲/▼ against last month up to the same day (green when less, red when more, read out by TalkBack).
+  - A 7-day bar chart with today highlighted and weekday initials.
+  - From about 4x3, the month's top categories (or "To sort") with proportional bars in each category's color.
+  The numbers come from `MonthAnalysis` (ADR-0022), so the widget and the Analysis tab agree.
+- **The chart is a bitmap, rendered as alpha masks** (`ALPHA_8`) that Glance tints with theme color providers: one mask for the other days (secondary), one for today (primary). SCOPE.md asks for bitmaps with dynamic colors resolved at render time; tinting masks instead means light/dark and wallpaper-color changes apply instantly, without a re-render. A mask is a quarter of an ARGB bitmap in the RemoteViews parcel. The category bars are plain Glance boxes sized from the exact widget width, because no custom drawing is needed for a bar.
+- **No separate InsightRenderWorker:** rendering happens in `provideGlance`, which Glance already runs in its own WorkManager session worker. Refresh paths:
+  - in-process data changes redraw idle widgets 2 s after the last change (Quick-Sort keeps 500 ms);
+  - a live session's snapshot flow is debounced 2 s too;
+  - `InboxWidgets.refreshNow()` (workers, notification buttons, day alarms, including the 00:05 tick) redraws both widgets, so "today" rolls over at midnight.
+- **Size mode Exact** so the bitmap matches the real size. The chart keeps at least 56 dp when categories show, and only as many category rows as fit are shown. Resizable 4x2 to 4x4 (`maxResizeHeight` 400 dp), with a static picker preview on API 31+.
+- **Tap opens Analysis** through a navigation deep link (`budgetwidget://analysis`) on the app's launch intent (new task). `:widget` doesn't depend on `:app`, and no exported intent filter is added.
+- **Widget colors (both widgets):**
+  - Dynamic color on Android 12+ (as before); the app's brand palette below, via `glance-material3` `ColorProviders`, instead of Glance's default purple.
+  - Quick-Sort is restyled with a hierarchy: the transaction sits on a surface card, the amount is signed and green/red (the money colors, as in the app and notifications), the count is in the primary color, chips use the tonal secondary container, Ignore is quiet and **More** is the filled primary action.
+
+## ADR-0024: Fixed daily categories on payment notifications
+- **Context:** on the phone, the owner found the suggested buttons on transaction notifications not very useful. Their daily spending is almost always groceries, restaurants or public transport, and anything else is better sorted from the Quick-Sort widget (6 chips plus More) or the sheet.
+- **Decision (owner's call, 2026-11-10; replaces SCOPE.md F3's "top 3 suggested categories" for payments):**
+  - **Payment** notifications always offer **Groceries, Restaurant/Fast-food, Public transport**, in that order. They are found by seed key (`groceries`, `restaurants`, `public_transport`), so renaming them keeps the buttons.
+  - An archived or deleted one, or one that gained subcategories, is skipped, and the row is padded with Ignore.
+  - A possible duplicate still leads with **Same payment** (then the first two).
+  - **Incoming** money keeps the suggestion engine (income categories), since expense shortcuts can't hold it.
+  - The Quick-Sort widget and sheet keep the full suggestions.
+- Pinned by `TransactionNotifierTest` ("payments always offer the daily categories").
+
+## ADR-0025: Follow-ups from the M5-M7 review
+- **A sort must fit the money's direction** (`SortResult.KindMismatch`, checked in `SortTransactionUseCase`, so it covers the sheet, widget, notifications and bulk). A mixed bulk selection sorts what fits and reports "N skipped". A notification button that no longer fits re-posts with fresh buttons.
+- **Edit sheet saves atomically:** details, merchant rename and sort happen in one transaction (a failed sort rolls everything back), and the "sorted" event fires after the commit. Saving an auto-sorted transaction with its category **confirms** it: it leaves "Review auto-sorted" and the rule counts the confirmation (SCOPE.md F8).
+- **Undo never overwrites a later change:** each undo records every row's `updatedAt` right after the action and restores only rows still at that stamp. "Rename every transaction from this merchant" is undoable too: the other rows' names and the alias go back. Undo puts transactions back in the inbox without re-posting notifications (the user is in the app, looking at them).
+- **Drill-downs list exactly what the card counted:** a top merchant opens its merchant key (not a text search), money out only, and no drill-down shows ignored rows.
+- **Select all selects what's shown**, so a collapsed inbox's hidden rows are left out.
+- **Insight widget tap keeps the app's state:** the intent brings the running app to the front (`CLEAR_TOP | SINGLE_TOP`), and `MainActivity.onNewIntent` switches to the Analysis tab the way the bottom bar does, so an open sheet in the Transactions tab survives. A cold start still uses the NavHost's deep link.
+- Smaller fixes:
+  - The donut reads the latest selection, which is keyed by category, not slice position.
+  - The ▲/▼ percentage is clamped.
+  - The Quick-Sort footer actions are 48 dp tall.
+  - The Insight widget drops weekday labels below 130 dp.
+  - The picker survives rotation.
+  - A newer snackbar replaces an older one.
+  - "Report wrong amount" closes the sheet so its confirmation is visible.
+- **Sheet forms keep their input** across leaving the tab and process death: form values live in a `SheetForm` saved by the composable that shows the sheet. A `ModalBottomSheet` is its own window, and `rememberSaveable` inside it was dropped (found on the emulator after a widget tap).
+- **Large text (200%):**
+  - The three Analysis stat cards stack full width.
+  - Widget text grows only up to 1.3x, while chip and button labels in fixed-height boxes don't grow at all (they keep full TalkBack labels).
+  - Insight category rows are sized for the scaled text.
+- Glance widget tests run with a 15 s harness timeout instead of 2 s: the first test of a class missed 2 s under a loaded full build (a flake, not a hang).
+
+## ADR-0026: Family seed group and versioned seeding
+- **Family** (expense): Transfer, Lend; D-Mart, Kirana, Groceries; Other. The owner created it on their phone and asked for it in the seed set. New installs get it before Investments, with its own color (cyan 800).
+- **Seeds are versioned per group:** each group records the seed version that introduced it, and the seeder adds only groups newer than the version an install already has. The earlier "re-run the whole list on a version bump" would have re-created seeds the user deleted.
+- **Adoption instead of duplicates:** a new group first looks for an unseeded category with the same name (ignoring case) at the same level and marks it as the seed, keeping the user's name, icon, color, kind and order. Its same-named subcategories are adopted the same way; missing ones are added after the user's own. Without this, an install that already has its own "Family" would get a second one.

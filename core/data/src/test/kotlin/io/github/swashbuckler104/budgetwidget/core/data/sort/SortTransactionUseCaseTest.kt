@@ -9,6 +9,7 @@ import io.github.swashbuckler104.budgetwidget.core.data.testTxn
 import io.github.swashbuckler104.budgetwidget.core.database.BudgetDatabase
 import io.github.swashbuckler104.budgetwidget.core.database.entity.CategoryEntity
 import io.github.swashbuckler104.budgetwidget.core.model.CategoryKind
+import io.github.swashbuckler104.budgetwidget.core.model.Direction
 import io.github.swashbuckler104.budgetwidget.core.model.IgnoreReason
 import io.github.swashbuckler104.budgetwidget.core.model.TransactionStatus
 import kotlinx.coroutines.test.runTest
@@ -145,5 +146,14 @@ class SortTransactionUseCaseTest {
         sort.ignore(999)
 
         assertThat(listener.events).containsExactly("sorted:$a", "sorted:$b").inOrder()
+    }
+
+    @Test
+    fun `a category that can't hold the money's direction is refused`() = runTest {
+        val food = cat("Food")
+        val salary = db.transactionDao().insertOrIgnore(testTxn("in", direction = Direction.IN))
+        assertThat(sort.categorize(salary, food)).isEqualTo(SortResult.KindMismatch)
+        assertThat(db.transactionDao().get(salary)!!.status).isEqualTo(TransactionStatus.PENDING)
+        assertThat(listener.events).isEmpty()
     }
 }

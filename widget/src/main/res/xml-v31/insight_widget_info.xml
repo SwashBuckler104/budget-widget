@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SCOPE.md F5: resizable 4x2 to 4x4 (default 4x2). Same as xml/ plus the API 31 attributes
+     (default size, picker preview). Keep both in sync. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/widget_insight_description"
+    android:initialLayout="@layout/glance_default_loading_layout"
+    android:maxResizeHeight="400dp"
+    android:minWidth="250dp"
+    android:minHeight="110dp"
+    android:minResizeWidth="250dp"
+    android:minResizeHeight="110dp"
+    android:previewLayout="@layout/insight_widget_preview"
+    android:resizeMode="horizontal|vertical"
+    android:targetCellWidth="4"
+    android:targetCellHeight="2"
+    android:updatePeriodMillis="0"
+    android:widgetCategory="home_screen" />

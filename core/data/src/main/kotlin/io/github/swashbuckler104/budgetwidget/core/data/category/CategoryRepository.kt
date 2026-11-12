@@ -113,6 +113,15 @@ class CategoryRepository @Inject constructor(private val db: BudgetDatabase) {
         DeleteResult.Deleted
     }
 
+    /**
+     * The seed categories with [seedKeys], in that order, that can still be picked: present, not
+     * archived and leaves. Seed keys survive renames (ADR-0018).
+     */
+    suspend fun pickableSeeds(seedKeys: List<String>): List<Category> {
+        val bySeed = dao.getAll().filter { it.seedKey != null && !it.archived }.associateBy { it.seedKey }
+        return seedKeys.mapNotNull { bySeed[it] }.filter { dao.childIds(it.id).isEmpty() }.map { it.toModel() }
+    }
+
     suspend fun deleteRule(merchantKey: String) = rules.delete(merchantKey)
 
     suspend fun moveRule(merchantKey: String, categoryId: Long) = rules.move(merchantKey, categoryId)
