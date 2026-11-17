@@ -433,3 +433,15 @@ deliberate deviation. Newest at the bottom. Status is Accepted unless stated.
 - **Category list:** each group is a card; a collapsed group previews its subcategories' icons.
 - **Onboarding and About:** each onboarding step has an emblem tile, its points sit on cards, and the progress dots mark the current step with a pill. About's sections are cards with their link inside.
 - **Checked on the emulator** (dark theme): every screen above, the seven onboarding steps and the Quick-Sort widget on the launcher. The Insight widget is covered by `InsightWidgetTest` only.
+
+## ADR-0055: SMS text on parsed transactions is stored masked
+- **Why:** the unparsed list has been masked since 1.0.2 (ADR-0038), but a parsed transaction kept its SMS body verbatim, so UPI IDs, full reference numbers and phone numbers sat in the database, went into every backup (plain by default, ADR-0044), and were copied unmasked into the unparsed list by *Report wrong amount*. The README already promised that "kept bank messages have account, card, UPI and reference numbers masked". Retention (ADR-0045) limits how long the text lives; masking limits what it says, and the two stack.
+- **How:** `IngestPipeline.store` runs `SmsParser.redactUnparsed` before insert. Amounts, dates and wording stay, so the edit sheet still shows what was parsed; nothing re-parses a stored body (idempotency is `txnHash`, ADR-0045). Rows written by 1.0.3 and older are masked by the reconcile scrub that already maintains the unparsed list (idempotent, once per process, `updatedAt` untouched). `DataTransfer.restore` masks bodies arriving from older backup files, and `TransactionEditor.reportWrongAmount` masks what it files, so the unparsed list never holds unmasked text whatever the source.
+- **Not changed:** `bodyHash` for *Report wrong amount* entries is still the hash of the stored body; those entries never meet the pipeline's dismissal hashes (ADR-0049), which hash the raw inbox text of unparsed SMS.
+- **Tests:** `IngestPipelineTest` (masked at insert, old rows scrubbed), `DataTransferTest` (old backup masked on restore), `TransactionEditorTest` (report files masked text).
+
+## ADR-0056: Restore reads at most 64 MB
+- **Why:** restore read the picked file whole (`readBytes`) before looking at it, so a huge or endless file (a crafted "backup", or the wrong file picked) could exhaust memory and crash the app. The encrypted path already bounds its key-derivation cost (ADR-0044); this bounds the read.
+- **How:** `DataTransfer.restore` reads at most `MAX_RESTORE_BYTES` + 1 bytes; one byte over means `RestoreResult.TooLarge` ("That file is too large to be a backup. Nothing changed."), before anything is parsed or replaced. 64 MB is far above any real backup: tens of thousands of transactions fit in a few MB.
+- **Also:** the parser report's *Save file* now opens the document truncating (`"wt"`, falling back to `"w"` like backup and CSV), so overwriting a longer file leaves no tail of it behind.
+- **Tests:** `DataTransferTest` (an endless stream is read exactly to the cap and refused; data unchanged).

@@ -70,6 +70,11 @@ class DataTransferTest {
         override fun parse(sms: RawSms): SmsParseResult = SmsParseResult.Unparsed(UnparsedReason.NO_MATCH)
     }
 
+    /** [AnyBankParser] with a visible mask, to see restore run it over imported bodies. */
+    private object RedactingParser : SmsParser by AnyBankParser {
+        override fun redactUnparsed(body: String) = body.replace(Regex("""\d{4,}"""), "####")
+    }
+
     private class Env(
         val db: BudgetDatabase,
         val settings: SettingsStore,
@@ -105,6 +110,7 @@ class DataTransferTest {
             { now },
             pipeline,
             sync,
+            AnyBankParser,
         )
         return Env(db, settings, checkpoint, transfer, pipeline)
     }
@@ -234,6 +240,55 @@ class DataTransferTest {
 
         assertThat(target.db.backupDao().transactions()).isEqualTo(before)
         assertThat(replaced).isEqualTo(0)
+    }
+
+    @Test
+    fun `a file over the size cap is refused without reading it all, and nothing changes`() = runTest {
+        val target = env(this, "huge")
+        target.fill()
+        val before = target.db.backupDao().transactions()
+        var served = 0L
+        // An endless "backup": restore must stop just past the cap instead of reading to the end.
+        val endless = object : java.io.InputStream() {
+            override fun read(): Int = '{'.code.also { served++ }
+
+            override fun read(b: ByteArray, off: Int, len: Int): Int {
+                b.fill('{'.code.toByte(), off, off + len)
+                served += len
+                return len
+            }
+        }
+
+        assertThat(target.transfer.restore(endless)).isEqualTo(RestoreResult.TooLarge)
+
+        assertThat(served).isEqualTo(DataTransfer.MAX_RESTORE_BYTES + 1L)
+        assertThat(target.db.backupDao().transactions()).isEqualTo(before)
+        assertThat(replaced).isEqualTo(0)
+    }
+
+    @Test
+    fun `restore masks SMS text that older backups kept unmasked`() = runTest {
+        val e = env(this, "mask")
+        val transfer = DataTransfer(
+            e.db,
+            e.settings,
+            e.checkpoint,
+            CategorySeeder(e.db, e.settings),
+            InboxEvents(emptySet()),
+            { now },
+            e.pipeline,
+            sync,
+            RedactingParser,
+        )
+        val old = """{"format":"budget-widget-backup","version":1,"exportedAt":0,"appVersion":"1.0.3","seedVersion":2,
+            "categories":[],"accounts":[],"merchantRules":[],"settings":{},
+            "transactions":[{"id":1,"source":"SMS","amountPaise":1000,"direction":"OUT","occurredAt":0,
+            "status":"PENDING","createdAt":0,"updatedAt":0,
+            "smsSender":"AD-HDFCBK","smsBody":"Rs 10 debited (UPI Ref no 630199887766)"}]}"""
+
+        assertThat(transfer.restore(old.byteInputStream())).isInstanceOf(RestoreResult.Restored::class.java)
+
+        assertThat(e.db.backupDao().transactions().single().smsBody).isEqualTo("Rs 10 debited (UPI Ref no ####)")
     }
 
     @Test

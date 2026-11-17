@@ -65,6 +65,8 @@ sealed interface SettingsMessage {
 
     data object BackupTooNew : SettingsMessage
 
+    data object BackupTooLarge : SettingsMessage
+
     data object FileFailed : SettingsMessage
 
     /** The app was closed while the file picker was open; the backup settings were lost. */
@@ -232,6 +234,7 @@ class SettingsViewModel @Inject constructor(
             is RestoreResult.Restored -> SettingsMessage.Restored(result.transactions)
             RestoreResult.NotABackup -> SettingsMessage.NotABackup
             is RestoreResult.TooNew -> SettingsMessage.BackupTooNew
+            RestoreResult.TooLarge -> SettingsMessage.BackupTooLarge
             RestoreResult.NeedsPassphrase, RestoreResult.WrongPassphrase -> null
         }
     }

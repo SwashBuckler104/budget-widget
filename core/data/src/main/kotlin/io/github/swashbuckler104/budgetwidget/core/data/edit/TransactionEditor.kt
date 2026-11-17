@@ -16,6 +16,7 @@ import io.github.swashbuckler104.budgetwidget.core.model.IgnoreReason
 import io.github.swashbuckler104.budgetwidget.core.model.TransactionSource
 import io.github.swashbuckler104.budgetwidget.core.model.TransactionStatus
 import io.github.swashbuckler104.budgetwidget.core.model.accepts
+import io.github.swashbuckler104.budgetwidget.core.model.sms.SmsParser
 import io.github.swashbuckler104.budgetwidget.core.model.sms.UnparsedReason
 import java.security.MessageDigest
 import javax.inject.Inject
@@ -99,6 +100,7 @@ class TransactionEditor @Inject constructor(
     private val db: BudgetDatabase,
     private val sort: SortTransactionUseCase,
     private val events: InboxEvents,
+    private val parser: SmsParser,
     private val clock: WallClock,
 ) {
     private val dao get() = db.transactionDao()
@@ -290,7 +292,8 @@ class TransactionEditor @Inject constructor(
             UnparsedSmsEntity(
                 sender = tx.smsSender.orEmpty(),
                 bodyHash = sha256(body),
-                body = body,
+                // The unparsed list only ever holds masked text (ADR-0038), whatever the source.
+                body = parser.redactUnparsed(body),
                 receivedAt = tx.occurredAt,
                 reason = UnparsedReason.WRONG_AMOUNT,
             ),

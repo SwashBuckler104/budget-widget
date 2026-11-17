@@ -154,6 +154,7 @@
     </plurals>
     <string name="settings_msg_not_backup">That file isn\'t a backup from this app. Nothing changed.</string>
     <string name="settings_msg_too_new">That backup is from a newer version of the app. Update it first.</string>
+    <string name="settings_msg_too_large">That file is too large to be a backup. Nothing changed.</string>
     <string name="settings_msg_file_failed">Couldn\'t use that file. Nothing changed.</string>
     <string name="settings_msg_backup_not_saved">The backup wasn\'t saved. Please try again.</string>
     <plurals name="settings_msg_started_fresh">

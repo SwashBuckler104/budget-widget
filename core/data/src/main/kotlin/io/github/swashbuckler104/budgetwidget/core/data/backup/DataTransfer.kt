@@ -14,6 +14,8 @@ import io.github.swashbuckler104.budgetwidget.core.database.entity.TransactionEn
 import io.github.swashbuckler104.budgetwidget.core.datastore.IngestCheckpointStore
 import io.github.swashbuckler104.budgetwidget.core.datastore.SettingsStore
 import io.github.swashbuckler104.budgetwidget.core.model.Direction
+import io.github.swashbuckler104.budgetwidget.core.model.sms.SmsParser
+import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.OutputStream
 import java.io.Writer
@@ -49,6 +51,9 @@ sealed interface RestoreResult {
 
     /** The password doesn't open it (or the file was changed). Nothing was changed. */
     data object WrongPassphrase : RestoreResult
+
+    /** Larger than [DataTransfer.MAX_RESTORE_BYTES], so not a backup. Nothing was changed. */
+    data object TooLarge : RestoreResult
 }
 
 /**
@@ -66,6 +71,7 @@ class DataTransfer @Inject constructor(
     private val clock: WallClock,
     private val pipeline: IngestPipeline,
     private val sync: SmsSync,
+    private val parser: SmsParser,
 ) {
     private val mutex = Mutex()
 
@@ -107,7 +113,8 @@ class DataTransfer @Inject constructor(
      * password-protected file needs [passphrase] ([RestoreResult.NeedsPassphrase] without one).
      */
     suspend fun restore(input: InputStream, passphrase: CharArray? = null): RestoreResult = mutex.withLock {
-        val raw = withContext(Dispatchers.IO) { input.readBytes() }
+        val raw = withContext(Dispatchers.IO) { input.readAtMost(MAX_RESTORE_BYTES + 1) }
+        if (raw.size > MAX_RESTORE_BYTES) return@withLock RestoreResult.TooLarge
         val file = try {
             val json = when (val opened = open(raw, passphrase)) {
                 is Opened.Plain -> opened.json
@@ -176,7 +183,16 @@ class DataTransfer @Inject constructor(
         // Parents before children, and duplicate links after every transaction exists.
         dao.insertCategories(file.categories.sortedBy { it.parentId != null }.map { it.toEntity() })
         dao.insertAccounts(file.accounts.map { it.toEntity() })
-        dao.insertTransactions(file.transactions.map { it.toEntity().copy(duplicateOfId = null, linkedToId = null) })
+        dao.insertTransactions(
+            file.transactions.map {
+                it.toEntity().copy(
+                    duplicateOfId = null,
+                    linkedToId = null,
+                    // Backups from 1.0.3 and older hold unmasked SMS text (ADR-0055).
+                    smsBody = it.smsBody?.let(parser::redactUnparsed),
+                )
+            },
+        )
         file.transactions.forEach { t -> t.duplicateOfId?.let { dao.setDuplicateOf(t.id, it) } }
         file.transactions.forEach { t -> t.linkedToId?.let { dao.setLinkedTo(t.id, it) } }
         dao.insertRules(file.merchantRules.map { it.toEntity() })
@@ -260,27 +276,44 @@ class DataTransfer @Inject constructor(
         )
     }
 
-    private companion object {
-        val JSON = Json {
+    companion object {
+        /**
+         * The most [restore] reads into memory: far above any real backup (tens of thousands of
+         * transactions fit in a few MB), and a bound so a crafted file can't exhaust memory (ADR-0056).
+         */
+        const val MAX_RESTORE_BYTES = 64 * 1024 * 1024
+
+        private fun InputStream.readAtMost(limit: Int): ByteArray {
+            val out = ByteArrayOutputStream()
+            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+            while (out.size() < limit) {
+                val n = read(buffer, 0, minOf(buffer.size, limit - out.size()))
+                if (n < 0) break
+                out.write(buffer, 0, n)
+            }
+            return out.toByteArray()
+        }
+
+        private val JSON = Json {
             ignoreUnknownKeys = true
             encodeDefaults = true
         }
-        val TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
-        val CSV_HEADER = listOf(
+        private val TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+        private val CSV_HEADER = listOf(
             "date", "time", "amount_inr", "direction", "status", "category", "subcategory", "merchant", "account",
             "note", "source", "reference",
         )
 
         /** Spreadsheets run cells starting with these as formulas; a leading quote keeps them text. */
-        const val FORMULA_START = "=+-@\t\r"
+        private const val FORMULA_START = "=+-@\t\r"
 
-        fun text(value: String?): String = when {
+        private fun text(value: String?): String = when {
             value.isNullOrEmpty() -> ""
             value.first() in FORMULA_START -> "'$value"
             else -> value
         }
 
-        fun Writer.csvRow(cells: List<String>) {
+        private fun Writer.csvRow(cells: List<String>) {
             write(
                 cells.joinToString(",") { cell ->
                     if (cell.any { it == ',' || it == '"' || it == '\n' || it == '\r' }) {

@@ -136,9 +136,16 @@ class ParserFeedbackViewModel @Inject constructor(
         viewModelScope.launch {
             val ok = try {
                 withContext(Dispatchers.IO) {
-                    (resolver.openOutputStream(uri, "w") ?: throw IOException("no stream")).use {
-                        it.write(text.toByteArray(Charsets.UTF_8))
-                    }
+                    // Truncating, so overwriting a longer file leaves no tail of it behind;
+                    // some document providers only accept plain "w" (a new file is empty anyway).
+                    val output = try {
+                        resolver.openOutputStream(uri, "wt")
+                    } catch (_: IOException) {
+                        null
+                    } catch (_: IllegalArgumentException) {
+                        null
+                    } ?: resolver.openOutputStream(uri, "w") ?: throw IOException("no stream")
+                    output.use { it.write(text.toByteArray(Charsets.UTF_8)) }
                 }
                 true
             } catch (_: IOException) {
