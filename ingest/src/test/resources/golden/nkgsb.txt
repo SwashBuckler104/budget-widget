@@ -1,0 +1,27 @@
+# NKGSB Co-op Bank: not in parser-core, read by our LocalFormats (ADR-0061, docs/upstream/0006).
+# Templates from the owner's parser feedback (2026-09); every value here is made up.
+name: Interest credited, with cleared balance
+sender: VA-NKGSBK-S
+body: NKGSB a/c X417 is CREDITED INR 2.03 on 30-09-2026 300000000123456:Int.Pd:01-07-2026 to 30-09-2026.Clr bal is INR 845.60.Not You?Call 18001234567
+type: INCOME
+amount: 2.03
+direction: IN
+merchant: -
+last4: 417
+balance: 845.60
+flow: -
+---
+name: NACH lien debit
+sender: AD-NKGSBK-S
+body: NKGSB a/c X417 is DEBITED INR 2.03 on 01-10-2026 NACH ACH LIEN FUND RECOVERED.Clr bal is INR 843.57.Not You?Call 18001234567
+type: EXPENSE
+amount: 2.03
+direction: OUT
+merchant: -
+last4: 417
+balance: 843.57
+---
+name: A one-time password from the bank is not kept
+sender: AD-NKGSBK-S
+body: 482913 is your OTP for NKGSB net banking. Do not share it with anyone.
+type: IGNORED
