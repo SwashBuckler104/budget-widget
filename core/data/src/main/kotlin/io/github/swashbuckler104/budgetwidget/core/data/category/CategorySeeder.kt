@@ -11,8 +11,9 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /**
- * Inserts the seed categories. The seeded version is remembered in settings and only groups added
- * after it are inserted, so seeds the user deletes or renames are never re-created. A new group
+ * Inserts the seed categories. The seeded version is remembered in settings and only groups and
+ * subcategories added after it are inserted, so seeds the user deletes or renames are never
+ * re-created (a new subcategory of a group the user deleted is skipped too). A new group
  * adopts a category the user already made with the same name (and its same-named subcategories)
  * instead of duplicating it, keeping the user's name, icon, color, kind and order.
  */
@@ -39,6 +40,15 @@ class CategorySeeder @Inject constructor(private val db: BudgetDatabase, private
                     if (child.key in existing || (!fresh && dao.adopt(child, parentId) != null)) return@forEachIndexed
                     val order = if (fresh) childIndex else dao.maxSortOrder(parentId) + 1
                     dao.insert(entity(child, parentId, group, order))
+                }
+            }
+            // New subcategories of groups this install already has, after the user's own ones.
+            SeedCategories.groups.filter { it.since <= seeded }.forEach { group ->
+                val parentId = existing[group.category.key] ?: return@forEach
+                group.category.children.filter { it.since > seeded && it.key !in existing }.forEach { child ->
+                    if (dao.adopt(child, parentId) == null) {
+                        dao.insert(entity(child, parentId, group, dao.maxSortOrder(parentId) + 1))
+                    }
                 }
             }
         }

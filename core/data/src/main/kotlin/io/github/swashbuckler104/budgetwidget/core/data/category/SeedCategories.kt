@@ -3,12 +3,16 @@ package io.github.swashbuckler104.budgetwidget.core.data.category
 import io.github.swashbuckler104.budgetwidget.core.model.CategoryKind
 import io.github.swashbuckler104.budgetwidget.core.model.sms.FlowHint
 
-/** One seed category (SCOPE.md "Seed categories"). [key] is stable across renames. */
+/**
+ * One seed category (SCOPE.md "Seed categories"). [key] is stable across renames. A subcategory's
+ * [since] is the [SeedCategories.VERSION] that added it to a group older installs already have.
+ */
 internal data class SeedCategory(
     val key: String,
     val name: String,
     val emoji: String,
     val children: List<SeedCategory> = emptyList(),
+    val since: Int = 1,
 )
 
 /** [since] is the [SeedCategories.VERSION] that introduced the group; older installs get it on upgrade. */
@@ -21,13 +25,13 @@ internal data class SeedGroup(
 
 /**
  * The editable starter set, chosen by the owner (docs/DECISIONS.md ADR-0018, ADR-0026). To add a
- * group, bump [VERSION] and give the group `since = VERSION`; `CategorySeeder` adds only groups newer
- * than what an install already has, adopting same-named categories the user made. Investments are a TRANSFER kind: money moved to your own
+ * group or a subcategory, bump [VERSION] and give it `since = VERSION`; `CategorySeeder` adds only
+ * seeds newer than what an install already has, adopting same-named categories the user made. Investments are a TRANSFER kind: money moved to your own
  * investments is not spending (docs/DECISIONS.md ADR-0018). Emoji are limited to Emoji 5.0 so
  * they render on Android 8 (minSdk) in widgets and notifications, which can't use EmojiCompat.
  */
 internal object SeedCategories {
-    const val VERSION = 3
+    const val VERSION = 4
 
     private fun c(key: String, name: String, emoji: String, vararg children: SeedCategory) =
         SeedCategory(key, name, emoji, children.toList())
@@ -176,6 +180,9 @@ internal object SeedCategories {
                 c(TransferSeeds.LOAN_EMI, "Loan EMI", "🏦"),
                 c(TransferSeeds.CARD_BILL, "Credit card bill", "💳"),
                 c(TransferSeeds.LOAN_RECEIVED, "Loan received", "📥"),
+                // The balance an account had when tracking started (ADR-0059): money already there,
+                // so never income.
+                SeedCategory(TransferSeeds.OPENING_BALANCE, "Opening balance", "🏁", since = 4),
             ),
             0xFF8C92AC.toInt(),
             CategoryKind.TRANSFER,
@@ -194,7 +201,21 @@ internal object SeedCategories {
             0xFF7CFF6B.toInt(),
             CategoryKind.INCOME,
         ),
+        // A single leaf for payments the user doesn't want to sort one by one, e.g. a whole
+        // imported history (ADR-0058). Money coming in goes to Income > Other instead.
+        SeedGroup(
+            c(OtherSeeds.OTHER, "Other", "📦"),
+            0xFFB0B0B0.toInt(),
+            CategoryKind.EXPENSE,
+            since = 4,
+        ),
     )
+}
+
+/** Seed keys of the catch-all leaves that bulk filing uses (ADR-0058), one per direction. */
+internal object OtherSeeds {
+    const val OTHER = "other"
+    const val OTHER_INCOME = "other_income"
 }
 
 /** Seed keys of the Transfers group, and which [FlowHint] lands in which (ADR-0042). */
@@ -203,6 +224,7 @@ internal object TransferSeeds {
     const val LOAN_EMI = "loan_emi"
     const val CARD_BILL = "card_bill"
     const val LOAN_RECEIVED = "loan_received"
+    const val OPENING_BALANCE = "opening_balance"
 
     fun keyFor(hint: FlowHint): String = when (hint) {
         FlowHint.OWN_TRANSFER -> OWN_TRANSFER

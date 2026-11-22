@@ -60,7 +60,7 @@ class DataTransferTest {
             reconciles++
         }
 
-        override fun backfill(sinceMillis: Long) = Unit
+        override fun backfill(sinceMillis: Long, fileUnderOther: Boolean) = Unit
     }
 
     /** Treats every sender as a bank and every message as unreadable: enough to reach the pipeline lock. */
@@ -162,7 +162,7 @@ class DataTransferTest {
         val result = target.transfer.restore(bytes.inputStream())
 
         // 58 seeded in v1.0.1 plus the Transfers group (5) added in v1.0.2 (ADR-0042).
-        assertThat(result).isEqualTo(RestoreResult.Restored(transactions = 2, categories = 63))
+        assertThat(result).isEqualTo(RestoreResult.Restored(transactions = 2, categories = 65))
         val sourceDao = source.db.backupDao()
         val targetDao = target.db.backupDao()
         assertThat(targetDao.transactions()).isEqualTo(sourceDao.transactions())
@@ -200,7 +200,7 @@ class DataTransferTest {
         assertThat(replaced).isEqualTo(0)
 
         val result = target.transfer.restore(bytes.inputStream(), "s3cret pass".toCharArray())
-        assertThat(result).isEqualTo(RestoreResult.Restored(transactions = 2, categories = 63))
+        assertThat(result).isEqualTo(RestoreResult.Restored(transactions = 2, categories = 65))
         assertThat(target.db.backupDao().transactions()).isEqualTo(source.db.backupDao().transactions())
         assertThat(replaced).isEqualTo(1)
     }
@@ -212,7 +212,7 @@ class DataTransferTest {
         val bytes = ByteArrayOutputStream().also { source.transfer.backup(it, "1.0.1") }.toByteArray()
         val target = env(this, "target")
         assertThat(target.transfer.restore(bytes.inputStream(), "anything".toCharArray()))
-            .isEqualTo(RestoreResult.Restored(transactions = 2, categories = 63))
+            .isEqualTo(RestoreResult.Restored(transactions = 2, categories = 65))
     }
 
     @Test

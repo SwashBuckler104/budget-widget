@@ -49,7 +49,7 @@ class CategoryTest {
         val groups = repo.observeGroups().first()
         assertThat(groups.map { it.category.name }).containsExactly(
             "Food & Drinks", "Shopping", "Housing", "Transportation", "Vehicle", "Life & Entertainment",
-            "Communication, PC", "Financial Expenses", "Family", "Investments", "Transfers", "Income",
+            "Communication, PC", "Financial Expenses", "Family", "Investments", "Transfers", "Income", "Other",
         ).inOrder()
         val food = groups.first().children.map { it.name }
         assertThat(food).containsExactly("Groceries", "Restaurant, Fast-food", "Drinks, Alcohol").inOrder()
@@ -57,7 +57,7 @@ class CategoryTest {
         assertThat(income).containsExactly("Salary", "Freelancing", "Other", "Self Transfer").inOrder()
         val financial = groups.single { it.category.name == "Financial Expenses" }.children.map { it.name }
         assertThat(financial.last()).isEqualTo("Self Transfer")
-        assertThat(groups.sumOf { it.children.size }).isEqualTo(51)
+        assertThat(groups.sumOf { it.children.size }).isEqualTo(52)
         assertThat(
             groups.flatMap { g ->
                 g.children.map { it.name.length }
@@ -71,6 +71,45 @@ class CategoryTest {
         assertThat(repo.delete(housing)).isEqualTo(DeleteResult.Deleted)
         seeder.ensureSeeded()
         assertThat(repo.observeGroups().first().none { it.category.name == "Housing" }).isTrue()
+    }
+
+    @Test
+    fun `upgrading adds new subcategories to groups the install has, after the user's own`() = runTest {
+        val settings = settings(this)
+        val seeder = CategorySeeder(db, settings)
+        seeder.ensureSeeded()
+        // A version 3 install: no Opening balance or Other yet, plus a subcategory of the user's own.
+        val dao = db.categoryDao()
+        dao.deleteIds(listOfNotNull(dao.bySeedKey("opening_balance")?.id, dao.bySeedKey("other")?.id))
+        settings.setSeededCategoriesVersion(3)
+        val transfers = dao.bySeedKey("transfers")!!.id
+        repo.create(transfers, CategoryDraft("To my wallet", "👛", 0, CategoryKind.TRANSFER))
+
+        seeder.ensureSeeded()
+
+        val group = repo.observeGroups().first().single { it.category.id == transfers }
+        assertThat(
+            group.children.map {
+                it.name
+            }.takeLast(2),
+        ).containsExactly("To my wallet", "Opening balance").inOrder()
+        assertThat(dao.bySeedKey("opening_balance")!!.kind).isEqualTo(CategoryKind.TRANSFER)
+        assertThat(repo.observeGroups().first().last().category.name).isEqualTo("Other")
+    }
+
+    @Test
+    fun `a new subcategory of a group the user deleted is not brought back`() = runTest {
+        val settings = settings(this)
+        val seeder = CategorySeeder(db, settings)
+        seeder.ensureSeeded()
+        val dao = db.categoryDao()
+        assertThat(repo.delete(dao.bySeedKey("transfers")!!.id)).isEqualTo(DeleteResult.Deleted)
+        settings.setSeededCategoriesVersion(3)
+
+        seeder.ensureSeeded()
+
+        assertThat(dao.bySeedKey("transfers")).isNull()
+        assertThat(dao.bySeedKey("opening_balance")).isNull()
     }
 
     @Test
