@@ -18,6 +18,7 @@ import io.github.swashbuckler104.budgetwidget.core.data.list.StatusFilter
 import io.github.swashbuckler104.budgetwidget.core.data.list.TransactionFilter
 import io.github.swashbuckler104.budgetwidget.core.data.list.groupByDay
 import io.github.swashbuckler104.budgetwidget.core.data.repository.TransactionRepository
+import io.github.swashbuckler104.budgetwidget.core.data.sort.BulkSorter
 import io.github.swashbuckler104.budgetwidget.core.model.Account
 import io.github.swashbuckler104.budgetwidget.core.model.Category
 import io.github.swashbuckler104.budgetwidget.core.model.CategoryGroup
@@ -113,6 +114,7 @@ class TransactionsViewModel @Inject constructor(
     private val editor: TransactionEditor,
     private val smsSync: SmsSync,
     private val clock: WallClock,
+    private val bulk: BulkSorter,
 ) : ViewModel() {
     private val drillDown: TransactionFilter? = savedStateHandle.get<Long>(ARG_FROM_MILLIS)?.let { from ->
         TransactionFilter(
@@ -284,6 +286,11 @@ class TransactionsViewModel @Inject constructor(
 
     fun undo(undo: Undo) {
         viewModelScope.launch { editor.undo(undo) }
+    }
+
+    /** Files the whole inbox under Other (ADR-0058); the screen confirms first. */
+    fun fileAllUnderOther() = launch {
+        bulk.fileUnderOther(onlyBackfill = false).takeIf { it > 0 }?.let { TransactionsMessage.Sorted(it, undo = null) }
     }
 
     fun syncNow() = smsSync.reconcileNow()

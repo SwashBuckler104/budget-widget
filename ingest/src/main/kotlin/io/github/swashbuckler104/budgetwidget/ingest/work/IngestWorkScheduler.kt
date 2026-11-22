@@ -38,9 +38,9 @@ class IngestWorkScheduler @Inject internal constructor(private val workManager: 
         workManager.enqueueUniqueWork(WORK_RECONCILE_NOW, ExistingWorkPolicy.KEEP, request)
     }
 
-    override fun backfill(sinceMillis: Long) {
+    override fun backfill(sinceMillis: Long, fileUnderOther: Boolean) {
         val request = OneTimeWorkRequestBuilder<ReconcileWorker>()
-            .setInputData(ReconcileWorker.backfillInput(sinceMillis))
+            .setInputData(ReconcileWorker.backfillInput(sinceMillis, fileUnderOther))
             .build()
         workManager.enqueueUniqueWork(WORK_BACKFILL, ExistingWorkPolicy.REPLACE, request)
     }

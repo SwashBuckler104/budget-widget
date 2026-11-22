@@ -13,6 +13,7 @@ import io.github.swashbuckler104.budgetwidget.core.data.edit.TransactionEditor
 import io.github.swashbuckler104.budgetwidget.core.data.inbox.InboxEvents
 import io.github.swashbuckler104.budgetwidget.core.data.ingest.SmsSync
 import io.github.swashbuckler104.budgetwidget.core.data.repository.TransactionRepository
+import io.github.swashbuckler104.budgetwidget.core.data.sort.BulkSorter
 import io.github.swashbuckler104.budgetwidget.core.data.sort.SortTransactionUseCase
 import io.github.swashbuckler104.budgetwidget.core.database.BudgetDatabase
 import io.github.swashbuckler104.budgetwidget.core.database.entity.CategoryEntity
@@ -26,6 +27,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -72,7 +74,9 @@ class TransactionsViewModelTest {
             CategoryRepository(db),
             TransactionEditor(db, sort, InboxEvents(emptySet()), NoOpParser) { now },
             NoSync,
-        ) { now }.also { viewModels += it }
+            { now },
+            BulkSorter(db, sort, InboxEvents(emptySet())),
+        ).also { viewModels += it }
     }
 
     private suspend fun TransactionsViewModel.await(predicate: (TransactionsUiState) -> Boolean) =
@@ -96,6 +100,23 @@ class TransactionsViewModelTest {
             assertThat(state.days.flatMap { it.transactions }.map { it.id }).containsExactly(sorted)
             assertThat(state.days.single().spentPaise).isEqualTo(100_00)
         }
+
+    @Test
+    fun `all to Other empties the inbox into Other and says how many`() = runBlocking {
+        val other = category("Other", seedKey = "other")
+        val a = txn("a", at = now - 1)
+        val b = txn("b", at = now - 2)
+        val vm = viewModel()
+        vm.await { it.inbox.size == 2 }
+        val message = async { vm.messages.first() }
+
+        vm.fileAllUnderOther()
+
+        assertThat(vm.await { it.inbox.isEmpty() }.inbox).isEmpty()
+        assertThat(withTimeout(TIMEOUT_MS) { message.await() }).isEqualTo(TransactionsMessage.Sorted(2, undo = null))
+        assertThat(db.transactionDao().get(a)!!.categoryId).isEqualTo(other)
+        assertThat(db.transactionDao().get(b)!!.categoryId).isEqualTo(other)
+    }
 
     @Test
     fun `a filter shows matching pending ones in the list and hides the inbox`() = runBlocking {
@@ -175,7 +196,7 @@ class TransactionsViewModelTest {
         assertThat(db.transactionDao().get(a)!!.categoryId).isEqualTo(food)
     }
 
-    private suspend fun category(name: String) = db.categoryDao().insert(
+    private suspend fun category(name: String, seedKey: String? = null) = db.categoryDao().insert(
         CategoryEntity(
             parentId = null,
             name = name,
@@ -183,6 +204,7 @@ class TransactionsViewModelTest {
             colorArgb = 0,
             kind = CategoryKind.EXPENSE,
             sortOrder = 0,
+            seedKey = seedKey,
         ),
     )
 
@@ -222,7 +244,7 @@ class TransactionsViewModelTest {
 
         override fun reconcileNow() = Unit
 
-        override fun backfill(sinceMillis: Long) = Unit
+        override fun backfill(sinceMillis: Long, fileUnderOther: Boolean) = Unit
     }
 
     private companion object {

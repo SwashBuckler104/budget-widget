@@ -11,6 +11,7 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import io.github.swashbuckler104.budgetwidget.core.data.inbox.InboxWidgets
 import io.github.swashbuckler104.budgetwidget.core.data.ingest.SmsBodyRetention
+import io.github.swashbuckler104.budgetwidget.core.data.sort.BulkSorter
 
 /** Periodic and on-demand inbox scan; with [backfillInput] it imports older messages instead. */
 @HiltWorker
@@ -20,6 +21,7 @@ internal class ReconcileWorker @AssistedInject constructor(
     private val reconciler: InboxReconciler,
     private val widgets: InboxWidgets,
     private val retention: SmsBodyRetention,
+    private val bulk: BulkSorter,
 ) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         val backfillSince = inputData.getLong(KEY_BACKFILL_SINCE, NO_BACKFILL)
@@ -30,6 +32,10 @@ internal class ReconcileWorker @AssistedInject constructor(
                 reconciler.reconcile()
             } else {
                 reconciler.backfill(backfillSince)
+            }
+            // Onboarding's "file imported payments under Other" (ADR-0058), once they are all in.
+            if (backfillSince != NO_BACKFILL && inputData.getBoolean(KEY_FILE_UNDER_OTHER, false)) {
+                bulk.fileUnderOther(onlyBackfill = true)
             }
             if (result is InboxReconciler.Result.Scanned && result.inserted > 0) widgets.refreshNow()
             // "Keep original SMS text" (ADR-0045): runs even without SMS permission.
@@ -42,9 +48,11 @@ internal class ReconcileWorker @AssistedInject constructor(
 
     companion object {
         private const val KEY_BACKFILL_SINCE = "backfillSince"
+        private const val KEY_FILE_UNDER_OTHER = "fileUnderOther"
         private const val NO_BACKFILL = Long.MIN_VALUE
         private const val MAX_ATTEMPTS = 3
 
-        fun backfillInput(sinceMillis: Long): Data = workDataOf(KEY_BACKFILL_SINCE to sinceMillis)
+        fun backfillInput(sinceMillis: Long, fileUnderOther: Boolean = false): Data =
+            workDataOf(KEY_BACKFILL_SINCE to sinceMillis, KEY_FILE_UNDER_OTHER to fileUnderOther)
     }
 }

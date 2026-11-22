@@ -32,6 +32,7 @@ import androidx.compose.material.icons.rounded.SearchOff
 import androidx.compose.material.icons.rounded.SelectAll
 import androidx.compose.material.icons.rounded.Sell
 import androidx.compose.material.icons.rounded.Sms
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
@@ -181,6 +182,7 @@ fun TransactionsRoute(
             onRequestSms = { launcher.launch(SMS_PERMISSIONS) },
             onSyncNow = viewModel::syncNow,
             onBackfill = { viewModel.backfill(BACKFILL_DAYS) },
+            onFileAllUnderOther = viewModel::fileAllUnderOther,
         ),
         modifier = modifier,
     )
@@ -255,6 +257,7 @@ internal class ScreenCallbacks(
     val onRequestSms: () -> Unit,
     val onSyncNow: () -> Unit,
     val onBackfill: () -> Unit,
+    val onFileAllUnderOther: () -> Unit,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -459,8 +462,24 @@ private fun TransactionList(
                 SectionHeader(
                     pluralStringResource(R.plurals.transactions_inbox, state.inbox.size, state.inbox.size),
                     trailing = {
-                        Button(onClick = { callbacks.onOpenQuickSort(null) }) {
-                            Text(stringResource(R.string.transactions_sort_all))
+                        var confirmOther by rememberSaveable { mutableStateOf(false) }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            TextButton(onClick = { confirmOther = true }) {
+                                Text(stringResource(R.string.transactions_all_to_other))
+                            }
+                            Button(onClick = { callbacks.onOpenQuickSort(null) }) {
+                                Text(stringResource(R.string.transactions_sort_all))
+                            }
+                        }
+                        if (confirmOther) {
+                            AllToOtherDialog(
+                                count = state.inbox.size,
+                                onConfirm = {
+                                    confirmOther = false
+                                    callbacks.onFileAllUnderOther()
+                                },
+                                onDismiss = { confirmOther = false },
+                            )
                         }
                     },
                 )
@@ -657,4 +676,20 @@ private fun messageTexts(): (TransactionsMessage) -> String {
             }
         }
     }
+}
+
+/** Confirms filing the whole inbox under Other (ADR-0058). */
+@Composable
+private fun AllToOtherDialog(count: Int, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(pluralStringResource(R.plurals.transactions_all_to_other_title, count, count)) },
+        text = { Text(stringResource(R.string.transactions_all_to_other_body)) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) { Text(stringResource(R.string.transactions_all_to_other_confirm)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.transactions_all_to_other_cancel)) }
+        },
+    )
 }

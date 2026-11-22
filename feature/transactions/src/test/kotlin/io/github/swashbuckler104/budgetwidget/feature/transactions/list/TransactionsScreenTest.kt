@@ -61,6 +61,7 @@ class TransactionsScreenTest {
         onRequestSms = { calls += "sms" },
         onSyncNow = { calls += "sync" },
         onBackfill = { calls += "backfill" },
+        onFileAllUnderOther = { calls += "allToOther" },
     )
 
     private fun show(state: TransactionsUiState) = compose.setContent {
@@ -107,6 +108,26 @@ class TransactionsScreenTest {
             "select:1",
             "add",
         ).inOrder()
+    }
+
+    @Test
+    fun `all to Other asks first and only then files the inbox`() {
+        show(
+            TransactionsUiState(
+                loading = false,
+                inbox = listOf(
+                    InboxEntry(tx(2, "Federal", TransactionStatus.PENDING), overdue = false, duplicateOf = null),
+                ),
+                total = 1,
+            ),
+        )
+        compose.onNodeWithText("All to Other").performClick()
+        compose.onNodeWithText("Put 1 payment under Other?").assertExists()
+        compose.onNodeWithText("Cancel").performClick()
+        assertThat(calls).isEmpty()
+        compose.onNodeWithText("All to Other").performClick()
+        compose.onNodeWithText("Put under Other").performClick()
+        assertThat(calls).containsExactly("allToOther")
     }
 
     @Test

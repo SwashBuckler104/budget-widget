@@ -15,6 +15,9 @@ import kotlinx.coroutines.flow.Flow
 /** One stored SMS body, for the masking scrub. */
 data class StoredBody(val id: Long, val smsBody: String)
 
+/** A pending transaction's id and which way its money moved, for bulk filing. */
+data class PendingDirection(val id: Long, val direction: Direction)
+
 @Dao
 interface TransactionDao {
     /** Returns the new row id, or -1 when a row with the same `txnHash` already exists. */
@@ -206,6 +209,18 @@ interface TransactionDao {
 
     @Query("SELECT id FROM transactions WHERE status = 'PENDING'")
     suspend fun pendingIds(): List<Long>
+
+    /**
+     * What bulk filing may sort (ADR-0058): PENDING, not a possible duplicate (that needs a look),
+     * and with [onlyBackfill] only imported history.
+     */
+    @Query(
+        """
+        SELECT id, direction FROM transactions
+        WHERE status = 'PENDING' AND duplicateOfId IS NULL AND (:onlyBackfill = 0 OR isBackfill = 1)
+        """,
+    )
+    suspend fun bulkFilable(onlyBackfill: Boolean): List<PendingDirection>
 
     /** Marks [id] as sorted into [categoryId] (a leaf). Clears any earlier ignore. */
     @Query(

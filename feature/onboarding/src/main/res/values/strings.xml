@@ -46,6 +46,8 @@
     <string name="onboarding_history_90_summary">More history for the charts; more to sort</string>
     <string name="onboarding_history_fresh">Start fresh</string>
     <string name="onboarding_history_fresh_summary">Only payments from now on</string>
+    <string name="onboarding_history_other">Put imported payments under Other</string>
+    <string name="onboarding_history_other_summary">No sorting one by one. Re-sort any of them later if you want.</string>
     <string name="onboarding_history_needs_sms">Importing needs SMS access. You can import later from Settings.</string>
 
     <string name="onboarding_categories_title">Your categories</string>

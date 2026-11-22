@@ -41,6 +41,9 @@ class OnboardingViewModel @Inject constructor(
     val step: StateFlow<Int> = saved.getStateFlow(KEY_STEP, 0)
     val backfill: StateFlow<Backfill> = saved.getStateFlow(KEY_BACKFILL, Backfill.DAYS_90)
 
+    /** File the imported payments under Other instead of sorting them one by one (ADR-0058). */
+    val fileUnderOther: StateFlow<Boolean> = saved.getStateFlow(KEY_FILE_UNDER_OTHER, false)
+
     /** For the category preview step. */
     val groups: StateFlow<List<CategoryGroup>> = categories.observeGroups()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), emptyList())
@@ -57,6 +60,10 @@ class OnboardingViewModel @Inject constructor(
         saved[KEY_BACKFILL] = choice
     }
 
+    fun setFileUnderOther(enabled: Boolean) {
+        saved[KEY_FILE_UNDER_OTHER] = enabled
+    }
+
     /**
      * Ends setup: imports the chosen history (or starts tracking from now) and remembers that
      * setup is done. [smsGranted] false skips the import; Settings can run it later.
@@ -66,7 +73,7 @@ class OnboardingViewModel @Inject constructor(
             val days = backfill.value.days
             when {
                 days == null -> checkpoint.startAt(clock.nowMillis())
-                smsGranted -> sync.backfill(clock.nowMillis() - days.days.inWholeMilliseconds)
+                smsGranted -> sync.backfill(clock.nowMillis() - days.days.inWholeMilliseconds, fileUnderOther.value)
             }
             settings.setOnboardingDone(true)
             onDone()
@@ -77,5 +84,6 @@ class OnboardingViewModel @Inject constructor(
         const val STOP_TIMEOUT_MS = 5_000L
         const val KEY_STEP = "step"
         const val KEY_BACKFILL = "backfill"
+        const val KEY_FILE_UNDER_OTHER = "fileUnderOther"
     }
 }
