@@ -20,6 +20,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
@@ -254,10 +255,19 @@ class SettingsScreensTest {
     @Test
     fun `about shows the no-internet badge only when true`() {
         compose.setContent {
-            AboutScreen(version = "1.0.0", offline = true, onBack = {}, onOpenSource = {}, onOpenParser = {})
+            AboutScreen(
+                version = "1.0.0",
+                offline = true,
+                onBack = {},
+                onOpenSource = {},
+                onOpenParser = {},
+                onCheckUpdates = { calls += "updates" },
+            )
         }
         compose.onNodeWithText("Version 1.0.0").assertExists()
         compose.onNodeWithText("No internet permission").assertExists()
+        compose.onNodeWithText("Check for updates").performScrollTo().performClick()
+        assertThat(calls).containsExactly("updates")
     }
 }
 

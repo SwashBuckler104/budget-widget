@@ -22,6 +22,7 @@ import io.github.swashbuckler104.budgetwidget.core.datastore.SettingsStore
 import io.github.swashbuckler104.budgetwidget.core.datastore.ThemeMode
 import io.github.swashbuckler104.budgetwidget.core.designsystem.theme.BudgetWidgetTheme
 import io.github.swashbuckler104.budgetwidget.feature.onboarding.OnboardingRoute
+import io.github.swashbuckler104.budgetwidget.feature.settings.UpdateReminderHost
 import io.github.swashbuckler104.budgetwidget.navigation.BudgetWidgetNavHost
 import io.github.swashbuckler104.budgetwidget.navigation.DeepLinkRequest
 import io.github.swashbuckler104.budgetwidget.widget.QuickSortWidgetReceiver
@@ -66,6 +67,7 @@ class MainActivity : ComponentActivity() {
                         onOpenQuickSort = { id -> startActivity(QuickSortActivity.intent(this, id)) },
                         deepLink = deepLink,
                     )
+                    UpdateReminderHost()
                 }
             }
         }

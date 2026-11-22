@@ -47,6 +47,7 @@ fun AboutRoute(onBack: () -> Unit, modifier: Modifier = Modifier) {
         onBack = onBack,
         onOpenSource = { openLink(context, SOURCE_URL) },
         onOpenParser = { openLink(context, PARSER_URL) },
+        onCheckUpdates = { openUpdatePage(context) },
         modifier = modifier,
     )
 }
@@ -60,6 +61,7 @@ internal fun AboutScreen(
     onOpenSource: () -> Unit,
     onOpenParser: () -> Unit,
     modifier: Modifier = Modifier,
+    onCheckUpdates: () -> Unit = {},
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -86,6 +88,14 @@ internal fun AboutScreen(
                 )
             }
             if (offline) OfflineBadge()
+            // No network: the store or the release page knows whether a newer version exists (ADR-0060).
+            Block(stringResource(R.string.settings_updates_title), stringResource(R.string.settings_updates_body)) {
+                LinkRow(
+                    title = stringResource(R.string.settings_update_check),
+                    summary = RELEASES_URL,
+                    onClick = onCheckUpdates,
+                )
+            }
             Block(stringResource(R.string.settings_privacy_title), stringResource(R.string.settings_privacy_body))
             Block(stringResource(R.string.settings_license_title), stringResource(R.string.settings_license_body)) {
                 LinkRow(

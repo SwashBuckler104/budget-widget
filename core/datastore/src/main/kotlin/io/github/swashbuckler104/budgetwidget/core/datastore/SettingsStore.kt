@@ -162,6 +162,13 @@ class SettingsStore @Inject constructor(@SettingsPreferences private val dataSto
         dataStore.edit { it[OPENING_BALANCE_PROMPT_DISMISSED] = true }
     }
 
+    /** Epoch ms (UTC) until which the "check for a newer version" reminder stays quiet (ADR-0060). */
+    val updateReminderSnoozedUntil: Flow<Long> = dataStore.data.map { it[UPDATE_REMINDER_SNOOZED_UNTIL] ?: 0L }
+
+    suspend fun setUpdateReminderSnoozedUntil(epochMillis: Long) {
+        dataStore.edit { it[UPDATE_REMINDER_SNOOZED_UNTIL] = epochMillis }
+    }
+
     /** Everything a backup carries (SCOPE.md F9), read in one go. */
     suspend fun snapshot(): SettingsSnapshot {
         val prefs = dataStore.data.first()
@@ -212,6 +219,7 @@ class SettingsStore @Inject constructor(@SettingsPreferences private val dataSto
         val ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
         val SMS_RETENTION = stringPreferencesKey("sms_retention")
         val OPENING_BALANCE_PROMPT_DISMISSED = booleanPreferencesKey("opening_balance_prompt_dismissed")
+        val UPDATE_REMINDER_SNOOZED_UNTIL = longPreferencesKey("update_reminder_snoozed_until")
     }
 }
 

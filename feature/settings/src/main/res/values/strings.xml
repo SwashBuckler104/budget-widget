@@ -173,6 +173,12 @@
     </plurals>
 
     <string name="settings_about">About</string>
+    <string name="settings_updates_title">Updates</string>
+    <string name="settings_updates_body">With no internet access, the app can\'t look for a newer version itself. The store it came from, or the release page, can.</string>
+    <string name="settings_update_check">Check for updates</string>
+    <string name="settings_update_title">Check for a newer version?</string>
+    <string name="settings_update_body">You\'ve had version %1$s for a while. Budget Widget has no internet access, so it can\'t check by itself. Open the download page to see if there\'s a newer one.</string>
+    <string name="settings_update_later">Later</string>
     <string name="settings_about_summary">Version, license, privacy and credits</string>
     <string name="settings_app_name">Budget Widget</string>
     <string name="settings_version">Version %1$s</string>
