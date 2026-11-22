@@ -5,6 +5,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -12,10 +14,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -54,9 +64,9 @@ class PurpleActions(
 )
 
 /**
- * Purple, the in-app helper (ADR-0063): one short note at a time, over the main screen. Tour steps
- * point at their tab in the bottom bar; everything else appears at the top right, under the app
- * bar. Put it over the tab content, inside the bottom bar's padding.
+ * Purple, the in-app helper (ADR-0063): one short note at a time, over [content] (the tab
+ * screens, inside the bottom bar's padding). Tour steps point at their tab in the bottom bar;
+ * everything else appears at the top right, under the app bar.
  *
  * [visible]: a tab is showing (not Settings or a drill-down). [tabs]: the tour steps in bottom bar
  * order, so each points at its own tab.
@@ -68,6 +78,7 @@ fun PurpleHost(
     actions: PurpleActions,
     modifier: Modifier = Modifier,
     viewModel: PurpleViewModel = hiltViewModel(),
+    content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
     val info = remember(context) { context.packageManager.getPackageInfo(context.packageName, 0) }
@@ -81,7 +92,7 @@ fun PurpleHost(
         answered = current.key
         viewModel.answer(current, accepted)
     }
-    PurpleOverlay(
+    PurpleLayer(
         note = shown,
         version = info.versionName.orEmpty(),
         tabs = tabs,
@@ -103,7 +114,53 @@ fun PurpleHost(
             }
         },
         modifier = modifier,
+        content = content,
     )
+}
+
+/**
+ * [content] with Purple's [note] over it. A touch anywhere outside the bubble sets the note aside
+ * until the app starts again, without answering it, and still reaches what it touched: the bubble
+ * must never stand between the user and the screen (it covered the search field and *Sort all*).
+ */
+@Composable
+internal fun PurpleLayer(
+    note: PurpleNote?,
+    version: String,
+    tabs: List<PurpleTip>,
+    onPrimary: (PurpleNote) -> Unit,
+    onSecondary: (PurpleNote) -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    var aside by rememberSaveable { mutableStateOf<String?>(null) }
+    val shown = note?.takeIf { it.key != aside }
+    val current by rememberUpdatedState(shown)
+    // In root coordinates; the touch is turned into them with the layer's own position.
+    var bubble by remember { mutableStateOf(Rect.Zero) }
+    var origin by remember { mutableStateOf(Offset.Zero) }
+    Box(
+        modifier
+            .onGloballyPositioned { origin = it.positionInRoot() }
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    // Initial pass, not consumed: the screen under the touch still gets it.
+                    val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                    val open = current
+                    if (open != null && !bubble.contains(down.position + origin)) aside = open.key
+                }
+            },
+    ) {
+        content()
+        PurpleOverlay(
+            note = shown,
+            version = version,
+            tabs = tabs,
+            onPrimary = onPrimary,
+            onSecondary = onSecondary,
+            onBubbleBounds = { bubble = it },
+        )
+    }
 }
 
 /** Stable per note, so a newer note of the same kind (more unread SMS) shows again. */
@@ -118,6 +175,8 @@ internal fun PurpleOverlay(
     onPrimary: (PurpleNote) -> Unit,
     onSecondary: (PurpleNote) -> Unit,
     modifier: Modifier = Modifier,
+    /** Where the bubble is, in root coordinates. */
+    onBubbleBounds: (Rect) -> Unit = {},
 ) {
     Box(modifier.fillMaxSize()) {
         AnimatedContent(
@@ -137,7 +196,7 @@ internal fun PurpleOverlay(
                         onPrimary = { onPrimary(current) },
                         onSecondary = { onSecondary(current) },
                         caretFraction = caretFraction,
-                        modifier = bubbleModifier,
+                        modifier = bubbleModifier.onGloballyPositioned { onBubbleBounds(it.boundsInRoot()) },
                     )
                 }
                 if (tab != null) {

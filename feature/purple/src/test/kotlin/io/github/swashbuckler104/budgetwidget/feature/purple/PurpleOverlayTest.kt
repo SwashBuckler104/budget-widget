@@ -1,5 +1,11 @@
 package io.github.swashbuckler104.budgetwidget.feature.purple
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -71,6 +77,47 @@ class PurpleOverlayTest {
         compose.onNodeWithText("You put Swiggy in Food", substring = true).assertExists()
         compose.onNodeWithText("Always").performClick()
         assertThat(calls).containsExactly("primary:ALWAYS")
+    }
+
+    @Test
+    fun `a touch outside the bubble sets it aside and still reaches the screen`() {
+        var searched = 0
+        compose.setContent {
+            PurpleLayer(
+                note = PurpleNote(PurpleTip.UNREAD_SMS, unreadSms = 2, newestUnreadId = 9),
+                version = "2.0.0",
+                tabs = emptyList(),
+                onPrimary = { calls += "primary:${it.tip}" },
+                onSecondary = { calls += "secondary:${it.tip}" },
+            ) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomStart) {
+                    Button(onClick = { searched++ }) { Text("Search") }
+                }
+            }
+        }
+        compose.onNodeWithText("I couldn't read 2 bank SMS", substring = true).assertExists()
+        compose.onNodeWithText("Search").performClick()
+        assertThat(searched).isEqualTo(1)
+        compose.onNodeWithContentDescription("Purple").assertDoesNotExist()
+        // Set aside, not answered.
+        assertThat(calls).isEmpty()
+    }
+
+    @Test
+    fun `a touch on the bubble keeps it and answers it`() {
+        compose.setContent {
+            PurpleLayer(
+                note = PurpleNote(PurpleTip.UPDATE),
+                version = "2.0.0",
+                tabs = emptyList(),
+                onPrimary = { calls += "primary:${it.tip}" },
+                onSecondary = { calls += "secondary:${it.tip}" },
+            ) {}
+        }
+        compose.onNodeWithText("Version 2.0.0", substring = true).performClick()
+        compose.onNodeWithContentDescription("Purple").assertExists()
+        compose.onNodeWithText("Later").performClick()
+        assertThat(calls).containsExactly("secondary:UPDATE")
     }
 
     @Test

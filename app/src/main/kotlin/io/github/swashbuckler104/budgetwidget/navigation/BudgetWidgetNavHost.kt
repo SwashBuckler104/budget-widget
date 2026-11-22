@@ -1,7 +1,6 @@
 package io.github.swashbuckler104.budgetwidget.navigation
 
 import androidx.annotation.StringRes
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -168,8 +167,16 @@ fun BudgetWidgetNavHost(
             }
         },
     ) { padding ->
-        Box(
-            Modifier
+        // Purple (ADR-0063) sits over the tab content, inside the bottom bar's padding.
+        PurpleHost(
+            visible = onTab,
+            tabs = Tab.entries.map { it.tour },
+            actions = PurpleActions(
+                onCheckUpdates = { openUpdatePage(context) },
+                onOpenParserFeedback = openParserFeedback,
+                onSortAll = { onOpenQuickSort(null) },
+            ),
+            modifier = Modifier
                 .padding(padding)
                 .consumeWindowInsets(padding),
         ) {
@@ -239,15 +246,6 @@ fun BudgetWidgetNavHost(
                 composable<ParserFeedbackDestination> { ParserFeedbackRoute(onBack = { navController.popBackStack() }) }
                 composable<AboutDestination> { AboutRoute(onBack = { navController.popBackStack() }) }
             }
-            PurpleHost(
-                visible = onTab,
-                tabs = Tab.entries.map { it.tour },
-                actions = PurpleActions(
-                    onCheckUpdates = { openUpdatePage(context) },
-                    onOpenParserFeedback = openParserFeedback,
-                    onSortAll = { onOpenQuickSort(null) },
-                ),
-            )
         }
     }
 }
