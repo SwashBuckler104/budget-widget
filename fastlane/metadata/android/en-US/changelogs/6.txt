@@ -1,0 +1,7 @@
+- Put a whole imported history under Other in one go, at setup or from the inbox.
+- Add each account's starting balance. It's a baseline, never income.
+- Reminds you to check for a newer version. Still no internet access.
+- Reads NKGSB Bank, Indian Railways R-Wallet and CRED wallet SMS.
+- Shop credit like CLiQ Cash is no longer kept as a bank SMS.
+- Bottom sheets no longer shake after a swipe up.
+- Bank SMS text on transactions is stored masked.

@@ -71,6 +71,11 @@ categories and a budget in progress.
 parser fixes from the owner's real unparsed messages (B4 loop run on their C3 report), which waits
 until they have collected enough of them.
 
+**2.0.0 scope (owner, 2026-11-22).** Ships the first parser feedback round and the
+`improve-parser` skill (ADR-0061), the bottom sheet shake fix (ADR-0057), *All to Other* for an
+imported history (ADR-0058), starting balances (ADR-0059) and the update check by hand-off
+(ADR-0060). D (Play distribution) is not in this round: the owner schedules it.
+
 ---
 
 ## A. UI fixes
