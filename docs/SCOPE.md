@@ -156,9 +156,10 @@ Built with **Jetpack Glance** (`GlanceAppWidget`, `GlanceTheme` with dynamic col
 - On every user categorization: upsert `MerchantRule(merchantKey → categoryId, confirmCount++, lastUsedAt)`; if user picks a different category, reset `confirmCount = 1` with the new category.
 - **Suggestion ranking** (for chips/actions): (1) rule category, (2) categories used for this merchantKey historically, (3) most-used categories in last 60 days for the same direction and similar amount band (±50%), (4) global most-used, (5) seed defaults. Deduplicate; return top 6.
 - **Auto-sort (setting, default OFF):** "Auto-sort merchants I've confirmed 3+ times". Auto-sorted items are `CATEGORIZED` with `autoCategorized = true`, shown with a subtle "auto" tag and appear in a "Review auto-sorted" filter. Rationale: the product's value is awareness — don't silently remove it by default.
+- **Always for a merchant (explicit, per merchant; ADR-0062):** "Always for X" sorts X's earlier payments into the chosen category and auto-sorts new ones regardless of the setting above, with the same "auto" tag. Never for refunds into an expense category, possible duplicates or ignored payments.
 
 ### F9. Settings
-- Notifications (on/off, threshold), evening nudge time, auto-sort toggle.
+- Notifications (on/off, threshold), evening nudge time, auto-sort toggle, tips from Purple (the in-app helper, ADR-0063).
 - Accounts (nickname, hide).
 - Re-run backfill (choose range).
 - **Unparsed bank SMS** list (copy text to report a parser bug upstream; delete).

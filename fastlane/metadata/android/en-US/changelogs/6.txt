@@ -1,7 +1,8 @@
-- Put a whole imported history under Other in one go, at setup or from the inbox.
-- Add each account's starting balance. It's a baseline, never income.
-- Reminds you to check for a newer version. Still no internet access.
-- Reads NKGSB Bank, Indian Railways R-Wallet and CRED wallet SMS.
-- Shop credit like CLiQ Cash is no longer kept as a bank SMS.
+- Meet Purple: a short tour and small tips as you go.
+- "Always" for a merchant sorts its earlier and new payments.
+- Put a whole imported history under Other in one go.
+- Add each account's starting balance, never counted as income.
+- Purple reminds you to check for a newer version. Still offline.
+- Reads NKGSB Bank, IRCTC R-Wallet and CRED wallet SMS.
 - Bottom sheets no longer shake after a swipe up.
 - Bank SMS text on transactions is stored masked.
