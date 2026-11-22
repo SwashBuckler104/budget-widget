@@ -1,6 +1,7 @@
 package io.github.swashbuckler104.budgetwidget.feature.settings
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -36,17 +37,20 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.github.swashbuckler104.budgetwidget.core.data.account.OpeningBalances
 import io.github.swashbuckler104.budgetwidget.core.data.repository.TransactionRepository
 import io.github.swashbuckler104.budgetwidget.core.designsystem.component.EmptyState
 import io.github.swashbuckler104.budgetwidget.core.model.Account
 import io.github.swashbuckler104.budgetwidget.core.model.AccountKind
 import io.github.swashbuckler104.budgetwidget.core.model.formatInr
+import io.github.swashbuckler104.budgetwidget.core.model.parseInrToPaise
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -56,11 +60,23 @@ import kotlinx.coroutines.launch
 
 /** Accounts seen in bank SMS (SCOPE.md F2/F9): give them a nickname, or hide them from filters. */
 @HiltViewModel
-class AccountsViewModel @Inject constructor(private val transactions: TransactionRepository) : ViewModel() {
+class AccountsViewModel @Inject constructor(
+    private val transactions: TransactionRepository,
+    private val openingBalances: OpeningBalances,
+) : ViewModel() {
     /** Null while loading. */
     val accounts: StateFlow<List<Account>?> = transactions.observeAccounts()
         .map<List<Account>, List<Account>?> { it }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
+
+    /** Account id to the balance it started with (ADR-0059). */
+    val openings: StateFlow<Map<Long, Long>> = openingBalances.observe()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), emptyMap())
+
+    /** [balancePaise] null removes it; negative is money owed. */
+    fun setOpeningBalance(id: Long, balancePaise: Long?) {
+        viewModelScope.launch { openingBalances.set(id, balancePaise) }
+    }
 
     fun rename(id: Long, nickname: String) {
         viewModelScope.launch { transactions.setAccountNickname(id, nickname.take(MAX_NICKNAME)) }
@@ -79,7 +95,16 @@ class AccountsViewModel @Inject constructor(private val transactions: Transactio
 @Composable
 fun AccountsRoute(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: AccountsViewModel = hiltViewModel()) {
     val accounts by viewModel.accounts.collectAsStateWithLifecycle()
-    AccountsScreen(accounts, onBack, viewModel::rename, viewModel::setHidden, modifier)
+    val openings by viewModel.openings.collectAsStateWithLifecycle()
+    AccountsScreen(
+        accounts = accounts,
+        onBack = onBack,
+        onRename = viewModel::rename,
+        onToggleVisibility = viewModel::setHidden,
+        openings = openings,
+        onSetOpening = viewModel::setOpeningBalance,
+        modifier = modifier,
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -90,6 +115,8 @@ internal fun AccountsScreen(
     onRename: (Long, String) -> Unit,
     onToggleVisibility: (Long, Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    openings: Map<Long, Long> = emptyMap(),
+    onSetOpening: (Long, Long?) -> Unit = { _, _ -> },
 ) {
     var editing by rememberSaveable { mutableStateOf<Long?>(null) }
     Scaffold(
@@ -119,7 +146,7 @@ internal fun AccountsScreen(
                     )
                 }
                 items(accounts, key = { it.id }) { account ->
-                    AccountRow(account, onEdit = {
+                    AccountRow(account, openings[account.id], onEdit = {
                         editing = account.id
                     }, onToggleVisibility = { onToggleVisibility(account.id, it) })
                 }
@@ -128,10 +155,13 @@ internal fun AccountsScreen(
     }
     val account = editing?.let { id -> accounts?.firstOrNull { it.id == id } }
     if (account != null) {
-        RenameDialog(
+        EditAccountDialog(
             account = account,
-            onSave = {
-                onRename(account.id, it)
+            opening = openings[account.id],
+            onSave = { nickname, opening ->
+                if (nickname != account.nickname.orEmpty()) onRename(account.id, nickname)
+                // Only when it changed: setting it also resets the account's balance to it.
+                if (opening != openings[account.id]) onSetOpening(account.id, opening)
                 editing = null
             },
             onDismiss = { editing = null },
@@ -140,7 +170,7 @@ internal fun AccountsScreen(
 }
 
 @Composable
-private fun AccountRow(account: Account, onEdit: () -> Unit, onToggleVisibility: (Boolean) -> Unit) {
+private fun AccountRow(account: Account, opening: Long?, onEdit: () -> Unit, onToggleVisibility: (Boolean) -> Unit) {
     val shown = stringResource(R.string.settings_account_shown)
     val hiddenText = stringResource(R.string.settings_account_hidden)
     val toggle = stringResource(R.string.settings_account_show_in_filters, account.label)
@@ -158,6 +188,13 @@ private fun AccountRow(account: Account, onEdit: () -> Unit, onToggleVisibility:
                     listOfNotNull(bank, account.last4?.let { "··$it" }).joinToString(" ")
                 },
                 account.balancePaise?.let { stringResource(R.string.settings_account_balance, formatInr(it)) },
+                opening?.let {
+                    if (it < 0) {
+                        stringResource(R.string.settings_account_opening_owed, formatInr(-it))
+                    } else {
+                        stringResource(R.string.settings_account_opening, formatInr(it))
+                    }
+                },
             )
             if (details.isNotEmpty()) Text(details.joinToString(" · "))
         },
@@ -166,7 +203,7 @@ private fun AccountRow(account: Account, onEdit: () -> Unit, onToggleVisibility:
                 IconButton(onClick = onEdit) {
                     Icon(
                         Icons.Rounded.Edit,
-                        contentDescription = stringResource(R.string.settings_account_rename, account.label),
+                        contentDescription = stringResource(R.string.settings_account_edit, account.label),
                     )
                 }
                 Switch(
@@ -182,29 +219,69 @@ private fun AccountRow(account: Account, onEdit: () -> Unit, onToggleVisibility:
     )
 }
 
+/**
+ * Nickname and starting balance (ADR-0059). A card's starting balance is what was owed, typed as a
+ * positive amount and stored negative; an empty field removes it.
+ */
 @Composable
-private fun RenameDialog(account: Account, onSave: (String) -> Unit, onDismiss: () -> Unit) {
+private fun EditAccountDialog(
+    account: Account,
+    opening: Long?,
+    onSave: (nickname: String, opening: Long?) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val card = account.kind == AccountKind.CARD
     var text by rememberSaveable { mutableStateOf(account.nickname.orEmpty()) }
+    var amount by rememberSaveable { mutableStateOf(opening?.let { formatRupees(kotlin.math.abs(it)) }.orEmpty()) }
+    val parsed = parseInrToPaise(amount)
+    val amountError = amount.isNotBlank() && parsed == null
+    val amountLabel = stringResource(
+        if (card) R.string.settings_account_opening_owed_label else R.string.settings_account_opening_label,
+    )
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.settings_account_nickname)) },
+        title = { Text(stringResource(R.string.settings_account_edit_title)) },
         text = {
-            OutlinedTextField(
-                value = text,
-                onValueChange = { text = it.take(AccountsViewModel.MAX_NICKNAME) },
-                singleLine = true,
-                placeholder = {
-                    Text(listOfNotNull(account.bankName, account.last4?.let { "··$it" }).joinToString(" "))
-                },
-                supportingText = { Text(stringResource(R.string.settings_account_nickname_hint)) },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                modifier = Modifier.fillMaxWidth(),
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it.take(AccountsViewModel.MAX_NICKNAME) },
+                    singleLine = true,
+                    label = { Text(stringResource(R.string.settings_account_nickname)) },
+                    placeholder = {
+                        Text(listOfNotNull(account.bankName, account.last4?.let { "··$it" }).joinToString(" "))
+                    },
+                    supportingText = { Text(stringResource(R.string.settings_account_nickname_hint)) },
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = amount,
+                    onValueChange = { amount = it.take(AMOUNT_LENGTH) },
+                    singleLine = true,
+                    isError = amountError,
+                    label = { Text(amountLabel) },
+                    prefix = { Text("₹") },
+                    supportingText = { Text(stringResource(R.string.settings_account_opening_hint)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         },
-        confirmButton = { TextButton(onClick = { onSave(text) }) { Text(stringResource(R.string.settings_save)) } },
+        confirmButton = {
+            TextButton(enabled = !amountError, onClick = { onSave(text, parsed?.let { if (card) -it else it }) }) {
+                Text(stringResource(R.string.settings_save))
+            }
+        },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.settings_cancel)) } },
     )
 }
+
+/** Paise as plain rupees for an input field: `52340`, `99.5`. */
+private fun formatRupees(paise: Long): String =
+    if (paise % 100 == 0L) (paise / 100).toString() else "%d.%02d".format(paise / 100, paise % 100)
+
+private const val AMOUNT_LENGTH = 20
 
 @Composable
 internal fun BackButton(onBack: () -> Unit) {

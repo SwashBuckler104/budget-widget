@@ -38,6 +38,10 @@
     </plurals>
     <string name="transactions_sort_all">Sort all</string>
     <string name="transactions_all_to_other">All to Other</string>
+    <string name="transactions_opening_title">Add your starting balances</string>
+    <string name="transactions_opening_body">Enter what each account holds today. It gives the app a baseline and never counts as income.</string>
+    <string name="transactions_opening_set">Add balances</string>
+    <string name="transactions_opening_not_now">Not now</string>
     <plurals name="transactions_all_to_other_title">
         <item quantity="one">Put %d payment under Other?</item>
         <item quantity="other">Put %d payments under Other?</item>

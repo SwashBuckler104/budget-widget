@@ -183,7 +183,11 @@ fun BudgetWidgetNavHost(
                 )
             }
             composable<TransactionsDestination> {
-                TransactionsRoute(onOpenQuickSort = onOpenQuickSort, onOpenSettings = openSettings)
+                TransactionsRoute(
+                    onOpenQuickSort = onOpenQuickSort,
+                    onOpenSettings = openSettings,
+                    onOpenAccounts = { navController.navigate(AccountsDestination) { launchSingleTop = true } },
+                )
             }
             composable<CategoriesDestination> { CategoriesRoute() }
             composable<SettingsDestination> {

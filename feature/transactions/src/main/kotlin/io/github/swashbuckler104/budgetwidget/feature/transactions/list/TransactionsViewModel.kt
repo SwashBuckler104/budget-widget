@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.swashbuckler104.budgetwidget.core.data.WallClock
+import io.github.swashbuckler104.budgetwidget.core.data.account.OpeningBalances
 import io.github.swashbuckler104.budgetwidget.core.data.category.CategoryRepository
 import io.github.swashbuckler104.budgetwidget.core.data.edit.EditResult
 import io.github.swashbuckler104.budgetwidget.core.data.edit.ManualTransaction
@@ -115,6 +116,7 @@ class TransactionsViewModel @Inject constructor(
     private val smsSync: SmsSync,
     private val clock: WallClock,
     private val bulk: BulkSorter,
+    private val openingBalances: OpeningBalances,
 ) : ViewModel() {
     private val drillDown: TransactionFilter? = savedStateHandle.get<Long>(ARG_FROM_MILLIS)?.let { from ->
         TransactionFilter(
@@ -286,6 +288,15 @@ class TransactionsViewModel @Inject constructor(
 
     fun undo(undo: Undo) {
         viewModelScope.launch { editor.undo(undo) }
+    }
+
+    /** The card asking for starting balances (ADR-0059); never in a drill-down. */
+    val openingPrompt: StateFlow<Boolean> =
+        (if (drillDown == null) openingBalances.promptVisible() else flowOf(false))
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), false)
+
+    fun dismissOpeningPrompt() {
+        viewModelScope.launch { openingBalances.dismissPrompt() }
     }
 
     /** Files the whole inbox under Other (ADR-0058); the screen confirms first. */

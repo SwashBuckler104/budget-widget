@@ -1,12 +1,14 @@
 package io.github.swashbuckler104.budgetwidget.feature.transactions.list
 
 import android.content.Context
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
+import io.github.swashbuckler104.budgetwidget.core.data.account.OpeningBalances
 import io.github.swashbuckler104.budgetwidget.core.data.category.CategoryRepository
 import io.github.swashbuckler104.budgetwidget.core.data.edit.TransactionEdit
 import io.github.swashbuckler104.budgetwidget.core.data.edit.TransactionEditor
@@ -18,6 +20,7 @@ import io.github.swashbuckler104.budgetwidget.core.data.sort.SortTransactionUseC
 import io.github.swashbuckler104.budgetwidget.core.database.BudgetDatabase
 import io.github.swashbuckler104.budgetwidget.core.database.entity.CategoryEntity
 import io.github.swashbuckler104.budgetwidget.core.database.entity.TransactionEntity
+import io.github.swashbuckler104.budgetwidget.core.datastore.SettingsStore
 import io.github.swashbuckler104.budgetwidget.core.model.CategoryKind
 import io.github.swashbuckler104.budgetwidget.core.model.Direction
 import io.github.swashbuckler104.budgetwidget.core.model.TransactionSource
@@ -25,6 +28,7 @@ import io.github.swashbuckler104.budgetwidget.core.model.TransactionStatus
 import io.github.swashbuckler104.budgetwidget.feature.transactions.NoOpParser
 import java.time.LocalDate
 import java.time.ZoneId
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
@@ -37,7 +41,9 @@ import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 
 /** Real Room, repositories and editor; only time and SMS sync are fixed. */
@@ -45,6 +51,17 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class TransactionsViewModelTest {
     private lateinit var db: BudgetDatabase
+
+    @get:Rule
+    val tmp = TemporaryFolder()
+
+    private val settings by lazy {
+        SettingsStore(
+            PreferenceDataStoreFactory.create(scope = CoroutineScope(Dispatchers.IO)) {
+                tmp.root.resolve("s.preferences_pb")
+            },
+        )
+    }
     private val viewModels = mutableListOf<TransactionsViewModel>()
     private val now = LocalDate.of(2026, 11, 9).atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
@@ -76,6 +93,7 @@ class TransactionsViewModelTest {
             NoSync,
             { now },
             BulkSorter(db, sort, InboxEvents(emptySet())),
+            OpeningBalances(db, settings) { now },
         ).also { viewModels += it }
     }
 

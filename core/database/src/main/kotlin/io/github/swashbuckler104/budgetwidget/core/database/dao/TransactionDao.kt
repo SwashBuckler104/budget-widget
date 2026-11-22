@@ -15,6 +15,9 @@ import kotlinx.coroutines.flow.Flow
 /** One stored SMS body, for the masking scrub. */
 data class StoredBody(val id: Long, val smsBody: String)
 
+/** An account's opening balance in paise, negative for money owed (ADR-0059). */
+data class AccountAmount(val accountId: Long, val balancePaise: Long)
+
 /** A pending transaction's id and which way its money moved, for bulk filing. */
 data class PendingDirection(val id: Long, val direction: Direction)
 
@@ -34,6 +37,24 @@ interface TransactionDao {
 
     @Query("SELECT * FROM transactions WHERE id = :id")
     suspend fun get(id: Long): TransactionEntity?
+
+    @Query("SELECT * FROM transactions WHERE txnHash = :hash")
+    suspend fun byHash(hash: String): TransactionEntity?
+
+    /** The amount of a manual entry the app keeps in step with a setting (an opening balance). */
+    @Query(
+        "UPDATE transactions SET amountPaise = :amountPaise, direction = :direction, updatedAt = :now WHERE id = :id",
+    )
+    suspend fun updateAmount(id: Long, amountPaise: Long, direction: Direction, now: Long)
+
+    /** Opening balances by account (ADR-0059): the rows `OpeningBalances` keys by `txnHash`. */
+    @Query(
+        """
+        SELECT accountId, CASE direction WHEN 'IN' THEN amountPaise ELSE -amountPaise END AS balancePaise
+        FROM transactions WHERE txnHash LIKE 'opening-balance:%' AND accountId IS NOT NULL
+        """,
+    )
+    fun observeOpeningBalances(): Flow<List<AccountAmount>>
 
     /** Every transaction as a light row (no SMS body), newest first. */
     @Query(

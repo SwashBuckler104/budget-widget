@@ -152,6 +152,16 @@ class SettingsStore @Inject constructor(@SettingsPreferences private val dataSto
         dataStore.edit { it[ONBOARDING_DONE] = done }
     }
 
+    /** The inbox card asking for starting balances was dismissed (ADR-0059). Kept on this phone only. */
+    val openingBalancePromptDismissed: Flow<Boolean> = dataStore.data.map {
+        it[OPENING_BALANCE_PROMPT_DISMISSED]
+            ?: false
+    }
+
+    suspend fun dismissOpeningBalancePrompt() {
+        dataStore.edit { it[OPENING_BALANCE_PROMPT_DISMISSED] = true }
+    }
+
     /** Everything a backup carries (SCOPE.md F9), read in one go. */
     suspend fun snapshot(): SettingsSnapshot {
         val prefs = dataStore.data.first()
@@ -201,6 +211,7 @@ class SettingsStore @Inject constructor(@SettingsPreferences private val dataSto
         val SECURE_SCREEN = booleanPreferencesKey("secure_screen")
         val ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
         val SMS_RETENTION = stringPreferencesKey("sms_retention")
+        val OPENING_BALANCE_PROMPT_DISMISSED = booleanPreferencesKey("opening_balance_prompt_dismissed")
     }
 }
 

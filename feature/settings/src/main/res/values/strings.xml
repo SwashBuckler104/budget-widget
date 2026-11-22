@@ -101,7 +101,7 @@
     <string name="settings_unparsed_reason_wrong_amount">You reported the amount</string>
     <string name="settings_unparsed_reason_unknown_sender">Bank not supported yet</string>
     <string name="settings_accounts">Accounts</string>
-    <string name="settings_accounts_summary">Nicknames, and which accounts show in filters</string>
+    <string name="settings_accounts_summary">Nicknames, starting balances, and which accounts show in filters</string>
     <string name="settings_accounts_hint">Accounts appear as bank SMS arrive. Hidden accounts leave the filters; their transactions still count.</string>
     <string name="settings_accounts_empty_title">No accounts yet</string>
     <string name="settings_accounts_empty_body">They appear here once bank SMS arrive.</string>
@@ -109,7 +109,13 @@
     <string name="settings_account_hidden">Hidden</string>
     <!-- %1$s is an account label, e.g. HDFC Bank ··1234 -->
     <string name="settings_account_show_in_filters">Show %1$s in filters</string>
-    <string name="settings_account_rename">Rename %1$s</string>
+    <string name="settings_account_edit">Edit %1$s</string>
+    <string name="settings_account_edit_title">Edit account</string>
+    <string name="settings_account_opening">Started at %1$s</string>
+    <string name="settings_account_opening_owed">Started owing %1$s</string>
+    <string name="settings_account_opening_label">Starting balance</string>
+    <string name="settings_account_opening_owed_label">Amount owed at the start</string>
+    <string name="settings_account_opening_hint">What it held when you started tracking. A baseline, not income. Leave empty for none.</string>
     <string name="settings_account_balance">Balance %1$s</string>
     <string name="settings_account_nickname">Nickname</string>
     <string name="settings_account_nickname_hint">Leave empty to use the bank name</string>

@@ -8,4 +8,6 @@ dependencies {
     testImplementation(libs.turbine)
     testImplementation(projects.core.database)
     testImplementation(libs.androidx.room.runtime)
+    testImplementation(projects.core.datastore)
+    testImplementation(libs.androidx.datastore.preferences)
 }

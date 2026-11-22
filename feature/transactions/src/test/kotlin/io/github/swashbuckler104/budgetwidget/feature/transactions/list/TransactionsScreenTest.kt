@@ -62,6 +62,8 @@ class TransactionsScreenTest {
         onSyncNow = { calls += "sync" },
         onBackfill = { calls += "backfill" },
         onFileAllUnderOther = { calls += "allToOther" },
+        onOpenAccounts = { calls += "accounts" },
+        onDismissOpeningPrompt = { calls += "dismissOpening" },
     )
 
     private fun show(state: TransactionsUiState) = compose.setContent {
@@ -128,6 +130,25 @@ class TransactionsScreenTest {
         compose.onNodeWithText("All to Other").performClick()
         compose.onNodeWithText("Put under Other").performClick()
         assertThat(calls).containsExactly("allToOther")
+    }
+
+    @Test
+    fun `the starting balance card opens accounts or goes away`() {
+        compose.setContent {
+            TransactionsScreen(
+                TransactionsUiState(loading = false),
+                title = null,
+                snackbar = SnackbarHostState(),
+                smsGranted = true,
+                callbacks = callbacks(),
+                openingPrompt = true,
+            )
+        }
+        compose.onNodeWithText("Add your starting balances").assertExists()
+        compose.onNodeWithText("never counts as income", substring = true).assertExists()
+        compose.onNodeWithText("Add balances").performClick()
+        compose.onNodeWithText("Not now").performClick()
+        assertThat(calls).containsExactly("accounts", "dismissOpening").inOrder()
     }
 
     @Test

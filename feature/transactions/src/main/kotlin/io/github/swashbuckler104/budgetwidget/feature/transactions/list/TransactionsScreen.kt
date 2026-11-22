@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.AccountBalance
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DoNotDisturbOn
@@ -108,12 +109,14 @@ fun TransactionsRoute(
     onOpenQuickSort: (transactionId: Long?) -> Unit,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenAccounts: () -> Unit = onOpenSettings,
     onBack: (() -> Unit)? = null,
     title: String? = null,
     viewModel: TransactionsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val editing by viewModel.editing.collectAsStateWithLifecycle()
+    val openingPrompt by viewModel.openingPrompt.collectAsStateWithLifecycle()
     val context = LocalContext.current
     fun hasSms() = SMS_PERMISSIONS.all {
         ContextCompat.checkSelfPermission(context, it) ==
@@ -160,6 +163,7 @@ fun TransactionsRoute(
         title = title,
         snackbar = snackbar,
         smsGranted = smsGranted,
+        openingPrompt = openingPrompt,
         callbacks = ScreenCallbacks(
             onBack = onBack,
             onFilter = viewModel::setFilter,
@@ -183,6 +187,8 @@ fun TransactionsRoute(
             onSyncNow = viewModel::syncNow,
             onBackfill = { viewModel.backfill(BACKFILL_DAYS) },
             onFileAllUnderOther = viewModel::fileAllUnderOther,
+            onOpenAccounts = onOpenAccounts,
+            onDismissOpeningPrompt = viewModel::dismissOpeningPrompt,
         ),
         modifier = modifier,
     )
@@ -258,6 +264,8 @@ internal class ScreenCallbacks(
     val onSyncNow: () -> Unit,
     val onBackfill: () -> Unit,
     val onFileAllUnderOther: () -> Unit,
+    val onOpenAccounts: () -> Unit,
+    val onDismissOpeningPrompt: () -> Unit,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -269,6 +277,7 @@ internal fun TransactionsScreen(
     smsGranted: Boolean,
     callbacks: ScreenCallbacks,
     modifier: Modifier = Modifier,
+    openingPrompt: Boolean = false,
 ) {
     var searching by rememberSaveable { mutableStateOf(false) }
     var filtering by rememberSaveable { mutableStateOf(false) }
@@ -346,7 +355,7 @@ internal fun TransactionsScreen(
                     onClear = callbacks.onClearFilters,
                 )
             }
-            TransactionList(state, smsGranted, inboxExpanded, { inboxExpanded = it }, callbacks)
+            TransactionList(state, smsGranted, openingPrompt, inboxExpanded, { inboxExpanded = it }, callbacks)
         }
     }
 }
@@ -438,6 +447,7 @@ private fun SearchField(query: String, onQuery: (String) -> Unit, onClose: () ->
 private fun TransactionList(
     state: TransactionsUiState,
     smsGranted: Boolean,
+    openingPrompt: Boolean,
     inboxExpanded: Boolean,
     onInboxExpand: (Boolean) -> Unit,
     callbacks: ScreenCallbacks,
@@ -456,6 +466,9 @@ private fun TransactionList(
 
     LazyColumn(contentPadding = PaddingValues(bottom = 96.dp), modifier = Modifier.fillMaxSize()) {
         if (!smsGranted && !state.drillDown) item(key = "sms") { SmsCard(callbacks.onRequestSms) }
+        if (openingPrompt && !state.selecting) {
+            item(key = "opening") { OpeningBalanceCard(callbacks.onOpenAccounts, callbacks.onDismissOpeningPrompt) }
+        }
 
         if (state.inbox.isNotEmpty()) {
             item(key = "inbox-header") {
@@ -613,6 +626,32 @@ private fun SmsCard(onRequest: () -> Unit) {
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(R.string.transactions_sms_body), style = MaterialTheme.typography.bodyMedium)
                 Button(onClick = onRequest) { Text(stringResource(R.string.transactions_sms_allow)) }
+            }
+        }
+    }
+}
+
+/** Asks once for each account's starting balance (ADR-0059): a baseline, not income. */
+@Composable
+private fun OpeningBalanceCard(onSetUp: () -> Unit, onDismiss: () -> Unit) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(16.dp),
+        ) {
+            Icon(Icons.Rounded.AccountBalance, contentDescription = null)
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(stringResource(R.string.transactions_opening_title), style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.transactions_opening_body), style = MaterialTheme.typography.bodyMedium)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = onSetUp) { Text(stringResource(R.string.transactions_opening_set)) }
+                    TextButton(onClick = onDismiss) { Text(stringResource(R.string.transactions_opening_not_now)) }
+                }
             }
         }
     }
