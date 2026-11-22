@@ -466,10 +466,10 @@ deliberate deviation. Newest at the bottom. Status is Accepted unless stated.
 
 ## ADR-0060: Update check by hand-off, still no internet permission
 - **Why:** the owner wants an "update available" prompt like other apps. Knowing that a newer version exists needs the network, and the app ships without `INTERNET` (SCOPE.md pillar 4, CI-enforced). The owner chose a hand-off that keeps the app offline (2.0.0).
-- **Check for updates** (*About*, and the reminder) opens the page that knows: the Play listing (`market://`) when Play installed the app (`getInstallSourceInfo`, API 30+), otherwise the GitHub releases page, in the browser. If no app can open the store link, the release page is tried.
+- **Check for updates** (*Settings › Help*, *About*, and the reminder) opens the page that knows: the Play listing (`market://`) when Play installed the app (`getInstallSourceInfo`, API 30+), otherwise the GitHub releases page, in the browser. If no app can open the store link, the release page is tried.
 - **Reminder:** `UpdateReminder` asks "Check for a newer version?" once this version has been installed (`PackageInfo.lastUpdateTime`) for 60 days, as a note from Purple at the top right of the main screen (ADR-0063; first a dialog); Check or Later quiets it for 30 days (kept on this phone only). An update resets the clock. It uses the install time rather than a build timestamp, which would break the reproducible build (ADR-0050), and needs no release step.
 - **Later:** Play's in-app updates API runs inside the Play Store app (no `INTERNET` here) and can replace the reminder for Play installs once D (Play distribution) ships, if it stays free of proprietary dependencies for F-Droid.
-- **Tests:** `UpdateReminderTest`, `UpdateCheckTest`, `SettingsScreensTest` (About link).
+- **Tests:** `UpdateReminderTest`, `UpdateCheckTest`, `SettingsScreensTest` (About and Settings links).
 
 ## ADR-0061: Our own formats for senders parser-core doesn't know, and a parser skill
 - **Why:** the owner's first parser feedback (2.0.0, `docs/parser-dataset.md`, kept local) showed real money movements no upstream parser claims: NKGSB Co-op Bank, the Indian Railways R-Wallet and the CRED wallet, kept only as unknown-sender entries. Waiting for upstream leaves them out of the budget.

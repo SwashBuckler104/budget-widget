@@ -2,7 +2,7 @@
 - Send a merchant's earlier or newer payments to a category.
 - Put a whole imported history under Other in one go.
 - Add each account's starting balance, never counted as income.
-- Purple reminds you to check for a newer version. Still offline.
+- Check for a newer version in Settings; Purple reminds you. Still offline.
 - Reads NKGSB Bank, IRCTC R-Wallet and CRED wallet SMS.
 - The app opens on Analysis.
 - Bottom sheets no longer shake after a swipe up.
