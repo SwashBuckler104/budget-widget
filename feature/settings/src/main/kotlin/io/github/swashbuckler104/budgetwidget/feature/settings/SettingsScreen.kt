@@ -760,6 +760,8 @@ private fun messageText(resources: Resources, message: SettingsMessage): String 
 
     SettingsMessage.BackupTooNew -> resources.getString(R.string.settings_msg_too_new)
 
+    SettingsMessage.BackupTooLarge -> resources.getString(R.string.settings_msg_too_large)
+
     SettingsMessage.FileFailed -> resources.getString(R.string.settings_msg_file_failed)
 
     SettingsMessage.BackupNotSaved -> resources.getString(R.string.settings_msg_backup_not_saved)

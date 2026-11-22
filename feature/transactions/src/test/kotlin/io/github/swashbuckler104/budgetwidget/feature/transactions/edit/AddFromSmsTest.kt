@@ -22,6 +22,7 @@ import io.github.swashbuckler104.budgetwidget.core.model.CategoryKind
 import io.github.swashbuckler104.budgetwidget.core.model.Direction
 import io.github.swashbuckler104.budgetwidget.core.model.TransactionSource
 import io.github.swashbuckler104.budgetwidget.core.model.sms.UnparsedReason
+import io.github.swashbuckler104.budgetwidget.feature.transactions.NoOpParser
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -73,7 +74,7 @@ class AddFromSmsTest {
         return AddFromSmsViewModel(
             TransactionRepository(db.transactionDao(), db.unparsedSmsDao(), db.accountDao()),
             CategoryRepository(db),
-            TransactionEditor(db, sort, InboxEvents(emptySet())) { now },
+            TransactionEditor(db, sort, InboxEvents(emptySet()), NoOpParser) { now },
         ) { now }.also { viewModels += it }
     }
 

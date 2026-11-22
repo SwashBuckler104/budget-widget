@@ -16,6 +16,9 @@ import io.github.swashbuckler104.budgetwidget.core.model.Direction
 import io.github.swashbuckler104.budgetwidget.core.model.IgnoreReason
 import io.github.swashbuckler104.budgetwidget.core.model.TransactionSource
 import io.github.swashbuckler104.budgetwidget.core.model.TransactionStatus
+import io.github.swashbuckler104.budgetwidget.core.model.sms.RawSms
+import io.github.swashbuckler104.budgetwidget.core.model.sms.SmsParseResult
+import io.github.swashbuckler104.budgetwidget.core.model.sms.SmsParser
 import io.github.swashbuckler104.budgetwidget.core.model.sms.UnparsedReason
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -31,11 +34,20 @@ class TransactionEditorTest {
     private val listener = RecordingInboxListener()
     private var now = 5_000L
 
+    /** Masks 4+ digit runs, to see which text reaches the unparsed list. */
+    private object MaskingParser : SmsParser {
+        override fun isKnownBankSender(sender: String) = true
+
+        override fun parse(sms: RawSms): SmsParseResult = SmsParseResult.Unparsed(UnparsedReason.NO_MATCH)
+
+        override fun redactUnparsed(body: String) = body.replace(Regex("""\d{4,}"""), "####")
+    }
+
     @Before
     fun setUp() {
         db = inMemoryDb()
         val sort = SortTransactionUseCase(db, { now }, InboxEvents(setOf(listener)))
-        editor = TransactionEditor(db, sort, InboxEvents(setOf(listener)), { now })
+        editor = TransactionEditor(db, sort, InboxEvents(setOf(listener)), MaskingParser, { now })
     }
 
     @After
@@ -220,7 +232,7 @@ class TransactionEditorTest {
     @Test
     fun `report wrong amount files the SMS in the unparsed list`() = runTest {
         val a = db.transactionDao().insertOrIgnore(
-            testTxn("a").copy(smsBody = "Rs 450 debited", smsSender = "AD-HDFCBK"),
+            testTxn("a").copy(smsBody = "Rs 450 debited Ref 630199887766", smsSender = "AD-HDFCBK"),
         )
         val manual = (
             editor.addManual(
@@ -232,6 +244,8 @@ class TransactionEditorTest {
         assertThat(editor.reportWrongAmount(manual)).isFalse()
         assertThat(db.unparsedSmsDao().count()).isEqualTo(1)
         assertThat(db.unparsedSmsDao().observeCount().first()).isEqualTo(1)
+        // The unparsed list only holds masked text, even for a body stored before masking.
+        assertThat(db.unparsedSmsDao().getAll().single().body).isEqualTo("Rs 450 debited Ref ####")
     }
 
     @Test

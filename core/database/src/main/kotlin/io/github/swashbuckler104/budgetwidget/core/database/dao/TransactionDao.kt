@@ -12,11 +12,22 @@ import io.github.swashbuckler104.budgetwidget.core.model.Direction
 import io.github.swashbuckler104.budgetwidget.core.model.IgnoreReason
 import kotlinx.coroutines.flow.Flow
 
+/** One stored SMS body, for the masking scrub. */
+data class StoredBody(val id: Long, val smsBody: String)
+
 @Dao
 interface TransactionDao {
     /** Returns the new row id, or -1 when a row with the same `txnHash` already exists. */
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertOrIgnore(transaction: TransactionEntity): Long
+
+    /** Every stored SMS body, so bodies kept unmasked by 1.0.3 and older can be masked. */
+    @Query("SELECT id, smsBody FROM transactions WHERE smsBody IS NOT NULL")
+    suspend fun storedBodies(): List<StoredBody>
+
+    /** The scrub only masks; `updatedAt` stays, it is not a user edit. */
+    @Query("UPDATE transactions SET smsBody = :body WHERE id = :id")
+    suspend fun updateBody(id: Long, body: String)
 
     @Query("SELECT * FROM transactions WHERE id = :id")
     suspend fun get(id: Long): TransactionEntity?

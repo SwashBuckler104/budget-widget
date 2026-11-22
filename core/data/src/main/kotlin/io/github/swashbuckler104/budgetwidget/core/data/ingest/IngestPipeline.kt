@@ -82,6 +82,10 @@ class IngestPipeline @Inject constructor(
     /** For scans: pass it to every [ingest] call so messages read before a data replace are dropped. */
     fun generation(): Long = generation
 
+    /** [scrubTransactionBodies] already ran in this process; rows stay masked from then on. */
+    @Volatile
+    private var transactionBodiesScrubbed = false
+
     /**
      * Applies the current storage rules to the unparsed list: entries that are not transaction
      * alerts (OTPs, offers, reminders kept by v1.0.1 and older) are deleted, the rest are masked.
@@ -111,6 +115,25 @@ class IngestPipeline @Inject constructor(
                 }
             }
         }
+        scrubTransactionBodies()
+    }
+
+    /**
+     * Masks the SMS bodies 1.0.3 and older stored unmasked on parsed transactions (ADR-0055;
+     * new rows are masked in [store]). Idempotent, so once per process is only an optimization.
+     */
+    private suspend fun scrubTransactionBodies() {
+        if (transactionBodiesScrubbed) return
+        mutex.withLock {
+            db.withTransaction {
+                val dao = db.transactionDao()
+                dao.storedBodies().forEach { row ->
+                    val redacted = parser.redactUnparsed(row.smsBody)
+                    if (redacted != row.smsBody) dao.updateBody(row.id, redacted)
+                }
+            }
+        }
+        transactionBodiesScrubbed = true
     }
 
     /**
@@ -201,7 +224,9 @@ class IngestPipeline @Inject constructor(
                 accountId = accountId,
                 occurredAt = parsed.occurredAt,
                 smsSender = parsed.sender,
-                smsBody = parsed.body,
+                // Masked like the unparsed list: the account, UPI and reference numbers in the
+                // body identify the user, and amount, date and wording are enough to check it.
+                smsBody = parser.redactUnparsed(parsed.body),
                 reference = parsed.reference,
                 balanceAfterPaise = parsed.balanceAfterPaise,
                 isCard = parsed.isCard,

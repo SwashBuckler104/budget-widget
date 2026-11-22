@@ -21,6 +21,7 @@ import io.github.swashbuckler104.budgetwidget.core.model.CategoryKind
 import io.github.swashbuckler104.budgetwidget.core.model.Direction
 import io.github.swashbuckler104.budgetwidget.core.model.TransactionSource
 import io.github.swashbuckler104.budgetwidget.core.model.TransactionStatus
+import io.github.swashbuckler104.budgetwidget.feature.transactions.NoOpParser
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.Dispatchers
@@ -69,7 +70,7 @@ class TransactionsViewModelTest {
             SavedStateHandle(args),
             TransactionRepository(db.transactionDao(), db.unparsedSmsDao(), db.accountDao()),
             CategoryRepository(db),
-            TransactionEditor(db, sort, InboxEvents(emptySet())) { now },
+            TransactionEditor(db, sort, InboxEvents(emptySet()), NoOpParser) { now },
             NoSync,
         ) { now }.also { viewModels += it }
     }

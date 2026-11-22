@@ -106,7 +106,7 @@ class SettingsViewModelTest {
         val transfer =
             DataTransfer(db, store, checkpoint, CategorySeeder(db, store), InboxEvents(emptySet()), {
                 now
-            }, pipeline, sync)
+            }, pipeline, sync, NoParser)
         val repository = TransactionRepository(db.transactionDao(), db.unparsedSmsDao(), db.accountDao())
         val retention = SmsBodyRetention(db, store) { now }
         return SettingsViewModel(store, transfer, sync, { now }, context.contentResolver, retention, repository) to

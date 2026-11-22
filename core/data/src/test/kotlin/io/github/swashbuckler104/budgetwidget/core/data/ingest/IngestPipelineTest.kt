@@ -199,6 +199,26 @@ class IngestPipelineTest {
     }
 
     @Test
+    fun `transaction bodies are stored redacted too`() = runTest {
+        val body = "Rs 150.00 debited (UPI Ref no 630199887766)"
+        parser.next = txn(hash = "h1", body = body)
+        val outcome = pipeline.ingest(RawSms(BANK, body, 1_000), IngestOrigin.REALTIME) as IngestOutcome.Inserted
+        assertThat(db.transactionDao().get(outcome.id)!!.smsBody).isEqualTo("Rs 150.00 debited (UPI Ref no ####)")
+    }
+
+    @Test
+    fun `scrub masks transaction bodies stored unmasked by older versions`() = runTest {
+        parser.next = txn(hash = "h1")
+        val id = (pipeline.ingest(RawSms(BANK, "a", 1), IngestOrigin.REALTIME) as IngestOutcome.Inserted).id
+        // What 1.0.3 and older left in the table.
+        db.transactionDao().updateBody(id, "Rs 150.00 debited (UPI Ref no 630199887766)")
+
+        pipeline.scrubUnparsed()
+
+        assertThat(db.transactionDao().get(id)!!.smsBody).isEqualTo("Rs 150.00 debited (UPI Ref no ####)")
+    }
+
+    @Test
     fun `scrub deletes entries stored by older versions that are no longer kept, and masks the rest`() = runTest {
         val dao = db.unparsedSmsDao()
         fun row(body: String, reason: UnparsedReason, sender: String = BANK) = UnparsedSmsEntity(
@@ -318,6 +338,7 @@ class IngestPipelineTest {
         last4: String? = "1234",
         at: Long = 1_000,
         balance: Long? = null,
+        body: String = "Rs 150.00 debited to swiggy.food@paytm",
     ) = SmsParseResult.Transaction(
         ParsedSms(
             txnHash = hash,
@@ -331,7 +352,7 @@ class IngestPipelineTest {
             accountLast4 = last4,
             balanceAfterPaise = balance,
             sender = BANK,
-            body = "Rs 150.00 debited to swiggy.food@paytm",
+            body = body,
             occurredAt = at,
         ),
     )
