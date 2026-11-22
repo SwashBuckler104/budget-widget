@@ -2,7 +2,12 @@ package io.github.swashbuckler104.budgetwidget.core.designsystem.component
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -69,7 +74,12 @@ fun BudgetBottomSheet(
         // Back always ends up here, even when the hide was vetoed above.
         onDismissRequest = { if (unsaved) askDiscard = true else onDismissRequest() },
         sheetState = sheetState,
-        modifier = modifier,
+        // The status bar is kept outside the sheet, never padded inside it. Material pads the
+        // content with the part of the top inset the sheet overlaps, so a nearly full-height sheet
+        // that overshot into the status bar after a fling grew, which moved its Expanded anchor,
+        // which moved it again: it shook for about a second (ADR-0057).
+        modifier = modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top)),
+        contentWindowInsets = { WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom) },
     ) {
         header()
         Column(
