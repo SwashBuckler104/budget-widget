@@ -85,7 +85,7 @@ data class DrillDownDestination(
     val direction: String = "",
 )
 
-/** In bar order: the list you land on, then Analysis in the middle (owner's choice, 1.0.3). */
+/** In bar order, with Analysis in the middle: the app opens on it (owner's choice, 1.0.3 and 2.0.0). */
 private enum class Tab(
     val route: Any,
     val routeClass: KClass<*>,
@@ -175,7 +175,7 @@ fun BudgetWidgetNavHost(
         ) {
             NavHost(
                 navController = navController,
-                startDestination = TransactionsDestination,
+                startDestination = AnalysisDestination,
             ) {
                 // The Insight widget opens Analysis through this link (InsightWidget.ANALYSIS_URI).
                 composable<AnalysisDestination>(
