@@ -63,7 +63,9 @@ class SettingsScreensTest {
                 restore = { calls += "restore" },
                 backup = { calls += "backup:$it" },
                 openSmsIssues = { calls += "unparsed" },
+                checkUpdates = { calls += "updates" },
             ),
+            appVersion = "2.0.0",
         )
     }
 
@@ -95,6 +97,15 @@ class SettingsScreensTest {
         assertThat(
             calls,
         ).containsExactly("theme:${ThemeMode.DARK}", "import:90", "unparsed", "fresh", "restore").inOrder()
+    }
+
+    @Test
+    fun `check for updates names the installed version and opens the page`() {
+        showSettings()
+        scrollTo("Check for updates")
+        compose.onNodeWithText("You have version 2.0.0", substring = true).assertExists()
+        compose.onNodeWithText("Check for updates").performClick()
+        assertThat(calls).containsExactly("updates")
     }
 
     @Test

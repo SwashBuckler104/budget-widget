@@ -177,6 +177,7 @@
     <string name="settings_updates_title">Updates</string>
     <string name="settings_updates_body">With no internet access, the app can\'t look for a newer version itself. The store it came from, or the release page, can.</string>
     <string name="settings_update_check">Check for updates</string>
+    <string name="settings_update_check_summary">You have version %1$s. Opens the store or the release page to see if there is a newer one.</string>
     <string name="settings_purple_tips">Tips from Purple</string>
     <string name="settings_purple_tips_summary">Short how-tos as you use the app. Update and unread SMS notes still show.</string>
     <string name="settings_about_summary">Version, license, privacy and credits</string>
