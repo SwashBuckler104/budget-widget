@@ -46,6 +46,7 @@ include(":feature:transactions")
 include(":feature:categories")
 include(":feature:onboarding")
 include(":feature:settings")
+include(":feature:purple")
 include(":parser-core")
 include(":baselineprofile")
 

@@ -10,10 +10,20 @@ import io.github.swashbuckler104.budgetwidget.core.database.model.TransactionRow
 import io.github.swashbuckler104.budgetwidget.core.database.model.TransactionWithAccount
 import io.github.swashbuckler104.budgetwidget.core.model.Direction
 import io.github.swashbuckler104.budgetwidget.core.model.IgnoreReason
+import io.github.swashbuckler104.budgetwidget.core.model.ParserType
 import kotlinx.coroutines.flow.Flow
 
 /** One stored SMS body, for the masking scrub. */
 data class StoredBody(val id: Long, val smsBody: String)
+
+/** The inbox in two numbers: what waits to be sorted, and how much of it may be a duplicate. */
+data class InboxSignals(val pending: Int, val duplicates: Int)
+
+/** An account's opening balance in paise, negative for money owed (ADR-0059). */
+data class AccountAmount(val accountId: Long, val balancePaise: Long)
+
+/** A pending transaction's id, which way its money moved and what the parser called it, for bulk filing. */
+data class PendingDirection(val id: Long, val direction: Direction, val parserType: ParserType?)
 
 @Dao
 interface TransactionDao {
@@ -31,6 +41,24 @@ interface TransactionDao {
 
     @Query("SELECT * FROM transactions WHERE id = :id")
     suspend fun get(id: Long): TransactionEntity?
+
+    @Query("SELECT * FROM transactions WHERE txnHash = :hash")
+    suspend fun byHash(hash: String): TransactionEntity?
+
+    /** The amount of a manual entry the app keeps in step with a setting (an opening balance). */
+    @Query(
+        "UPDATE transactions SET amountPaise = :amountPaise, direction = :direction, updatedAt = :now WHERE id = :id",
+    )
+    suspend fun updateAmount(id: Long, amountPaise: Long, direction: Direction, now: Long)
+
+    /** Opening balances by account (ADR-0059): the rows `OpeningBalances` keys by `txnHash`. */
+    @Query(
+        """
+        SELECT accountId, CASE direction WHEN 'IN' THEN amountPaise ELSE -amountPaise END AS balancePaise
+        FROM transactions WHERE txnHash LIKE 'opening-balance:%' AND accountId IS NOT NULL
+        """,
+    )
+    fun observeOpeningBalances(): Flow<List<AccountAmount>>
 
     /** Every transaction as a light row (no SMS body), newest first. */
     @Query(
@@ -68,6 +96,9 @@ interface TransactionDao {
         """,
     )
     suspend fun unignore(id: Long, now: Long): Int
+
+    @Query("SELECT COUNT(*) AS pending, COUNT(duplicateOfId) AS duplicates FROM transactions WHERE status = 'PENDING'")
+    fun observeInboxSignals(): Flow<InboxSignals>
 
     @Query("SELECT * FROM transactions WHERE merchantKey = :merchantKey")
     suspend fun byMerchantKey(merchantKey: String): List<TransactionEntity>
@@ -207,6 +238,19 @@ interface TransactionDao {
     @Query("SELECT id FROM transactions WHERE status = 'PENDING'")
     suspend fun pendingIds(): List<Long>
 
+    /**
+     * What bulk filing may sort (ADR-0058): PENDING, not a possible duplicate (that needs a look),
+     * and with [occurredBefore] (epoch ms, UTC) only what happened before then.
+     */
+    @Query(
+        """
+        SELECT id, direction, parserType FROM transactions
+        WHERE status = 'PENDING' AND duplicateOfId IS NULL
+          AND (:occurredBefore IS NULL OR occurredAt < :occurredBefore)
+        """,
+    )
+    suspend fun bulkFilable(occurredBefore: Long?): List<PendingDirection>
+
     /** Marks [id] as sorted into [categoryId] (a leaf). Clears any earlier ignore. */
     @Query(
         """
@@ -216,6 +260,16 @@ interface TransactionDao {
         """,
     )
     suspend fun categorize(id: Long, categoryId: Long, note: String?, auto: Boolean, now: Long): Int
+
+    /** Sorts [id] into [categoryId] from an "always" merchant rule (ADR-0062), keeping its note. */
+    @Query(
+        """
+        UPDATE transactions SET status = 'CATEGORIZED', categoryId = :categoryId, ignoreReason = NULL,
+          autoCategorized = 1, updatedAt = :now, sortedAt = COALESCE(sortedAt, :now)
+        WHERE id = :id
+        """,
+    )
+    suspend fun sortFromRule(id: Long, categoryId: Long, now: Long): Int
 
     @Query(
         """

@@ -63,4 +63,12 @@ class FinancialSmsHeuristicTest {
         // Bank SMS from a sender that fails the header check (spaces) are still judged by the body.
         assertThat(body("Rs.649.00 spent on your SBI Credit Card ending with 2290 on 05Nov26.")).isTrue()
     }
+
+    @Test
+    fun `a shop's own credit is not money in an account`() {
+        // Template from the owner's parser feedback; made-up amount.
+        assertThat(looks("VM-MYCLIQ-S", "CREDITED: Rs. 100 CLiQ Cash has been credited to your wallet.")).isFalse()
+        assertThat(looks("AD-SHOPCO-S", "500 reward points worth Rs 125 credited to your card account")).isFalse()
+        assertThat(looks("AD-SHOPCO-S", "Rs 125 credited to your wallet for the refund of order 1234")).isTrue()
+    }
 }

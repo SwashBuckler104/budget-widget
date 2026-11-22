@@ -18,16 +18,24 @@ import javax.inject.Inject
  * - promotional headers (TRAI suffix `-P`, e.g. `JD-KOTAKB-P`) are marketing, never transaction
  *   alerts; upstream parses some card offers ("get 5 points per Rs.100 spent") as spends;
  * - only INR parsers count (v1 tracks INR only).
+ *
+ * Senders no upstream parser knows can be claimed by our own [LocalFormats] (ADR-0061), under the
+ * same sender rules.
  */
 internal class PennyWiseSmsParser @Inject constructor() : SmsParser {
-    override fun isKnownBankSender(sender: String): Boolean = parsersFor(sender).isNotEmpty()
+    override fun isKnownBankSender(sender: String): Boolean =
+        parsersFor(sender).isNotEmpty() || (isEligibleSender(sender) && LocalFormats.knows(sender))
 
     override fun looksLikeUnknownBankAlert(sms: RawSms): Boolean = FinancialSmsHeuristic.looksLikeTransaction(sms)
 
     override fun parse(sms: RawSms): SmsParseResult {
+        val upstream = parsersFor(sms.sender)
+        if (upstream.isEmpty() && isEligibleSender(sms.sender) && LocalFormats.knows(sms.sender)) {
+            return LocalFormats.parse(sms)?.let(FlowRules::apply) ?: unparsed(sms, UnparsedReason.NO_MATCH)
+        }
         val parsed = try {
             // Same order and semantics as BankParserFactory.parse, restricted to our parsers.
-            parsersFor(sms.sender).firstNotNullOfOrNull { it.parse(sms.body, sms.sender, sms.receivedAt) }
+            upstream.firstNotNullOfOrNull { it.parse(sms.body, sms.sender, sms.receivedAt) }
         } catch (_: RuntimeException) {
             // Upstream regex code on unexpected input; keep the SMS for a bug report instead.
             return unparsed(sms, UnparsedReason.PARSER_ERROR)
@@ -49,10 +57,13 @@ internal class PennyWiseSmsParser @Inject constructor() : SmsParser {
         }
 
     private fun parsersFor(sender: String): List<BankParser> {
-        if (PHONE_NUMBER.matches(sender.replace(SEPARATORS, ""))) return emptyList()
-        if (PROMOTIONAL_HEADER.matches(sender)) return emptyList()
+        if (!isEligibleSender(sender)) return emptyList()
         return BankParserFactory.getParsers(sender).filter { it.getCurrency().equals(INR, ignoreCase = true) }
     }
+
+    /** Never a phone number, never a promotional header (see the class comment). */
+    private fun isEligibleSender(sender: String): Boolean =
+        !PHONE_NUMBER.matches(sender.replace(SEPARATORS, "")) && !PROMOTIONAL_HEADER.matches(sender)
 
     private companion object {
         const val INR = "INR"

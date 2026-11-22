@@ -1,0 +1,29 @@
+# CRED wallet: not in parser-core, read by our LocalFormats (ADR-0061, docs/upstream/0006).
+# Templates from the owner's parser feedback (2026-11); values made up. A credit can be a top-up,
+# cashback or a refund, so it stays in the inbox as money in.
+name: Short credit notice
+sender: CP-CREDWL-S
+body: Update: ₹25 has been successfully credited to your CRED wallet. Your updated CRED wallet balance is ₹125.
+type: TRANSFER
+amount: 25.00
+direction: IN
+merchant: -
+balance: 125.00
+flow: -
+---
+name: Long credit notice over several lines
+sender: CP-CREDWL-S
+body: Update from CRED wallet:\n\nRs.200.00 has been successfully credited to your CRED wallet. \n\nYour updated CRED wallet balance is Rs.1,245.50.\n\nFor any queries or concerns, call 080-12345678.
+type: TRANSFER
+amount: 200.00
+direction: IN
+balance: 1245.50
+---
+name: Payment from the wallet
+sender: CP-CREDWL-S
+body: Update from CRED wallet:\n\nYou have successfully paid Rs.1.0 and your updated wallet balance is Rs.124.0. \n\nFor any queries or concerns, call 080-12345678.
+type: EXPENSE
+amount: 1.00
+direction: OUT
+merchant: -
+balance: 124.00

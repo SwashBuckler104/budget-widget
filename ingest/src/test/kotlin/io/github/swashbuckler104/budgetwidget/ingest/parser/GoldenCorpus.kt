@@ -8,8 +8,14 @@ data class GoldenCase(val file: String, val fields: Map<String, String>) {
 }
 
 object GoldenCorpus {
-    /** The seven v1 banks (SCOPE.md §2). Each must have a golden file. */
-    val BANK_FILES = listOf("kotak", "federal", "jupiter", "slice", "axis", "sbi", "hdfc")
+    /**
+     * The seven v1 banks (SCOPE.md §2), then the formats only our `LocalFormats` reads (ADR-0061).
+     * Each must have a golden file.
+     */
+    val BANK_FILES = listOf(
+        "kotak", "federal", "jupiter", "slice", "axis", "sbi", "hdfc",
+        "nkgsb", "irctc", "cred",
+    )
 
     fun load(bank: String): List<GoldenCase> {
         val text = GoldenCorpus::class.java.classLoader!!.getResource("golden/$bank.txt")

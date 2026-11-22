@@ -139,12 +139,14 @@ fun SettingsRoute(
     SettingsScreen(
         state = state,
         notificationsBlocked = !systemAllows,
+        appVersion = appVersion,
         snackbar = snackbar,
         actions = SettingsActions(
             onBack = onBack,
             setNotificationsEnabled = viewModel::setNotificationsEnabled,
             setMinAmount = viewModel::setMinAmount,
             setAutoSort = viewModel::setAutoSort,
+            setPurpleTips = viewModel::setPurpleTips,
             setNudgeEnabled = viewModel::setNudgeEnabled,
             setNudgeTime = viewModel::setNudgeTime,
             setTheme = viewModel::setTheme,
@@ -156,6 +158,7 @@ fun SettingsRoute(
             openSmsIssues = onOpenSmsIssues,
             openParserFeedback = onOpenParserFeedback,
             openAbout = onOpenAbout,
+            checkUpdates = { openUpdatePage(context) },
             exportCsv = { export.launch(fileName("transactions", "csv")) },
             backup = { passphrase ->
                 viewModel.prepareBackup(passphrase)
@@ -183,6 +186,7 @@ internal class SettingsActions(
     val setNotificationsEnabled: (Boolean) -> Unit,
     val setMinAmount: (String) -> Unit,
     val setAutoSort: (Boolean) -> Unit,
+    val setPurpleTips: (Boolean) -> Unit = {},
     val setNudgeEnabled: (Boolean) -> Unit,
     val setNudgeTime: (hour: Int, minute: Int) -> Unit,
     val allowNotifications: () -> Unit,
@@ -195,6 +199,8 @@ internal class SettingsActions(
     val openSmsIssues: () -> Unit = {},
     val openParserFeedback: () -> Unit = {},
     val openAbout: () -> Unit = {},
+    /** Opens the store listing or the release page (ADR-0060). */
+    val checkUpdates: () -> Unit = {},
     val exportCsv: () -> Unit = {},
     /** A null passphrase means a plain backup (ADR-0044). */
     val backup: (passphrase: String?) -> Unit = {},
@@ -211,6 +217,7 @@ internal fun SettingsScreen(
     notificationsBlocked: Boolean,
     actions: SettingsActions,
     modifier: Modifier = Modifier,
+    appVersion: String = "",
     snackbar: SnackbarHostState = remember { SnackbarHostState() },
 ) {
     Scaffold(
@@ -288,6 +295,20 @@ internal fun SettingsScreen(
                     summary = stringResource(R.string.settings_auto_sort_summary),
                     checked = state.autoSort,
                     onCheckedChange = actions.setAutoSort,
+                )
+            }
+            SettingsGroup(stringResource(R.string.settings_section_help)) {
+                SwitchRow(
+                    title = stringResource(R.string.settings_purple_tips),
+                    summary = stringResource(R.string.settings_purple_tips_summary),
+                    checked = state.purpleTips,
+                    onCheckedChange = actions.setPurpleTips,
+                )
+                // No network: the store or the release page knows whether a newer version exists (ADR-0060).
+                LinkRow(
+                    title = stringResource(R.string.settings_update_check),
+                    summary = stringResource(R.string.settings_update_check_summary, appVersion),
+                    onClick = actions.checkUpdates,
                 )
             }
             PrivacySection(state.secureScreen, state.smsRetention, actions)

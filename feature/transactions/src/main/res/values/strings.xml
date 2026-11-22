@@ -10,6 +10,8 @@
     <string name="quicksort_hide_all">Hide categories</string>
     <string name="quicksort_note">Note (optional)</string>
     <string name="quicksort_remember">Remember for %1$s</string>
+    <string name="quicksort_earlier">Earlier payments go here</string>
+    <string name="quicksort_newer">Newer payments go here</string>
     <string name="quicksort_ignore">Ignore</string>
     <string name="quicksort_skip">Skip</string>
     <string name="quicksort_overdue">Overdue</string>
@@ -37,6 +39,18 @@
         <item quantity="other">Inbox · %1$d to sort</item>
     </plurals>
     <string name="transactions_sort_all">Sort all</string>
+    <string name="transactions_all_to_other">All to Other</string>
+    <string name="transactions_opening_title">Add your starting balances</string>
+    <string name="transactions_opening_body">Enter what each account holds today. It gives the app a baseline and never counts as income.</string>
+    <string name="transactions_opening_set">Add balances</string>
+    <string name="transactions_opening_not_now">Not now</string>
+    <plurals name="transactions_all_to_other_title">
+        <item quantity="one">Put %d payment under Other?</item>
+        <item quantity="other">Put %d payments under Other?</item>
+    </plurals>
+    <string name="transactions_all_to_other_body">Payments go to Other, money in to Income › Other and transfers to Transfers, so you don\'t have to sort them one by one. Possible duplicates stay in the inbox. You can re-sort any of them later.</string>
+    <string name="transactions_all_to_other_confirm">Put under Other</string>
+    <string name="transactions_all_to_other_cancel">Cancel</string>
     <string name="transactions_sort_action">sort</string>
     <string name="transactions_show_all">Show all %1$d</string>
     <string name="transactions_show_less">Show less</string>

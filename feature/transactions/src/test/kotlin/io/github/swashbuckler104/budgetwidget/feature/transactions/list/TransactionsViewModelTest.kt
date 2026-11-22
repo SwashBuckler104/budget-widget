@@ -1,22 +1,26 @@
 package io.github.swashbuckler104.budgetwidget.feature.transactions.list
 
 import android.content.Context
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
+import io.github.swashbuckler104.budgetwidget.core.data.account.OpeningBalances
 import io.github.swashbuckler104.budgetwidget.core.data.category.CategoryRepository
 import io.github.swashbuckler104.budgetwidget.core.data.edit.TransactionEdit
 import io.github.swashbuckler104.budgetwidget.core.data.edit.TransactionEditor
 import io.github.swashbuckler104.budgetwidget.core.data.inbox.InboxEvents
 import io.github.swashbuckler104.budgetwidget.core.data.ingest.SmsSync
 import io.github.swashbuckler104.budgetwidget.core.data.repository.TransactionRepository
+import io.github.swashbuckler104.budgetwidget.core.data.sort.BulkSorter
 import io.github.swashbuckler104.budgetwidget.core.data.sort.SortTransactionUseCase
 import io.github.swashbuckler104.budgetwidget.core.database.BudgetDatabase
 import io.github.swashbuckler104.budgetwidget.core.database.entity.CategoryEntity
 import io.github.swashbuckler104.budgetwidget.core.database.entity.TransactionEntity
+import io.github.swashbuckler104.budgetwidget.core.datastore.SettingsStore
 import io.github.swashbuckler104.budgetwidget.core.model.CategoryKind
 import io.github.swashbuckler104.budgetwidget.core.model.Direction
 import io.github.swashbuckler104.budgetwidget.core.model.TransactionSource
@@ -24,8 +28,10 @@ import io.github.swashbuckler104.budgetwidget.core.model.TransactionStatus
 import io.github.swashbuckler104.budgetwidget.feature.transactions.NoOpParser
 import java.time.LocalDate
 import java.time.ZoneId
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -35,7 +41,9 @@ import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 
 /** Real Room, repositories and editor; only time and SMS sync are fixed. */
@@ -43,6 +51,17 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class TransactionsViewModelTest {
     private lateinit var db: BudgetDatabase
+
+    @get:Rule
+    val tmp = TemporaryFolder()
+
+    private val settings by lazy {
+        SettingsStore(
+            PreferenceDataStoreFactory.create(scope = CoroutineScope(Dispatchers.IO)) {
+                tmp.root.resolve("s.preferences_pb")
+            },
+        )
+    }
     private val viewModels = mutableListOf<TransactionsViewModel>()
     private val now = LocalDate.of(2026, 11, 9).atTime(12, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
@@ -72,7 +91,10 @@ class TransactionsViewModelTest {
             CategoryRepository(db),
             TransactionEditor(db, sort, InboxEvents(emptySet()), NoOpParser) { now },
             NoSync,
-        ) { now }.also { viewModels += it }
+            { now },
+            BulkSorter(db, sort, InboxEvents(emptySet())),
+            OpeningBalances(db, settings) { now },
+        ).also { viewModels += it }
     }
 
     private suspend fun TransactionsViewModel.await(predicate: (TransactionsUiState) -> Boolean) =
@@ -96,6 +118,23 @@ class TransactionsViewModelTest {
             assertThat(state.days.flatMap { it.transactions }.map { it.id }).containsExactly(sorted)
             assertThat(state.days.single().spentPaise).isEqualTo(100_00)
         }
+
+    @Test
+    fun `all to Other empties the inbox into Other and says how many`() = runBlocking {
+        val other = category("Other", seedKey = "other")
+        val a = txn("a", at = now - 1)
+        val b = txn("b", at = now - 2)
+        val vm = viewModel()
+        vm.await { it.inbox.size == 2 }
+        val message = async { vm.messages.first() }
+
+        vm.fileAllUnderOther()
+
+        assertThat(vm.await { it.inbox.isEmpty() }.inbox).isEmpty()
+        assertThat(withTimeout(TIMEOUT_MS) { message.await() }).isEqualTo(TransactionsMessage.Sorted(2, undo = null))
+        assertThat(db.transactionDao().get(a)!!.categoryId).isEqualTo(other)
+        assertThat(db.transactionDao().get(b)!!.categoryId).isEqualTo(other)
+    }
 
     @Test
     fun `a filter shows matching pending ones in the list and hides the inbox`() = runBlocking {
@@ -175,7 +214,7 @@ class TransactionsViewModelTest {
         assertThat(db.transactionDao().get(a)!!.categoryId).isEqualTo(food)
     }
 
-    private suspend fun category(name: String) = db.categoryDao().insert(
+    private suspend fun category(name: String, seedKey: String? = null) = db.categoryDao().insert(
         CategoryEntity(
             parentId = null,
             name = name,
@@ -183,6 +222,7 @@ class TransactionsViewModelTest {
             colorArgb = 0,
             kind = CategoryKind.EXPENSE,
             sortOrder = 0,
+            seedKey = seedKey,
         ),
     )
 
@@ -222,7 +262,7 @@ class TransactionsViewModelTest {
 
         override fun reconcileNow() = Unit
 
-        override fun backfill(sinceMillis: Long) = Unit
+        override fun backfill(sinceMillis: Long, fileUnderOtherBefore: Long?) = Unit
     }
 
     private companion object {

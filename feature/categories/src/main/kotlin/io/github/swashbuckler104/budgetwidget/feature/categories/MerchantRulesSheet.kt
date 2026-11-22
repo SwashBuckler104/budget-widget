@@ -17,6 +17,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -29,6 +30,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.github.swashbuckler104.budgetwidget.core.designsystem.component.BudgetBottomSheet
 import io.github.swashbuckler104.budgetwidget.core.designsystem.component.CategoryPicker
@@ -45,6 +48,7 @@ internal fun MerchantRulesSheet(
     groups: List<CategoryGroup>,
     onDelete: (MerchantRule) -> Unit,
     onMove: (MerchantRule, Category) -> Unit,
+    onAlways: (MerchantRule, Boolean) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -73,15 +77,26 @@ internal fun MerchantRulesSheet(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(rule.merchantKey, style = MaterialTheme.typography.bodyLarge)
                         Text(
-                            pluralStringResource(
-                                R.plurals.categories_rule_confirmed,
-                                rule.confirmCount,
-                                rule.confirmCount,
-                            ),
+                            if (rule.always) {
+                                stringResource(R.string.categories_rule_always_on)
+                            } else {
+                                pluralStringResource(
+                                    R.plurals.categories_rule_confirmed,
+                                    rule.confirmCount,
+                                    rule.confirmCount,
+                                )
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
+                    // "Newer payments go here" (ADR-0062): new payments from the merchant are sorted here.
+                    val alwaysLabel = stringResource(R.string.categories_rule_always, rule.merchantKey)
+                    Switch(
+                        checked = rule.always,
+                        onCheckedChange = { onAlways(rule, it) },
+                        modifier = Modifier.semantics { contentDescription = alwaysLabel },
+                    )
                     IconButton(onClick = { moving = rule }) {
                         Icon(
                             Icons.AutoMirrored.Rounded.DriveFileMove,

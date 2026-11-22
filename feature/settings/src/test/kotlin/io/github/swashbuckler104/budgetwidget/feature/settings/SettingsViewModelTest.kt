@@ -81,7 +81,7 @@ class SettingsViewModelTest {
 
         override fun reconcileNow() = Unit
 
-        override fun backfill(sinceMillis: Long) {
+        override fun backfill(sinceMillis: Long, fileUnderOtherBefore: Long?) {
             backfills += sinceMillis
         }
     }

@@ -20,6 +20,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
@@ -62,7 +63,9 @@ class SettingsScreensTest {
                 restore = { calls += "restore" },
                 backup = { calls += "backup:$it" },
                 openSmsIssues = { calls += "unparsed" },
+                checkUpdates = { calls += "updates" },
             ),
+            appVersion = "2.0.0",
         )
     }
 
@@ -94,6 +97,15 @@ class SettingsScreensTest {
         assertThat(
             calls,
         ).containsExactly("theme:${ThemeMode.DARK}", "import:90", "unparsed", "fresh", "restore").inOrder()
+    }
+
+    @Test
+    fun `check for updates names the installed version and opens the page`() {
+        showSettings()
+        scrollTo("Check for updates")
+        compose.onNodeWithText("You have version 2.0.0", substring = true).assertExists()
+        compose.onNodeWithText("Check for updates").performClick()
+        assertThat(calls).containsExactly("updates")
     }
 
     @Test
@@ -173,11 +185,36 @@ class SettingsScreensTest {
         }
         compose.onNodeWithText("Balance ₹12,345").assertExists()
         compose.onNodeWithContentDescription("Show HDFC Bank ··1234 in filters").performClick()
-        compose.onNodeWithContentDescription("Rename HDFC Bank ··1234").performClick()
+        compose.onNodeWithContentDescription("Edit HDFC Bank ··1234").performClick()
         compose.onNodeWithText("Leave empty to use the bank name").assertExists()
-        compose.onNode(hasText("HDFC Bank ··1234") and hasSetText()).performTextReplacement("Salary")
+        compose.onNode(hasText("Nickname") and hasSetText()).performTextReplacement("Salary")
         compose.onNodeWithText("Save").performClick()
+        // The starting balance didn't change, so it isn't written (that would reset the balance).
         assertThat(calls).containsExactly("hide:7:true", "rename:7:Salary").inOrder()
+    }
+
+    @Test
+    fun `an account's starting balance is set, shown, and a card's is money owed`() {
+        val bank = Account(7, "HDFC Bank", "1234", null, AccountKind.BANK, hidden = false, balancePaise = null)
+        val card = Account(8, "Kotak", "0082", null, AccountKind.CARD, hidden = false, balancePaise = null)
+        compose.setContent {
+            AccountsScreen(
+                accounts = listOf(bank, card),
+                onBack = {},
+                onRename = { id, name -> calls += "rename:$id:$name" },
+                onToggleVisibility = { _, _ -> },
+                openings = mapOf(8L to -1_500_00L),
+                onSetOpening = { id, paise -> calls += "opening:$id:$paise" },
+            )
+        }
+        compose.onNodeWithText("Started owing ₹1,500").assertExists()
+        compose.onNodeWithContentDescription("Edit HDFC Bank ··1234").performClick()
+        compose.onNode(hasText("Starting balance") and hasSetText()).performTextReplacement("52,340.50")
+        compose.onNodeWithText("Save").performClick()
+        compose.onNodeWithContentDescription("Edit Kotak ··0082").performClick()
+        compose.onNode(hasText("Amount owed at the start") and hasSetText()).performTextReplacement("")
+        compose.onNodeWithText("Save").performClick()
+        assertThat(calls).containsExactly("opening:7:5234050", "opening:8:null").inOrder()
     }
 
     @Test
@@ -229,10 +266,19 @@ class SettingsScreensTest {
     @Test
     fun `about shows the no-internet badge only when true`() {
         compose.setContent {
-            AboutScreen(version = "1.0.0", offline = true, onBack = {}, onOpenSource = {}, onOpenParser = {})
+            AboutScreen(
+                version = "1.0.0",
+                offline = true,
+                onBack = {},
+                onOpenSource = {},
+                onOpenParser = {},
+                onCheckUpdates = { calls += "updates" },
+            )
         }
         compose.onNodeWithText("Version 1.0.0").assertExists()
         compose.onNodeWithText("No internet permission").assertExists()
+        compose.onNodeWithText("Check for updates").performScrollTo().performClick()
+        assertThat(calls).containsExactly("updates")
     }
 }
 

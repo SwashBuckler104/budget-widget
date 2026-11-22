@@ -1,6 +1,7 @@
 # Golden bank SMS
 
-One file per v1 bank. `GoldenSmsTest` runs every case through the real parser (PennyWise
+One file per v1 bank, plus one per format only our `LocalFormats` reads (`nkgsb`, `irctc`, `cred`;
+ADR-0061). `GoldenSmsTest` runs every case through the real parser (PennyWise
 parser-core) and our mapper, so a submodule bump that changes behaviour for our banks fails the
 build (SCOPE.md §5, docs/PARSER_UPGRADE.md).
 

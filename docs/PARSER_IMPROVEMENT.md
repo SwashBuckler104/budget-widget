@@ -59,7 +59,13 @@ until every TODO is filled in, which is the point.
 
 ## 3. Let an agent write the rules
 
-Start a Claude Code session in the repo and paste:
+The owner collects reports in `docs/parser-dataset.md` (gitignored; append each new report). In a
+Claude Code session, run the project skill **`/improve-parser`** (`.claude/skills/improve-parser/`):
+it finds the new messages (the script keeps a local ledger, so each is handled once), decides what
+each is, writes golden cases with made-up values, fixes our layer, including `LocalFormats.kt` for
+banks and wallets parser-core doesn't know (ADR-0061), drafts upstream issues and runs the tests.
+
+Without the skill, paste:
 
 ```
 Read CLAUDE.md, docs/PARSER_IMPROVEMENT.md, ingest/src/test/resources/golden/README.md and
@@ -69,7 +75,7 @@ and flow by READING the SMS text (never by running the parser). Run
 `scripts/capped.sh ./gradlew :ingest:testDebugUnitTest --tests '*Golden*'`. For each failing case,
 fix it in our own layer, never in third_party/: FlowRules.kt for meaning (transfer, loan, card bill),
 FinancialSmsHeuristic.kt for what is kept as unparsed, ParsedTransactionMapper.kt for field
-clean-up. If the bank's format is simply unsupported upstream, draft docs/upstream/000N-*.md
+clean-up, LocalFormats.kt for a sender no upstream parser knows (ADR-0061). If the bank's format is simply unsupported upstream, draft docs/upstream/000N-*.md
 instead and mark the case UNPARSED with a comment linking the draft. Then run
 `scripts/capped.sh ./gradlew :ingest:testDebugUnitTest :core:data:testDebugUnitTest :parser-core:test`.
 One commit per bank, no unmasked data, no em dashes.

@@ -1,0 +1,30 @@
+# Indian Railways R-Wallet (UTS): not in parser-core, read by our LocalFormats (ADR-0061,
+# docs/upstream/0006). Templates from the owner's parser feedback (2026-10); values made up.
+# A credit is a top-up or a refund, so it stays in the inbox as money in; a debit is a ticket.
+name: Wallet top-up is money in, left for the user to sort
+sender: VM-IRSMSa-G
+body: Rs.500.00 credited to your RWallet Account on Oct 12 2026  9:28AM .Now the Available Balance is Rs.504.50. IR-CRIS
+type: TRANSFER
+amount: 500.00
+direction: IN
+merchant: -
+balance: 504.50
+flow: -
+---
+name: Ticket paid from the wallet
+sender: VM-IRSMSa-G
+body: Rs.20.00 debited from your RWallet Account on Oct 21 2026  9:31AM . Available Balance Rs.465.70. Indian Railway
+type: EXPENSE
+amount: 20.00
+direction: OUT
+merchant: Indian Railways
+balance: 465.70
+---
+name: Ticket with a single-digit day
+sender: VM-IRSMSa-G
+body: Rs.35.00 debited from your RWallet Account on Nov  2 2026  9:29AM . Available Balance Rs.430.70. Indian Railway
+type: EXPENSE
+amount: 35.00
+direction: OUT
+merchant: Indian Railways
+balance: 430.70

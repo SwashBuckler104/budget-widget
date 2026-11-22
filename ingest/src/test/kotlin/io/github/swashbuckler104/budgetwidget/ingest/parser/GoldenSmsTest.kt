@@ -12,7 +12,7 @@ import org.junit.runners.Parameterized
 
 /**
  * Our anonymized SMS corpus for the seven v1 banks, through the real upstream parser and our
- * mapper. This gates parser upgrades (SCOPE.md §5, docs/PARSER_UPGRADE.md).
+ * mapper, plus the formats our own `LocalFormats` reads (ADR-0061). This gates parser upgrades (SCOPE.md §5, docs/PARSER_UPGRADE.md).
  */
 @RunWith(Parameterized::class)
 class GoldenSmsTest(@Suppress("unused") private val name: String, private val case: GoldenCase) {

@@ -4,6 +4,7 @@ import androidx.room.withTransaction
 import io.github.swashbuckler104.budgetwidget.core.data.MerchantKeyNormalizer
 import io.github.swashbuckler104.budgetwidget.core.data.WallClock
 import io.github.swashbuckler104.budgetwidget.core.data.inbox.InboxEvents
+import io.github.swashbuckler104.budgetwidget.core.data.sort.MerchantScope
 import io.github.swashbuckler104.budgetwidget.core.data.sort.SortResult
 import io.github.swashbuckler104.budgetwidget.core.data.sort.SortTransactionUseCase
 import io.github.swashbuckler104.budgetwidget.core.database.BudgetDatabase
@@ -56,6 +57,8 @@ data class TransactionEdit(
     val applyNameToMerchant: Boolean = false,
     /** Teach the merchant rule when the category changes (SCOPE.md F8). */
     val rememberMerchant: Boolean = true,
+    /** For this merchant's other payments (ADR-0062): earlier ones, newer ones, or both go to the category too. */
+    val forMerchant: MerchantScope = MerchantScope.NONE,
     /** Manual transactions only: SMS amounts and times are read-only. */
     val amountPaise: Long? = null,
     val occurredAt: Long? = null,
@@ -121,20 +124,32 @@ class TransactionEditor @Inject constructor(
             return e.result
         }
         val (rename, sorted) = outcome
-        if (sorted) events.sorted(edit.id)
+        sorted.forEach { events.sorted(it) }
         return EditResult.Saved(edit.id, rename?.others ?: 0, rename?.let { renameUndo(edit.id, it) })
     }
 
-    /** Sorts as part of [save]; true when it changed the category (or confirmed an auto-sort). */
-    private suspend fun sortInSave(edit: TransactionEdit): Boolean {
-        val categoryId = edit.categoryId ?: return false
+    /**
+     * Sorts as part of [save]: the ids it sorted, empty when the category didn't change (and it
+     * didn't confirm an auto-sort). With [MerchantScope.earlier], the merchant's
+     * other payments are among them.
+     */
+    private suspend fun sortInSave(edit: TransactionEdit): List<Long> {
+        val categoryId = edit.categoryId ?: return emptyList()
         val current = dao.get(edit.id) ?: throw EditAborted(EditResult.NotFound)
         // The same category again only matters for an auto-sorted one: saving confirms it
         // (it leaves "Review auto-sorted", SCOPE.md F8).
         if (current.status == TransactionStatus.CATEGORIZED && current.categoryId == categoryId &&
             !current.autoCategorized
         ) {
-            return false
+            return if (edit.forMerchant.any) {
+                sort.forMerchantLocked(
+                    edit.id,
+                    categoryId,
+                    edit.forMerchant,
+                )
+            } else {
+                emptyList()
+            }
         }
         val result = sort.categorizeLocked(
             edit.id,
@@ -144,7 +159,8 @@ class TransactionEditor @Inject constructor(
             requirePending = false,
         )
         if (result != SortResult.Done) throw EditAborted(EditResult.SortFailed(result))
-        return true
+        return listOf(edit.id) +
+            if (edit.forMerchant.any) sort.forMerchantLocked(edit.id, categoryId, edit.forMerchant) else emptyList()
     }
 
     /** Rolls a [save] back: thrown inside the transaction, carries what to report. */

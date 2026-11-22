@@ -12,8 +12,10 @@ import io.github.swashbuckler104.budgetwidget.core.database.entity.AccountEntity
 import io.github.swashbuckler104.budgetwidget.core.database.entity.TransactionEntity
 import io.github.swashbuckler104.budgetwidget.core.database.entity.UnparsedSmsEntity
 import io.github.swashbuckler104.budgetwidget.core.model.AccountKind
+import io.github.swashbuckler104.budgetwidget.core.model.Direction
 import io.github.swashbuckler104.budgetwidget.core.model.TransactionSource
 import io.github.swashbuckler104.budgetwidget.core.model.TransactionStatus
+import io.github.swashbuckler104.budgetwidget.core.model.accepts
 import io.github.swashbuckler104.budgetwidget.core.model.sms.FlowHint
 import io.github.swashbuckler104.budgetwidget.core.model.sms.ParsedSms
 import io.github.swashbuckler104.budgetwidget.core.model.sms.RawSms
@@ -260,7 +262,7 @@ class IngestPipeline @Inject constructor(
 
         // Step 7: auto-sort well-known merchants, but never a possible duplicate (it needs a look).
         val autoSorted = sortedAsTransfer ||
-            (autoSortEnabled && original == null && autoSortFromRule(id, merchantKey, now))
+            (original == null && autoSortFromRule(id, merchantKey, parsed.direction, autoSortEnabled, now))
         return IngestOutcome.Inserted(id, original?.id, autoSorted)
     }
 
@@ -315,11 +317,23 @@ class IngestPipeline @Inject constructor(
         return true
     }
 
-    private suspend fun autoSortFromRule(id: Long, merchantKey: String?, now: Long): Boolean {
+    /**
+     * Sorts [id] from its merchant's rule: an "always" rule (ADR-0062) every time, a learned one
+     * when the auto-sort setting is on and it was confirmed 3+ times. Never into a category that
+     * can't hold money moving this way (a refund from a shop stays in the inbox).
+     */
+    private suspend fun autoSortFromRule(
+        id: Long,
+        merchantKey: String?,
+        direction: Direction,
+        autoSortEnabled: Boolean,
+        now: Long,
+    ): Boolean {
         val rule = merchantKey?.let { db.merchantRuleDao().get(it) } ?: return false
-        if (rule.confirmCount < AUTO_SORT_MIN_CONFIRMATIONS) return false
+        if (!rule.always && (!autoSortEnabled || rule.confirmCount < AUTO_SORT_MIN_CONFIRMATIONS)) return false
         val category = db.categoryDao().get(rule.categoryId) ?: return false
         if (category.archived || db.categoryDao().childIds(category.id).isNotEmpty()) return false
+        if (!category.kind.accepts(direction)) return false
         db.transactionDao().categorize(id, category.id, note = null, auto = true, now = now)
         return true
     }

@@ -23,6 +23,7 @@ class OnboardingScreenTest {
         smsGranted: Boolean = false,
         smsBlocked: Boolean = false,
         canPin: Boolean = true,
+        backfill: Backfill = Backfill.DAYS_90,
     ) = compose.setContent {
         OnboardingScreen(
             state = OnboardingState(
@@ -30,7 +31,8 @@ class OnboardingScreenTest {
                 smsGranted = smsGranted,
                 smsBlocked = smsBlocked,
                 notificationsGranted = false,
-                backfill = Backfill.DAYS_90,
+                backfill = backfill,
+                fileUnderOther = false,
                 groups = emptyList(),
                 canPinWidget = canPin,
                 samsung = true,
@@ -42,6 +44,7 @@ class OnboardingScreenTest {
                 onAllowNotifications = { calls += "notifications" },
                 onOpenAppInfo = { calls += "appinfo" },
                 onChooseBackfill = { calls += "backfill:$it" },
+                onFileUnderOther = { calls += "other:$it" },
                 onPinWidget = { calls += "pin" },
                 onFinish = { calls += "finish" },
             ),
@@ -87,5 +90,18 @@ class OnboardingScreenTest {
         compose.onNodeWithText("Add the widget").performClick()
         compose.onNodeWithText("Start").performClick()
         assertThat(calls).containsExactly("pin", "finish").inOrder()
+    }
+
+    @Test
+    fun `an import can be filed under Other`() {
+        show(OnboardingStep.HISTORY, smsGranted = true)
+        compose.onNodeWithText("Put imported payments under Other").performScrollTo().performClick()
+        assertThat(calls).containsExactly("other:true")
+    }
+
+    @Test
+    fun `start fresh hides the Other switch`() {
+        show(OnboardingStep.HISTORY, smsGranted = true, backfill = Backfill.FRESH)
+        compose.onNodeWithText("Put imported payments under Other").assertDoesNotExist()
     }
 }

@@ -54,4 +54,17 @@ class PennyWiseSmsParserTest {
             assertThat(parser.isKnownBankSender(it)).isTrue()
         }
     }
+
+    @Test
+    fun `local formats follow the same sender rules and never override upstream`() {
+        assertThat(parser.isKnownBankSender("AD-NKGSBK-S")).isTrue()
+        assertThat(parser.isKnownBankSender("AD-NKGSBK-P")).isFalse()
+        assertThat(parser.isKnownBankSender("CP-CREDWL")).isTrue()
+        assertThat(parser.isKnownBankSender("VM-IRSMSA-G")).isTrue()
+        // A known local sender with another kind of message: not stored unless it reads like a transaction.
+        assertThat(parser.parse(RawSms("AD-NKGSBK-S", "Your NKGSB e-statement for October is ready.", 0)))
+            .isEqualTo(SmsParseResult.Ignored)
+        assertThat(parser.parse(RawSms("AD-NKGSBK-S", "Rs 500 debited from your account via UPI, ref 12345.", 0)))
+            .isInstanceOf(SmsParseResult.Unparsed::class.java)
+    }
 }

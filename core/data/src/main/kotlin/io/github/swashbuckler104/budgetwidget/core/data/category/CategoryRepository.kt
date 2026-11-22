@@ -163,4 +163,4 @@ internal fun CategoryEntity.toModel() = Category(
     isSeed = isSeed,
 )
 
-internal fun MerchantRuleEntity.toModel() = MerchantRule(merchantKey, categoryId, confirmCount, lastUsedAt)
+internal fun MerchantRuleEntity.toModel() = MerchantRule(merchantKey, categoryId, confirmCount, lastUsedAt, always)

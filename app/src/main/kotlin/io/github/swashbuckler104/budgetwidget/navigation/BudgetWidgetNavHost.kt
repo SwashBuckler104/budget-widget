@@ -18,6 +18,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.navigation.NavController
@@ -30,13 +31,17 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navDeepLink
 import androidx.navigation.toRoute
 import io.github.swashbuckler104.budgetwidget.R
+import io.github.swashbuckler104.budgetwidget.core.data.purple.PurpleTip
 import io.github.swashbuckler104.budgetwidget.feature.analysis.AnalysisRoute
 import io.github.swashbuckler104.budgetwidget.feature.categories.CategoriesRoute
+import io.github.swashbuckler104.budgetwidget.feature.purple.PurpleActions
+import io.github.swashbuckler104.budgetwidget.feature.purple.PurpleHost
 import io.github.swashbuckler104.budgetwidget.feature.settings.AboutRoute
 import io.github.swashbuckler104.budgetwidget.feature.settings.AccountsRoute
 import io.github.swashbuckler104.budgetwidget.feature.settings.ParserFeedbackRoute
 import io.github.swashbuckler104.budgetwidget.feature.settings.SettingsRoute
 import io.github.swashbuckler104.budgetwidget.feature.settings.UnparsedRoute
+import io.github.swashbuckler104.budgetwidget.feature.settings.openUpdatePage
 import io.github.swashbuckler104.budgetwidget.feature.transactions.edit.AddFromSmsSheet
 import io.github.swashbuckler104.budgetwidget.feature.transactions.list.TransactionsRoute
 import kotlin.reflect.KClass
@@ -79,16 +84,36 @@ data class DrillDownDestination(
     val direction: String = "",
 )
 
-/** In bar order: the list you land on, then Analysis in the middle (owner's choice, 1.0.3). */
-private enum class Tab(val route: Any, val routeClass: KClass<*>, @StringRes val label: Int, val icon: ImageVector) {
+/** In bar order, with Analysis in the middle: the app opens on it (owner's choice, 1.0.3 and 2.0.0). */
+private enum class Tab(
+    val route: Any,
+    val routeClass: KClass<*>,
+    @StringRes val label: Int,
+    val icon: ImageVector,
+    /** Purple's tour step that points at this tab (ADR-0063). */
+    val tour: PurpleTip,
+) {
     TRANSACTIONS(
         TransactionsDestination,
         TransactionsDestination::class,
         R.string.tab_transactions,
         Icons.AutoMirrored.Rounded.ReceiptLong,
+        PurpleTip.TOUR_TRANSACTIONS,
     ),
-    ANALYSIS(AnalysisDestination, AnalysisDestination::class, R.string.tab_analysis, Icons.Rounded.Insights),
-    CATEGORIES(CategoriesDestination, CategoriesDestination::class, R.string.tab_categories, Icons.Rounded.Category),
+    ANALYSIS(
+        AnalysisDestination,
+        AnalysisDestination::class,
+        R.string.tab_analysis,
+        Icons.Rounded.Insights,
+        PurpleTip.TOUR_ANALYSIS,
+    ),
+    CATEGORIES(
+        CategoriesDestination,
+        CategoriesDestination::class,
+        R.string.tab_categories,
+        Icons.Rounded.Category,
+        PurpleTip.TOUR_CATEGORIES,
+    ),
 }
 
 /** Must match `InsightWidget.ANALYSIS_URI` in `:widget`. */
@@ -121,6 +146,8 @@ fun BudgetWidgetNavHost(
     val onTab =
         backStack?.destination?.let { destination -> Tab.entries.any { destination.hasRoute(it.routeClass) } } ?: true
     val openSettings = { navController.navigate(SettingsDestination) { launchSingleTop = true } }
+    val openParserFeedback = { navController.navigate(ParserFeedbackDestination) { launchSingleTop = true } }
+    val context = LocalContext.current
     Scaffold(
         modifier = modifier.fillMaxSize(),
         bottomBar = {
@@ -140,72 +167,85 @@ fun BudgetWidgetNavHost(
             }
         },
     ) { padding ->
-        NavHost(
-            navController = navController,
-            startDestination = TransactionsDestination,
+        // Purple (ADR-0063) sits over the tab content, inside the bottom bar's padding.
+        PurpleHost(
+            visible = onTab,
+            tabs = Tab.entries.map { it.tour },
+            actions = PurpleActions(
+                onCheckUpdates = { openUpdatePage(context) },
+                onOpenParserFeedback = openParserFeedback,
+                onSortAll = { onOpenQuickSort(null) },
+            ),
             modifier = Modifier
                 .padding(padding)
                 .consumeWindowInsets(padding),
         ) {
-            // The Insight widget opens Analysis through this link (InsightWidget.ANALYSIS_URI).
-            composable<AnalysisDestination>(
-                deepLinks = listOf(
-                    navDeepLink {
-                        uriPattern = ANALYSIS_DEEP_LINK
-                    },
-                ),
+            NavHost(
+                navController = navController,
+                startDestination = AnalysisDestination,
             ) {
-                AnalysisRoute(
-                    onSortInbox = { onOpenQuickSort(null) },
-                    onOpenSettings = openSettings,
-                    onDrillDown = { d ->
-                        navController.navigate(
-                            DrillDownDestination(
-                                d.title,
-                                d.fromMillis,
-                                d.toMillis,
-                                d.categoryId,
-                                d.accountId,
-                                d.query,
-                                d.merchantKey,
-                                d.direction,
-                            ),
-                        )
-                    },
-                )
+                // The Insight widget opens Analysis through this link (InsightWidget.ANALYSIS_URI).
+                composable<AnalysisDestination>(
+                    deepLinks = listOf(
+                        navDeepLink {
+                            uriPattern = ANALYSIS_DEEP_LINK
+                        },
+                    ),
+                ) {
+                    AnalysisRoute(
+                        onSortInbox = { onOpenQuickSort(null) },
+                        onOpenSettings = openSettings,
+                        onDrillDown = { d ->
+                            navController.navigate(
+                                DrillDownDestination(
+                                    d.title,
+                                    d.fromMillis,
+                                    d.toMillis,
+                                    d.categoryId,
+                                    d.accountId,
+                                    d.query,
+                                    d.merchantKey,
+                                    d.direction,
+                                ),
+                            )
+                        },
+                    )
+                }
+                composable<DrillDownDestination> { entry ->
+                    TransactionsRoute(
+                        onOpenQuickSort = onOpenQuickSort,
+                        onOpenSettings = openSettings,
+                        onBack = { navController.popBackStack() },
+                        title = entry.toRoute<DrillDownDestination>().title,
+                    )
+                }
+                composable<TransactionsDestination> {
+                    TransactionsRoute(
+                        onOpenQuickSort = onOpenQuickSort,
+                        onOpenSettings = openSettings,
+                        onOpenAccounts = { navController.navigate(AccountsDestination) { launchSingleTop = true } },
+                    )
+                }
+                composable<CategoriesDestination> { CategoriesRoute() }
+                composable<SettingsDestination> {
+                    SettingsRoute(
+                        onBack = { navController.popBackStack() },
+                        onOpenAccounts = { navController.navigate(AccountsDestination) { launchSingleTop = true } },
+                        onOpenSmsIssues = { navController.navigate(UnparsedDestination) { launchSingleTop = true } },
+                        onOpenAbout = { navController.navigate(AboutDestination) { launchSingleTop = true } },
+                        onOpenParserFeedback = openParserFeedback,
+                    )
+                }
+                composable<AccountsDestination> { AccountsRoute(onBack = { navController.popBackStack() }) }
+                composable<UnparsedDestination> {
+                    UnparsedRoute(
+                        onBack = { navController.popBackStack() },
+                        addSheet = { id, onDone -> AddFromSmsSheet(id, onDone) },
+                    )
+                }
+                composable<ParserFeedbackDestination> { ParserFeedbackRoute(onBack = { navController.popBackStack() }) }
+                composable<AboutDestination> { AboutRoute(onBack = { navController.popBackStack() }) }
             }
-            composable<DrillDownDestination> { entry ->
-                TransactionsRoute(
-                    onOpenQuickSort = onOpenQuickSort,
-                    onOpenSettings = openSettings,
-                    onBack = { navController.popBackStack() },
-                    title = entry.toRoute<DrillDownDestination>().title,
-                )
-            }
-            composable<TransactionsDestination> {
-                TransactionsRoute(onOpenQuickSort = onOpenQuickSort, onOpenSettings = openSettings)
-            }
-            composable<CategoriesDestination> { CategoriesRoute() }
-            composable<SettingsDestination> {
-                SettingsRoute(
-                    onBack = { navController.popBackStack() },
-                    onOpenAccounts = { navController.navigate(AccountsDestination) { launchSingleTop = true } },
-                    onOpenSmsIssues = { navController.navigate(UnparsedDestination) { launchSingleTop = true } },
-                    onOpenAbout = { navController.navigate(AboutDestination) { launchSingleTop = true } },
-                    onOpenParserFeedback = {
-                        navController.navigate(ParserFeedbackDestination) { launchSingleTop = true }
-                    },
-                )
-            }
-            composable<AccountsDestination> { AccountsRoute(onBack = { navController.popBackStack() }) }
-            composable<UnparsedDestination> {
-                UnparsedRoute(
-                    onBack = { navController.popBackStack() },
-                    addSheet = { id, onDone -> AddFromSmsSheet(id, onDone) },
-                )
-            }
-            composable<ParserFeedbackDestination> { ParserFeedbackRoute(onBack = { navController.popBackStack() }) }
-            composable<AboutDestination> { AboutRoute(onBack = { navController.popBackStack() }) }
         }
     }
 }

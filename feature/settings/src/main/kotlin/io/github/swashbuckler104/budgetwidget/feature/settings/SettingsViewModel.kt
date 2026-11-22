@@ -40,6 +40,8 @@ data class SettingsUiState(
     val notifications: NotificationSettings = NotificationSettings(),
     val nudge: NudgeSettings = NudgeSettings(),
     val autoSort: Boolean = false,
+    /** Purple's tips (ADR-0063); its notices show either way. */
+    val purpleTips: Boolean = true,
     val appearance: AppearanceSettings = AppearanceSettings(),
     val secureScreen: Boolean = true,
     val smsRetention: SmsRetention = SmsRetention.FOREVER,
@@ -102,17 +104,20 @@ class SettingsViewModel @Inject constructor(
     val messages: Flow<SettingsMessage> = messageChannel.receiveAsFlow()
 
     val state: StateFlow<SettingsUiState> = combine(
-        combine(settings.notifications, settings.nudge, settings.autoSort, ::Triple),
+        combine(settings.notifications, settings.nudge, settings.autoSort, settings.purpleTips) { n, d, a, p ->
+            Triple(n, d, a to p)
+        },
         settings.appearance,
         transactions.observeUnparsedCount(),
         combine(busy, restorePrompt, ::Pair),
         combine(settings.secureScreen, settings.smsRetention, ::Pair),
-    ) { (notifications, nudge, auto), appearance, unparsed, (working, prompt), (secure, keepSms) ->
+    ) { (notifications, nudge, sorting), appearance, unparsed, (working, prompt), (secure, keepSms) ->
         SettingsUiState(
             loaded = true,
             notifications = notifications,
             nudge = nudge,
-            autoSort = auto,
+            autoSort = sorting.first,
+            purpleTips = sorting.second,
             appearance = appearance,
             secureScreen = secure,
             smsRetention = keepSms,
@@ -131,6 +136,8 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun setAutoSort(enabled: Boolean) = launch { settings.setAutoSort(enabled) }
+
+    fun setPurpleTips(enabled: Boolean) = launch { settings.setPurpleTips(enabled) }
 
     fun setNudgeEnabled(enabled: Boolean) = launch { settings.setNudgeEnabled(enabled) }
 

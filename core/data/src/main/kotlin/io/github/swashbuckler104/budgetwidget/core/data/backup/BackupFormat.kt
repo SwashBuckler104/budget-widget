@@ -115,6 +115,8 @@ internal data class BackupRule(
     val categoryId: Long,
     val confirmCount: Int,
     val lastUsedAt: Long,
+    /** Added in app 2.0.0; older files have none and older apps ignore it (ignoreUnknownKeys). */
+    val always: Boolean = false,
 )
 
 @Serializable
@@ -164,9 +166,9 @@ internal fun BackupTransaction.toEntity() = TransactionEntity(
     autoCategorized, isBackfill, note, duplicateOfId, linkedToId, editedByUser, createdAt, updatedAt, sortedAt,
 )
 
-internal fun MerchantRuleEntity.toBackup() = BackupRule(merchantKey, categoryId, confirmCount, lastUsedAt)
+internal fun MerchantRuleEntity.toBackup() = BackupRule(merchantKey, categoryId, confirmCount, lastUsedAt, always)
 
-internal fun BackupRule.toEntity() = MerchantRuleEntity(merchantKey, categoryId, confirmCount, lastUsedAt)
+internal fun BackupRule.toEntity() = MerchantRuleEntity(merchantKey, categoryId, confirmCount, lastUsedAt, always)
 
 internal fun MerchantAliasEntity.toBackup() = BackupAlias(merchantKey, displayName)
 

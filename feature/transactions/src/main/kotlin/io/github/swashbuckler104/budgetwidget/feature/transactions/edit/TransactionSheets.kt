@@ -46,6 +46,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import io.github.swashbuckler104.budgetwidget.core.data.edit.ManualTransaction
 import io.github.swashbuckler104.budgetwidget.core.data.edit.TransactionEdit
+import io.github.swashbuckler104.budgetwidget.core.data.sort.MerchantScope
 import io.github.swashbuckler104.budgetwidget.core.designsystem.component.BudgetBottomSheet
 import io.github.swashbuckler104.budgetwidget.core.designsystem.component.MoneyText
 import io.github.swashbuckler104.budgetwidget.core.model.Category
@@ -58,6 +59,7 @@ import io.github.swashbuckler104.budgetwidget.core.model.accepts
 import io.github.swashbuckler104.budgetwidget.core.model.formatInr
 import io.github.swashbuckler104.budgetwidget.core.model.parseInrToPaise
 import io.github.swashbuckler104.budgetwidget.feature.transactions.R
+import io.github.swashbuckler104.budgetwidget.feature.transactions.quicksort.CheckLine
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -107,6 +109,8 @@ internal fun EditTransactionContent(
     var applyToAll by form.field("applyToAll") { false }
     var note by form.field("note") { t.note.orEmpty() }
     var remember by form.field("remember") { true }
+    var earlier by form.field("earlier") { false }
+    var newer by form.field("newer") { false }
     var amountText by form.field("amountText") { formatInr(t.amountPaise).removePrefix("₹") }
     var occurredAt by form.field("occurredAt") { t.occurredAt }
     var showSms by form.field("showSms") { false }
@@ -194,6 +198,11 @@ internal fun EditTransactionContent(
                 Switch(checked = remember, onCheckedChange = { remember = it })
             }
         }
+        if (t.merchantKey != null && category != null) {
+            // ADR-0062: two separate choices for the merchant's other payments.
+            CheckLine(stringResource(R.string.quicksort_earlier), earlier) { earlier = it }
+            CheckLine(stringResource(R.string.quicksort_newer), newer) { newer = it }
+        }
 
         if (detail.smsBody != null) {
             // A manual entry added from an SMS (ADR-0048): the user typed the amount, so no report.
@@ -227,6 +236,7 @@ internal fun EditTransactionContent(
                             merchantName = name,
                             applyNameToMerchant = applyToAll,
                             rememberMerchant = remember,
+                            forMerchant = if (category != null) MerchantScope(earlier, newer) else MerchantScope.NONE,
                             amountPaise = if (manual) amount else null,
                             occurredAt = if (manual) occurredAt else null,
                         ),

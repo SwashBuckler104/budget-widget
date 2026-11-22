@@ -32,6 +32,10 @@ interface UnparsedSmsDao {
     @Query("SELECT COUNT(*) FROM unparsed_sms")
     fun observeCount(): Flow<Int>
 
+    /** Ids of the messages the parser couldn't read; not the ones the user reported a wrong amount for. */
+    @Query("SELECT id FROM unparsed_sms WHERE reason != 'WRONG_AMOUNT'")
+    fun observeUnreadIds(): Flow<List<Long>>
+
     /** Newest first. */
     @Query("SELECT * FROM unparsed_sms ORDER BY receivedAt DESC, id DESC")
     fun observeAll(): Flow<List<UnparsedSmsEntity>>

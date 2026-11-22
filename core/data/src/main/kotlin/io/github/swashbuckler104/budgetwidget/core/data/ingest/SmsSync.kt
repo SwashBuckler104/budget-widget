@@ -8,6 +8,10 @@ interface SmsSync {
     /** Scans the inbox from the checkpoint now. */
     fun reconcileNow()
 
-    /** Imports inbox messages received after [sinceMillis] (epoch ms, UTC), flagged as backfill. */
-    fun backfill(sinceMillis: Long)
+    /**
+     * Imports inbox messages received after [sinceMillis] (epoch ms, UTC), flagged as backfill.
+     * With [fileUnderOtherBefore] (epoch ms, UTC), every payment from before then still in the
+     * inbox afterwards is filed under Other in one go (ADR-0058).
+     */
+    fun backfill(sinceMillis: Long, fileUnderOtherBefore: Long? = null)
 }

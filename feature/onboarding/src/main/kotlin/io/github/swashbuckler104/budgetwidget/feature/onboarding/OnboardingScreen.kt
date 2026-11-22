@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -51,6 +52,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -98,6 +100,7 @@ fun OnboardingRoute(
     val activity = LocalActivity.current
     val step by viewModel.step.collectAsStateWithLifecycle()
     val backfill by viewModel.backfill.collectAsStateWithLifecycle()
+    val fileUnderOther by viewModel.fileUnderOther.collectAsStateWithLifecycle()
     val groups by viewModel.groups.collectAsStateWithLifecycle()
     var smsGranted by remember { mutableStateOf(hasSms(context)) }
     var notificationsGranted by remember { mutableStateOf(hasNotifications(context)) }
@@ -133,6 +136,7 @@ fun OnboardingRoute(
             smsBlocked = smsBlocked,
             notificationsGranted = notificationsGranted,
             backfill = backfill,
+            fileUnderOther = fileUnderOther,
             groups = groups,
             canPinWidget = onPinWidget != null,
             samsung = Build.MANUFACTURER.equals("samsung", ignoreCase = true),
@@ -154,6 +158,7 @@ fun OnboardingRoute(
             },
             onOpenAppInfo = { openAppInfo(context) },
             onChooseBackfill = viewModel::chooseBackfill,
+            onFileUnderOther = viewModel::setFileUnderOther,
             onPinWidget = { onPinWidget?.invoke() },
             onFinish = { viewModel.finish(smsGranted, onFinish) },
         ),
@@ -167,6 +172,7 @@ internal data class OnboardingState(
     val smsBlocked: Boolean,
     val notificationsGranted: Boolean,
     val backfill: Backfill,
+    val fileUnderOther: Boolean,
     val groups: List<CategoryGroup>,
     val canPinWidget: Boolean,
     val samsung: Boolean,
@@ -179,6 +185,7 @@ internal class OnboardingActions(
     val onAllowNotifications: () -> Unit,
     val onOpenAppInfo: () -> Unit,
     val onChooseBackfill: (Backfill) -> Unit,
+    val onFileUnderOther: (Boolean) -> Unit,
     val onPinWidget: () -> Unit,
     val onFinish: () -> Unit,
 )
@@ -216,7 +223,7 @@ internal fun OnboardingScreen(state: OnboardingState, actions: OnboardingActions
 
                     OnboardingStep.BATTERY -> BatteryStep(state.samsung, actions.onOpenAppInfo)
 
-                    OnboardingStep.HISTORY -> HistoryStep(state.backfill, state.smsGranted, actions.onChooseBackfill)
+                    OnboardingStep.HISTORY -> HistoryStep(state, actions)
 
                     OnboardingStep.CATEGORIES -> CategoriesStep(state.groups)
 
@@ -366,7 +373,8 @@ private fun BatteryStep(samsung: Boolean, onOpenAppInfo: () -> Unit) {
 }
 
 @Composable
-private fun HistoryStep(selected: Backfill, smsGranted: Boolean, onChoose: (Backfill) -> Unit) {
+private fun HistoryStep(state: OnboardingState, actions: OnboardingActions) {
+    val selected = state.backfill
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         StepHeader(Icons.Rounded.History, stringResource(R.string.onboarding_history_title))
         Text(stringResource(R.string.onboarding_history_body), style = MaterialTheme.typography.bodyLarge)
@@ -378,7 +386,9 @@ private fun HistoryStep(selected: Backfill, smsGranted: Boolean, onChoose: (Back
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 56.dp)
-                        .selectable(selected = choice == selected, role = Role.RadioButton) { onChoose(choice) },
+                        .selectable(selected = choice == selected, role = Role.RadioButton) {
+                            actions.onChooseBackfill(choice)
+                        },
                 ) {
                     RadioButton(selected = choice == selected, onClick = null)
                     Column {
@@ -392,7 +402,32 @@ private fun HistoryStep(selected: Backfill, smsGranted: Boolean, onChoose: (Back
                 }
             }
         }
-        if (!smsGranted && selected != Backfill.FRESH) {
+        if (selected != Backfill.FRESH) {
+            // A whole history is tedious to sort one by one; Other can be re-sorted any time.
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp)
+                    .toggleable(
+                        value = state.fileUnderOther,
+                        role = Role.Switch,
+                        onValueChange = actions.onFileUnderOther,
+                    ),
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.onboarding_history_other), style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        stringResource(R.string.onboarding_history_other_summary),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(checked = state.fileUnderOther, onCheckedChange = null)
+            }
+        }
+        if (!state.smsGranted && selected != Backfill.FRESH) {
             Text(
                 stringResource(R.string.onboarding_history_needs_sms),
                 style = MaterialTheme.typography.bodyMedium,

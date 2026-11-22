@@ -73,3 +73,11 @@ name: UPI collect request is not a transaction
 sender: JD-KOTAKB-S
 body: ravi.m42@okaxis has requested Rs.600.00 from you on Kotak UPI. Approve or decline in the app by 09-11-26.
 type: IGNORED
+---
+# From parser feedback (2026-09 to 2026-11, owner's card): a foreign-currency card spend. v1 tracks
+# INR only and can't convert offline, so it stays in the unparsed list, where Add as transaction
+# takes the INR amount from the card statement (ADR-0061). Merchant and values made up.
+name: USD card spend stays unparsed
+sender: AX-KOTAKB-S
+body: USD 23.6 spent on Kotak Credit Card xXX82 on 06-09-26 at EXAMPLE* CLOUD SUB. Avl limit INR 41322.26 Not you? SMS CCLOST XX82 to 5676788
+type: UNPARSED

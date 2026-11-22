@@ -61,6 +61,9 @@ class TransactionsScreenTest {
         onRequestSms = { calls += "sms" },
         onSyncNow = { calls += "sync" },
         onBackfill = { calls += "backfill" },
+        onFileAllUnderOther = { calls += "allToOther" },
+        onOpenAccounts = { calls += "accounts" },
+        onDismissOpeningPrompt = { calls += "dismissOpening" },
     )
 
     private fun show(state: TransactionsUiState) = compose.setContent {
@@ -107,6 +110,45 @@ class TransactionsScreenTest {
             "select:1",
             "add",
         ).inOrder()
+    }
+
+    @Test
+    fun `all to Other asks first and only then files the inbox`() {
+        show(
+            TransactionsUiState(
+                loading = false,
+                inbox = listOf(
+                    InboxEntry(tx(2, "Federal", TransactionStatus.PENDING), overdue = false, duplicateOf = null),
+                ),
+                total = 1,
+            ),
+        )
+        compose.onNodeWithText("All to Other").performClick()
+        compose.onNodeWithText("Put 1 payment under Other?").assertExists()
+        compose.onNodeWithText("Cancel").performClick()
+        assertThat(calls).isEmpty()
+        compose.onNodeWithText("All to Other").performClick()
+        compose.onNodeWithText("Put under Other").performClick()
+        assertThat(calls).containsExactly("allToOther")
+    }
+
+    @Test
+    fun `the starting balance card opens accounts or goes away`() {
+        compose.setContent {
+            TransactionsScreen(
+                TransactionsUiState(loading = false),
+                title = null,
+                snackbar = SnackbarHostState(),
+                smsGranted = true,
+                callbacks = callbacks(),
+                openingPrompt = true,
+            )
+        }
+        compose.onNodeWithText("Add your starting balances").assertExists()
+        compose.onNodeWithText("never counts as income", substring = true).assertExists()
+        compose.onNodeWithText("Add balances").performClick()
+        compose.onNodeWithText("Not now").performClick()
+        assertThat(calls).containsExactly("accounts", "dismissOpening").inOrder()
     }
 
     @Test

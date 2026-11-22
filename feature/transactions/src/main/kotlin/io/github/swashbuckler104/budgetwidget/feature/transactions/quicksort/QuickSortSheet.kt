@@ -14,6 +14,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -41,6 +42,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.swashbuckler104.budgetwidget.core.data.sort.MerchantScope
 import io.github.swashbuckler104.budgetwidget.core.designsystem.component.BudgetBottomSheet
 import io.github.swashbuckler104.budgetwidget.core.designsystem.component.CategoryChip
 import io.github.swashbuckler104.budgetwidget.core.designsystem.component.CategoryPicker
@@ -88,7 +90,8 @@ fun QuickSortRoute(
 @Composable
 internal fun QuickSortContent(
     state: QuickSortUiState,
-    onChoose: (Category, String, Boolean) -> Unit,
+    /** (category, note, remember the merchant, what else goes there for the merchant) */
+    onChoose: (Category, String, Boolean, MerchantScope) -> Unit,
     onIgnore: () -> Unit,
     onSkip: () -> Unit,
     onClose: () -> Unit,
@@ -109,8 +112,14 @@ internal fun QuickSortContent(
     // Per-transaction inputs reset when the next transaction comes up.
     var note by rememberSaveable(transaction.id) { mutableStateOf("") }
     var remember by rememberSaveable(transaction.id) { mutableStateOf(true) }
+    var earlier by rememberSaveable(transaction.id) { mutableStateOf(false) }
+    var newer by rememberSaveable(transaction.id) { mutableStateOf(false) }
     var showAll by rememberSaveable(transaction.id) { mutableStateOf(false) }
-    val choose = { category: Category -> onChoose(category, note, remember && transaction.merchantKey != null) }
+    val hasMerchant = transaction.merchantKey != null
+    val choose = { category: Category ->
+        val scope = if (hasMerchant) MerchantScope(earlier = earlier, newer = newer) else MerchantScope.NONE
+        onChoose(category, note, (remember || newer) && hasMerchant, scope)
+    }
 
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -150,25 +159,62 @@ internal fun QuickSortContent(
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        if (transaction.merchantKey != null) {
-            val rememberLabel = stringResource(R.string.quicksort_remember, transaction.merchantDisplay.orEmpty())
-            // The whole row is the switch: one large target, and TalkBack reads the label with
-            // the on/off state (the switch alone had no name).
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 48.dp)
-                    .toggleable(value = remember, role = Role.Switch, onValueChange = { remember = it }),
-            ) {
-                Text(rememberLabel, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                Switch(checked = remember, onCheckedChange = null)
+        if (hasMerchant) {
+            val merchant = transaction.merchantDisplay.orEmpty()
+            SwitchLine(stringResource(R.string.quicksort_remember, merchant), null, remember || newer) {
+                remember = it
+                if (!it) newer = false
             }
+            // ADR-0062: two separate choices for the merchant's other payments.
+            CheckLine(stringResource(R.string.quicksort_earlier), earlier) { earlier = it }
+            CheckLine(stringResource(R.string.quicksort_newer), newer) { newer = it }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             TextButton(onClick = onIgnore, enabled = !state.working) { Text(stringResource(R.string.quicksort_ignore)) }
             TextButton(onClick = onSkip) { Text(stringResource(R.string.quicksort_skip)) }
         }
+    }
+}
+
+/**
+ * A labelled switch where the whole row is the switch: one large target, and TalkBack reads the
+ * label with the on/off state (the switch alone had no name).
+ */
+@Composable
+private fun SwitchLine(title: String, summary: String?, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .toggleable(value = checked, role = Role.Switch, onValueChange = onChange),
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyMedium)
+            if (summary != null) {
+                Text(
+                    summary,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        Switch(checked = checked, onCheckedChange = null)
+    }
+}
+
+/** A labelled checkbox where the whole row is the target, like [SwitchLine]. */
+@Composable
+internal fun CheckLine(title: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .toggleable(value = checked, role = Role.Checkbox, onValueChange = onChange),
+    ) {
+        Checkbox(checked = checked, onCheckedChange = null)
+        Text(title, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 12.dp))
     }
 }
 

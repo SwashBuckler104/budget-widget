@@ -53,6 +53,7 @@ dependencies {
     implementation(projects.feature.categories)
     implementation(projects.feature.onboarding)
     implementation(projects.feature.settings)
+    implementation(projects.feature.purple)
 
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.hilt.work)
