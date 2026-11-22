@@ -46,7 +46,7 @@
         <item quantity="one">Put %d payment under Other?</item>
         <item quantity="other">Put %d payments under Other?</item>
     </plurals>
-    <string name="transactions_all_to_other_body">Payments go to Other and money in to Income › Other, so you don\'t have to sort them one by one. Possible duplicates stay in the inbox. You can re-sort any of them later.</string>
+    <string name="transactions_all_to_other_body">Payments go to Other, money in to Income › Other and transfers to Transfers, so you don\'t have to sort them one by one. Possible duplicates stay in the inbox. You can re-sort any of them later.</string>
     <string name="transactions_all_to_other_confirm">Put under Other</string>
     <string name="transactions_all_to_other_cancel">Cancel</string>
     <string name="transactions_sort_action">sort</string>

@@ -10,6 +10,7 @@ import io.github.swashbuckler104.budgetwidget.core.database.model.TransactionRow
 import io.github.swashbuckler104.budgetwidget.core.database.model.TransactionWithAccount
 import io.github.swashbuckler104.budgetwidget.core.model.Direction
 import io.github.swashbuckler104.budgetwidget.core.model.IgnoreReason
+import io.github.swashbuckler104.budgetwidget.core.model.ParserType
 import kotlinx.coroutines.flow.Flow
 
 /** One stored SMS body, for the masking scrub. */
@@ -18,8 +19,8 @@ data class StoredBody(val id: Long, val smsBody: String)
 /** An account's opening balance in paise, negative for money owed (ADR-0059). */
 data class AccountAmount(val accountId: Long, val balancePaise: Long)
 
-/** A pending transaction's id and which way its money moved, for bulk filing. */
-data class PendingDirection(val id: Long, val direction: Direction)
+/** A pending transaction's id, which way its money moved and what the parser called it, for bulk filing. */
+data class PendingDirection(val id: Long, val direction: Direction, val parserType: ParserType?)
 
 @Dao
 interface TransactionDao {
@@ -237,7 +238,7 @@ interface TransactionDao {
      */
     @Query(
         """
-        SELECT id, direction FROM transactions
+        SELECT id, direction, parserType FROM transactions
         WHERE status = 'PENDING' AND duplicateOfId IS NULL AND (:onlyBackfill = 0 OR isBackfill = 1)
         """,
     )

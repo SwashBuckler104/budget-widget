@@ -10,6 +10,7 @@ import io.github.swashbuckler104.budgetwidget.core.database.BudgetDatabase
 import io.github.swashbuckler104.budgetwidget.core.database.entity.CategoryEntity
 import io.github.swashbuckler104.budgetwidget.core.model.CategoryKind
 import io.github.swashbuckler104.budgetwidget.core.model.Direction
+import io.github.swashbuckler104.budgetwidget.core.model.ParserType
 import io.github.swashbuckler104.budgetwidget.core.model.TransactionStatus
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -98,5 +99,17 @@ class BulkSorterTest {
         assertThat(tx.get(out)!!.status).isEqualTo(TransactionStatus.PENDING)
         assertThat(tx.get(inc)!!.status).isEqualTo(TransactionStatus.PENDING)
         assertThat(listener.events).isEmpty()
+    }
+
+    @Test
+    fun `a transfer the parser read (a wallet top-up) goes to Between my accounts, never income`() = runTest {
+        val transfers = cat("Transfers", "transfers", CategoryKind.TRANSFER)
+        val own = cat("Between my accounts", "own_transfer", CategoryKind.TRANSFER, parent = transfers)
+        val tx = db.transactionDao()
+        val topUp = tx.insertOrIgnore(testTxn("a", direction = Direction.IN, type = ParserType.TRANSFER))
+
+        assertThat(bulk.fileUnderOther(onlyBackfill = false)).isEqualTo(1)
+
+        assertThat(tx.get(topUp)!!.categoryId).isEqualTo(own)
     }
 }
