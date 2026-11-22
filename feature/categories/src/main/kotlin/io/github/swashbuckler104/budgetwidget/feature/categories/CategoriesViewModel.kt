@@ -11,6 +11,7 @@ import io.github.swashbuckler104.budgetwidget.core.data.category.CategoryDraft
 import io.github.swashbuckler104.budgetwidget.core.data.category.CategoryRepository
 import io.github.swashbuckler104.budgetwidget.core.data.category.CategoryResult
 import io.github.swashbuckler104.budgetwidget.core.data.category.DeleteResult
+import io.github.swashbuckler104.budgetwidget.core.data.sort.MerchantScope
 import io.github.swashbuckler104.budgetwidget.core.data.sort.SortTransactionUseCase
 import io.github.swashbuckler104.budgetwidget.core.model.Category
 import io.github.swashbuckler104.budgetwidget.core.model.CategoryGroup
@@ -220,10 +221,14 @@ class CategoriesViewModel @Inject constructor(
         viewModelScope.launch { repository.deleteRule(rule.merchantKey) }
     }
 
-    /** "Always" on sorts the merchant's earlier payments into the rule's category too (ADR-0062). */
+    /** "Newer payments go here" for the rule's merchant (ADR-0062); earlier payments stay as they are. */
     fun setAlways(rule: MerchantRule, always: Boolean) {
         viewModelScope.launch {
-            if (always) sort.always(rule.merchantKey, rule.categoryId) else sort.stopAlways(rule.merchantKey)
+            if (always) {
+                sort.forMerchant(rule.merchantKey, rule.categoryId, MerchantScope(newer = true))
+            } else {
+                sort.stopAlways(rule.merchantKey)
+            }
         }
     }
 

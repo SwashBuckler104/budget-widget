@@ -4,6 +4,7 @@ import androidx.room.withTransaction
 import io.github.swashbuckler104.budgetwidget.core.data.MerchantKeyNormalizer
 import io.github.swashbuckler104.budgetwidget.core.data.WallClock
 import io.github.swashbuckler104.budgetwidget.core.data.inbox.InboxEvents
+import io.github.swashbuckler104.budgetwidget.core.data.sort.MerchantScope
 import io.github.swashbuckler104.budgetwidget.core.data.sort.SortResult
 import io.github.swashbuckler104.budgetwidget.core.data.sort.SortTransactionUseCase
 import io.github.swashbuckler104.budgetwidget.core.database.BudgetDatabase
@@ -56,8 +57,8 @@ data class TransactionEdit(
     val applyNameToMerchant: Boolean = false,
     /** Teach the merchant rule when the category changes (SCOPE.md F8). */
     val rememberMerchant: Boolean = true,
-    /** "Always" for this merchant (ADR-0062): its earlier and new payments go to the category too. */
-    val alwaysForMerchant: Boolean = false,
+    /** For this merchant's other payments (ADR-0062): earlier ones, newer ones, or both go to the category too. */
+    val forMerchant: MerchantScope = MerchantScope.NONE,
     /** Manual transactions only: SMS amounts and times are read-only. */
     val amountPaise: Long? = null,
     val occurredAt: Long? = null,
@@ -129,7 +130,8 @@ class TransactionEditor @Inject constructor(
 
     /**
      * Sorts as part of [save]: the ids it sorted, empty when the category didn't change (and it
-     * didn't confirm an auto-sort). With "always", the merchant's other payments are among them.
+     * didn't confirm an auto-sort). With [MerchantScope.earlier], the merchant's
+     * other payments are among them.
      */
     private suspend fun sortInSave(edit: TransactionEdit): List<Long> {
         val categoryId = edit.categoryId ?: return emptyList()
@@ -139,7 +141,15 @@ class TransactionEditor @Inject constructor(
         if (current.status == TransactionStatus.CATEGORIZED && current.categoryId == categoryId &&
             !current.autoCategorized
         ) {
-            return if (edit.alwaysForMerchant) sort.alwaysLocked(edit.id, categoryId) else emptyList()
+            return if (edit.forMerchant.any) {
+                sort.forMerchantLocked(
+                    edit.id,
+                    categoryId,
+                    edit.forMerchant,
+                )
+            } else {
+                emptyList()
+            }
         }
         val result = sort.categorizeLocked(
             edit.id,
@@ -149,7 +159,8 @@ class TransactionEditor @Inject constructor(
             requirePending = false,
         )
         if (result != SortResult.Done) throw EditAborted(EditResult.SortFailed(result))
-        return listOf(edit.id) + if (edit.alwaysForMerchant) sort.alwaysLocked(edit.id, categoryId) else emptyList()
+        return listOf(edit.id) +
+            if (edit.forMerchant.any) sort.forMerchantLocked(edit.id, categoryId, edit.forMerchant) else emptyList()
     }
 
     /** Rolls a [save] back: thrown inside the transaction, carries what to report. */

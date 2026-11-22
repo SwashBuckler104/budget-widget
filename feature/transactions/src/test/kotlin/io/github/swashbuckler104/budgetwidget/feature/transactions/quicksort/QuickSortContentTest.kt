@@ -10,6 +10,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
+import io.github.swashbuckler104.budgetwidget.core.data.sort.MerchantScope
 import io.github.swashbuckler104.budgetwidget.core.model.Category
 import io.github.swashbuckler104.budgetwidget.core.model.CategoryKind
 import io.github.swashbuckler104.budgetwidget.core.model.Direction
@@ -86,8 +87,8 @@ class QuickSortContentTest {
     }
 
     @Test
-    fun `always for the merchant goes with the choice and turns remember on`() {
-        var always: Pair<Boolean, Boolean>? = null
+    fun `earlier and newer payments are two separate checks, newer turns remember on`() {
+        var chosen: Pair<Boolean, MerchantScope>? = null
         compose.setSheetContent {
             QuickSortContent(
                 state = QuickSortUiState(
@@ -96,20 +97,45 @@ class QuickSortContentTest {
                     remaining = 1,
                     suggestions = listOf(groceries),
                 ),
-                onChoose = { _, _, remember, all -> always = remember to all },
+                onChoose = { _, _, remember, scope -> chosen = remember to scope },
                 onIgnore = {},
                 onSkip = {},
                 onClose = {},
             )
         }
         compose.onNode(hasText("Remember for BLINKIT") and isToggleable()).performScrollTo().performClick()
-        val row = compose.onNode(hasText("Always for BLINKIT") and isToggleable())
-        row.performScrollTo().assertIsOff().performClick()
-        row.assertIsOn()
+        val earlier = compose.onNode(hasText("Earlier payments go here") and isToggleable())
+        val newer = compose.onNode(hasText("Newer payments go here") and isToggleable())
+        earlier.performScrollTo().assertIsOff()
+        newer.performScrollTo().assertIsOff().performClick()
+        newer.assertIsOn()
+        earlier.assertIsOff()
         compose.onNode(hasText("Remember for BLINKIT") and isToggleable()).assertIsOn()
-        compose.onNodeWithText("Earlier and new payments go here too").assertExists()
         compose.onNodeWithText("Groceries").performScrollTo().performClick()
-        assertThat(always).isEqualTo(true to true)
+        assertThat(chosen).isEqualTo(true to MerchantScope(earlier = false, newer = true))
+    }
+
+    @Test
+    fun `earlier payments alone leave remember as the user set it`() {
+        var chosen: Pair<Boolean, MerchantScope>? = null
+        compose.setSheetContent {
+            QuickSortContent(
+                state = QuickSortUiState(
+                    loading = false,
+                    transaction = transaction,
+                    remaining = 1,
+                    suggestions = listOf(groceries),
+                ),
+                onChoose = { _, _, remember, scope -> chosen = remember to scope },
+                onIgnore = {},
+                onSkip = {},
+                onClose = {},
+            )
+        }
+        compose.onNode(hasText("Remember for BLINKIT") and isToggleable()).performScrollTo().performClick()
+        compose.onNode(hasText("Earlier payments go here") and isToggleable()).performScrollTo().performClick()
+        compose.onNodeWithText("Groceries").performScrollTo().performClick()
+        assertThat(chosen).isEqualTo(false to MerchantScope(earlier = true, newer = false))
     }
 
     @Test

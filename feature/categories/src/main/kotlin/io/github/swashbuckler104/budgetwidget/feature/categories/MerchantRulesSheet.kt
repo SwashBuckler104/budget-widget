@@ -90,7 +90,7 @@ internal fun MerchantRulesSheet(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    // "Always" (ADR-0062): turning it on also sorts the merchant's earlier payments here.
+                    // "Newer payments go here" (ADR-0062): new payments from the merchant are sorted here.
                     val alwaysLabel = stringResource(R.string.categories_rule_always, rule.merchantKey)
                     Switch(
                         checked = rule.always,

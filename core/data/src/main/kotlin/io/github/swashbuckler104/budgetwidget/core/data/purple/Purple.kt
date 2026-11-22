@@ -1,5 +1,6 @@
 package io.github.swashbuckler104.budgetwidget.core.data.purple
 
+import io.github.swashbuckler104.budgetwidget.core.data.sort.MerchantScope
 import io.github.swashbuckler104.budgetwidget.core.data.sort.SortTransactionUseCase
 import io.github.swashbuckler104.budgetwidget.core.data.update.UpdateReminder
 import io.github.swashbuckler104.budgetwidget.core.database.BudgetDatabase
@@ -113,7 +114,7 @@ class Purple @Inject constructor(
 
             PurpleTip.ALWAYS -> {
                 val candidate = note.always ?: return
-                if (accepted) sort.always(candidate.merchantKey, candidate.categoryId)
+                if (accepted) sort.forMerchant(candidate.merchantKey, candidate.categoryId, MerchantScope.BOTH)
                 val declined = if (accepted) emptyList() else listOf(DECLINED_ALWAYS + candidate.merchantKey)
                 settings.markPurpleSeen(listOf(alwaysId(candidate.merchantKey)) + declined)
             }

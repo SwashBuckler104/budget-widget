@@ -7,6 +7,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.swashbuckler104.budgetwidget.core.data.WallClock
 import io.github.swashbuckler104.budgetwidget.core.data.category.CategoryRepository
 import io.github.swashbuckler104.budgetwidget.core.data.repository.TransactionRepository
+import io.github.swashbuckler104.budgetwidget.core.data.sort.MerchantScope
 import io.github.swashbuckler104.budgetwidget.core.data.sort.SortResult
 import io.github.swashbuckler104.budgetwidget.core.data.sort.SortTransactionUseCase
 import io.github.swashbuckler104.budgetwidget.core.data.suggest.SuggestionEngine
@@ -126,12 +127,13 @@ class QuickSortViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), QuickSortUiState())
 
     /**
-     * Sorts the shown transaction into [category]; [remember] teaches the merchant rule, [always]
-     * also sorts the merchant's earlier and new payments there (ADR-0062).
+     * Sorts the shown transaction into [category]; [remember] teaches the merchant rule, [scope]
+     * also sends the merchant's earlier and/or newer payments there (ADR-0062).
      */
-    fun choose(category: Category, note: String, remember: Boolean, always: Boolean = false) = act { id ->
-        sort.categorize(id, category.id, note, rememberMerchant = remember || always, always = always)
-    }
+    fun choose(category: Category, note: String, remember: Boolean, scope: MerchantScope = MerchantScope.NONE) =
+        act { id ->
+            sort.categorize(id, category.id, note, rememberMerchant = remember || scope.newer, scope = scope)
+        }
 
     fun ignore() = act { id -> sort.ignore(id) }
 

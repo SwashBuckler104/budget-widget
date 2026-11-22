@@ -94,7 +94,7 @@ class SortTransactionUseCaseTest {
         listener.events.clear()
 
         now = 5_000
-        assertThat(sort.categorize(now0, food, always = true)).isEqualTo(SortResult.Done)
+        assertThat(sort.categorize(now0, food, scope = MerchantScope.BOTH)).isEqualTo(SortResult.Done)
 
         with(db.merchantRuleDao().get("swiggy")!!) {
             assertThat(categoryId).isEqualTo(food)
@@ -119,6 +119,50 @@ class SortTransactionUseCaseTest {
     }
 
     @Test
+    fun `earlier only moves stored payments and leaves new ones to the inbox`() = runTest {
+        val food = cat("Food")
+        val fuel = cat("Fuel")
+        val tx = db.transactionDao()
+        val waiting = tx.insertOrIgnore(testTxn("waiting", key = "swiggy"))
+        val elsewhere = tx.insertOrIgnore(testTxn("elsewhere", key = "swiggy"))
+        sort.categorize(elsewhere, fuel)
+        val now0 = tx.insertOrIgnore(testTxn("now", key = "swiggy"))
+
+        sort.categorize(now0, food, scope = MerchantScope(earlier = true))
+
+        assertThat(tx.get(waiting)!!.categoryId).isEqualTo(food)
+        assertThat(tx.get(elsewhere)!!.categoryId).isEqualTo(food)
+        with(db.merchantRuleDao().get("swiggy")!!) {
+            assertThat(always).isFalse()
+            assertThat(categoryId).isEqualTo(food)
+        }
+    }
+
+    @Test
+    fun `newer only makes the rule always and leaves stored payments alone`() = runTest {
+        val food = cat("Food")
+        val fuel = cat("Fuel")
+        val tx = db.transactionDao()
+        val waiting = tx.insertOrIgnore(testTxn("waiting", key = "swiggy"))
+        val elsewhere = tx.insertOrIgnore(testTxn("elsewhere", key = "swiggy"))
+        sort.categorize(elsewhere, fuel)
+        val now0 = tx.insertOrIgnore(testTxn("now", key = "swiggy"))
+        listener.events.clear()
+
+        sort.categorize(now0, food, scope = MerchantScope(newer = true))
+
+        assertThat(tx.get(waiting)!!.status).isEqualTo(TransactionStatus.PENDING)
+        assertThat(tx.get(elsewhere)!!.categoryId).isEqualTo(fuel)
+        with(db.merchantRuleDao().get("swiggy")!!) {
+            assertThat(always).isTrue()
+            assertThat(categoryId).isEqualTo(food)
+        }
+        assertThat(listener.events).containsExactly("sorted:$now0")
+        assertThat(sort.forMerchant("zomato", food, MerchantScope(newer = true))).isEqualTo(0)
+        assertThat(db.merchantRuleDao().get("zomato")!!.always).isTrue()
+    }
+
+    @Test
     fun `sorting the merchant elsewhere ends always, the same category keeps it`() = runTest {
         val food = cat("Food")
         val fuel = cat("Fuel")
@@ -126,7 +170,7 @@ class SortTransactionUseCaseTest {
         val a = tx.insertOrIgnore(testTxn("a", key = "swiggy"))
         val b = tx.insertOrIgnore(testTxn("b", key = "swiggy"))
         val c = tx.insertOrIgnore(testTxn("c", key = "swiggy"))
-        sort.categorize(a, food, always = true)
+        sort.categorize(a, food, scope = MerchantScope.BOTH)
         sort.categorize(b, food)
         assertThat(db.merchantRuleDao().get("swiggy")!!.always).isTrue()
         sort.categorize(c, fuel)
@@ -145,9 +189,9 @@ class SortTransactionUseCaseTest {
         val a = tx.insertOrIgnore(testTxn("a", key = "swiggy"))
         val b = tx.insertOrIgnore(testTxn("b", key = "swiggy"))
 
-        assertThat(sort.always("swiggy", groups)).isNull()
+        assertThat(sort.forMerchant("swiggy", groups, MerchantScope.BOTH)).isNull()
         assertThat(tx.get(a)!!.status).isEqualTo(TransactionStatus.PENDING)
-        assertThat(sort.always("swiggy", food)).isEqualTo(2)
+        assertThat(sort.forMerchant("swiggy", food, MerchantScope.BOTH)).isEqualTo(2)
         assertThat(tx.get(a)!!.categoryId).isEqualTo(food)
         assertThat(tx.get(b)!!.categoryId).isEqualTo(food)
         assertThat(db.merchantRuleDao().get("swiggy")!!.always).isTrue()
