@@ -145,6 +145,7 @@ fun SettingsRoute(
             setNotificationsEnabled = viewModel::setNotificationsEnabled,
             setMinAmount = viewModel::setMinAmount,
             setAutoSort = viewModel::setAutoSort,
+            setPurpleTips = viewModel::setPurpleTips,
             setNudgeEnabled = viewModel::setNudgeEnabled,
             setNudgeTime = viewModel::setNudgeTime,
             setTheme = viewModel::setTheme,
@@ -183,6 +184,7 @@ internal class SettingsActions(
     val setNotificationsEnabled: (Boolean) -> Unit,
     val setMinAmount: (String) -> Unit,
     val setAutoSort: (Boolean) -> Unit,
+    val setPurpleTips: (Boolean) -> Unit = {},
     val setNudgeEnabled: (Boolean) -> Unit,
     val setNudgeTime: (hour: Int, minute: Int) -> Unit,
     val allowNotifications: () -> Unit,
@@ -288,6 +290,14 @@ internal fun SettingsScreen(
                     summary = stringResource(R.string.settings_auto_sort_summary),
                     checked = state.autoSort,
                     onCheckedChange = actions.setAutoSort,
+                )
+            }
+            SettingsGroup(stringResource(R.string.settings_section_help)) {
+                SwitchRow(
+                    title = stringResource(R.string.settings_purple_tips),
+                    summary = stringResource(R.string.settings_purple_tips_summary),
+                    checked = state.purpleTips,
+                    onCheckedChange = actions.setPurpleTips,
                 )
             }
             PrivacySection(state.secureScreen, state.smsRetention, actions)

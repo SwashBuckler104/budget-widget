@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="purple_name">Purple</string>
+    <string name="purple_avatar">Purple, your helper</string>
+    <string name="purple_step">%1$d of %2$d</string>
+    <string name="purple_next">Next</string>
+    <string name="purple_skip">Skip</string>
+    <string name="purple_done">Got it</string>
+    <string name="purple_tour_transactions">Hi, I\'m Purple! Bank payments land in Transactions. Tap one to sort it.</string>
+    <string name="purple_tour_analysis">Analysis shows where your money went each month.</string>
+    <string name="purple_tour_categories">Categories are yours: add your own or rename them.</string>
+    <string name="purple_tour_settings">Settings are under ⋮ at the top right: reminders, auto-sort and backups.</string>
+    <string name="purple_update">Version %1$s is a while old. Check for a newer one?</string>
+    <string name="purple_update_check">Check</string>
+    <string name="purple_update_later">Later</string>
+    <plurals name="purple_unread_sms">
+        <item quantity="one">I couldn\'t read a bank SMS. Send it, masked, so the app learns it?</item>
+        <item quantity="other">I couldn\'t read %1$d bank SMS. Send them, masked, so the app learns them?</item>
+    </plurals>
+    <string name="purple_unread_help">Help</string>
+    <string name="purple_not_now">Not now</string>
+    <string name="purple_duplicate">Two alerts look like the same payment. Merge counts it once.</string>
+    <string name="purple_sort_all">Sort all takes you through the inbox one by one.</string>
+    <string name="purple_sort_all_action">Sort all</string>
+    <string name="purple_always">You put %1$s in %2$s every time. Always do that, for earlier and new ones?</string>
+    <string name="purple_always_yes">Always</string>
+    <string name="purple_always_no">No thanks</string>
+</resources>

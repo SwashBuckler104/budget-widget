@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
@@ -169,6 +170,27 @@ class SettingsStore @Inject constructor(@SettingsPreferences private val dataSto
         dataStore.edit { it[UPDATE_REMINDER_SNOOZED_UNTIL] = epochMillis }
     }
 
+    /** Purple's notes already answered (ADR-0063), by id: each one shows once. Kept on this phone only. */
+    val purpleSeen: Flow<Set<String>> = dataStore.data.map { it[PURPLE_SEEN].orEmpty() }
+
+    suspend fun markPurpleSeen(ids: Collection<String>) {
+        dataStore.edit { it[PURPLE_SEEN] = it[PURPLE_SEEN].orEmpty() + ids }
+    }
+
+    /** The newest unparsed SMS id Purple already mentioned (ADR-0063); newer ones bring it back. */
+    val purpleUnparsedMark: Flow<Long> = dataStore.data.map { it[PURPLE_UNPARSED_MARK] ?: 0L }
+
+    suspend fun setPurpleUnparsedMark(id: Long) {
+        dataStore.edit { it[PURPLE_UNPARSED_MARK] = id }
+    }
+
+    /** Purple's tips (tour, how-tos, offers); its notices (update, unread SMS) don't depend on it. */
+    val purpleTips: Flow<Boolean> = dataStore.data.map { it[PURPLE_TIPS] ?: true }
+
+    suspend fun setPurpleTips(enabled: Boolean) {
+        dataStore.edit { it[PURPLE_TIPS] = enabled }
+    }
+
     /** Everything a backup carries (SCOPE.md F9), read in one go. */
     suspend fun snapshot(): SettingsSnapshot {
         val prefs = dataStore.data.first()
@@ -220,6 +242,9 @@ class SettingsStore @Inject constructor(@SettingsPreferences private val dataSto
         val SMS_RETENTION = stringPreferencesKey("sms_retention")
         val OPENING_BALANCE_PROMPT_DISMISSED = booleanPreferencesKey("opening_balance_prompt_dismissed")
         val UPDATE_REMINDER_SNOOZED_UNTIL = longPreferencesKey("update_reminder_snoozed_until")
+        val PURPLE_SEEN = stringSetPreferencesKey("purple_seen")
+        val PURPLE_UNPARSED_MARK = longPreferencesKey("purple_unparsed_mark")
+        val PURPLE_TIPS = booleanPreferencesKey("purple_tips")
     }
 }
 
