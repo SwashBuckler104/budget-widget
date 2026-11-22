@@ -33,9 +33,12 @@ internal class ReconcileWorker @AssistedInject constructor(
             } else {
                 reconciler.backfill(backfillSince)
             }
-            // Onboarding's "file imported payments under Other" (ADR-0058), once they are all in.
-            if (backfillSince != NO_BACKFILL && inputData.getBoolean(KEY_FILE_UNDER_OTHER, false)) {
-                bulk.fileUnderOther(onlyBackfill = true)
+            // Onboarding's "put imported payments under Other" (ADR-0058), once they are all in.
+            val fileBefore = inputData.getLong(KEY_FILE_UNDER_OTHER_BEFORE, NO_BACKFILL)
+            if (backfillSince != NO_BACKFILL &&
+                fileBefore != NO_BACKFILL
+            ) {
+                bulk.fileUnderOther(occurredBefore = fileBefore)
             }
             if (result is InboxReconciler.Result.Scanned && result.inserted > 0) widgets.refreshNow()
             // "Keep original SMS text" (ADR-0045): runs even without SMS permission.
@@ -48,11 +51,13 @@ internal class ReconcileWorker @AssistedInject constructor(
 
     companion object {
         private const val KEY_BACKFILL_SINCE = "backfillSince"
-        private const val KEY_FILE_UNDER_OTHER = "fileUnderOther"
+        private const val KEY_FILE_UNDER_OTHER_BEFORE = "fileUnderOtherBefore"
         private const val NO_BACKFILL = Long.MIN_VALUE
         private const val MAX_ATTEMPTS = 3
 
-        fun backfillInput(sinceMillis: Long, fileUnderOther: Boolean = false): Data =
-            workDataOf(KEY_BACKFILL_SINCE to sinceMillis, KEY_FILE_UNDER_OTHER to fileUnderOther)
+        fun backfillInput(sinceMillis: Long, fileUnderOtherBefore: Long? = null): Data = workDataOf(
+            KEY_BACKFILL_SINCE to sinceMillis,
+            KEY_FILE_UNDER_OTHER_BEFORE to (fileUnderOtherBefore ?: NO_BACKFILL),
+        )
     }
 }

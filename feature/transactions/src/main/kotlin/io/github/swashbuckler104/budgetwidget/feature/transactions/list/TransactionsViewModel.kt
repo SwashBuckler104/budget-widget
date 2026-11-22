@@ -301,7 +301,7 @@ class TransactionsViewModel @Inject constructor(
 
     /** Files the whole inbox under Other (ADR-0058); the screen confirms first. */
     fun fileAllUnderOther() = launch {
-        bulk.fileUnderOther(onlyBackfill = false).takeIf { it > 0 }?.let { TransactionsMessage.Sorted(it, undo = null) }
+        bulk.fileUnderOther().takeIf { it > 0 }?.let { TransactionsMessage.Sorted(it, undo = null) }
     }
 
     fun syncNow() = smsSync.reconcileNow()

@@ -60,7 +60,7 @@ class DataTransferTest {
             reconciles++
         }
 
-        override fun backfill(sinceMillis: Long, fileUnderOther: Boolean) = Unit
+        override fun backfill(sinceMillis: Long, fileUnderOtherBefore: Long?) = Unit
     }
 
     /** Treats every sender as a bank and every message as unreadable: enough to reach the pipeline lock. */

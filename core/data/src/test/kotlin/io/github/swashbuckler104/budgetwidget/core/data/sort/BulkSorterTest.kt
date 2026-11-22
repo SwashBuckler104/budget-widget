@@ -59,7 +59,7 @@ class BulkSorterTest {
         val out = tx.insertOrIgnore(testTxn("a", key = "swiggy"))
         val inc = tx.insertOrIgnore(testTxn("b", key = "acme", direction = Direction.IN))
 
-        assertThat(bulk.fileUnderOther(onlyBackfill = false)).isEqualTo(2)
+        assertThat(bulk.fileUnderOther()).isEqualTo(2)
 
         assertThat(tx.get(out)!!.categoryId).isEqualTo(other)
         assertThat(tx.get(inc)!!.categoryId).isEqualTo(otherIncome)
@@ -70,17 +70,22 @@ class BulkSorterTest {
     }
 
     @Test
-    fun `only backfill leaves live payments, duplicates and sorted ones alone`() = runTest {
+    fun `a cut-off files everything from before it, imported or not, and leaves newer payments`() = runTest {
         val tx = db.transactionDao()
-        val imported = tx.insertOrIgnore(testTxn("a").copy(isBackfill = true))
-        val live = tx.insertOrIgnore(testTxn("b"))
-        val duplicate = tx.insertOrIgnore(testTxn("c").copy(isBackfill = true))
+        val imported = tx.insertOrIgnore(testTxn("a", at = 100).copy(isBackfill = true))
+        // Stored by the regular scan before setup ended: history too.
+        val scanned = tx.insertOrIgnore(testTxn("e", at = 200))
+        val live = tx.insertOrIgnore(testTxn("b", at = 1_000))
+        val duplicate = tx.insertOrIgnore(testTxn("c", at = 100).copy(isBackfill = true))
         tx.setDuplicateOf(duplicate, imported)
-        val ignored = tx.insertOrIgnore(testTxn("d").copy(isBackfill = true, status = TransactionStatus.IGNORED))
+        val ignored = tx.insertOrIgnore(
+            testTxn("d", at = 100).copy(isBackfill = true, status = TransactionStatus.IGNORED),
+        )
 
-        assertThat(bulk.fileUnderOther(onlyBackfill = true)).isEqualTo(1)
+        assertThat(bulk.fileUnderOther(occurredBefore = 500)).isEqualTo(2)
 
         assertThat(tx.get(imported)!!.categoryId).isEqualTo(other)
+        assertThat(tx.get(scanned)!!.categoryId).isEqualTo(other)
         assertThat(tx.get(live)!!.status).isEqualTo(TransactionStatus.PENDING)
         assertThat(tx.get(duplicate)!!.status).isEqualTo(TransactionStatus.PENDING)
         assertThat(tx.get(ignored)!!.status).isEqualTo(TransactionStatus.IGNORED)
@@ -94,7 +99,7 @@ class BulkSorterTest {
         val out = tx.insertOrIgnore(testTxn("a"))
         val inc = tx.insertOrIgnore(testTxn("b", direction = Direction.IN))
 
-        assertThat(bulk.fileUnderOther(onlyBackfill = false)).isEqualTo(0)
+        assertThat(bulk.fileUnderOther()).isEqualTo(0)
 
         assertThat(tx.get(out)!!.status).isEqualTo(TransactionStatus.PENDING)
         assertThat(tx.get(inc)!!.status).isEqualTo(TransactionStatus.PENDING)
@@ -108,7 +113,7 @@ class BulkSorterTest {
         val tx = db.transactionDao()
         val topUp = tx.insertOrIgnore(testTxn("a", direction = Direction.IN, type = ParserType.TRANSFER))
 
-        assertThat(bulk.fileUnderOther(onlyBackfill = false)).isEqualTo(1)
+        assertThat(bulk.fileUnderOther()).isEqualTo(1)
 
         assertThat(tx.get(topUp)!!.categoryId).isEqualTo(own)
     }

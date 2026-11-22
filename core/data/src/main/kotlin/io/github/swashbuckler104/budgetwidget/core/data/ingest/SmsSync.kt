@@ -10,8 +10,8 @@ interface SmsSync {
 
     /**
      * Imports inbox messages received after [sinceMillis] (epoch ms, UTC), flagged as backfill.
-     * With [fileUnderOther], the imported payments still in the inbox afterwards are filed under
-     * Other in one go (ADR-0058).
+     * With [fileUnderOtherBefore] (epoch ms, UTC), every payment from before then still in the
+     * inbox afterwards is filed under Other in one go (ADR-0058).
      */
-    fun backfill(sinceMillis: Long, fileUnderOther: Boolean = false)
+    fun backfill(sinceMillis: Long, fileUnderOtherBefore: Long? = null)
 }

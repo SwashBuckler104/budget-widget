@@ -71,9 +71,12 @@ class OnboardingViewModel @Inject constructor(
     fun finish(smsGranted: Boolean, onDone: () -> Unit) {
         viewModelScope.launch {
             val days = backfill.value.days
+            val now = clock.nowMillis()
             when {
-                days == null -> checkpoint.startAt(clock.nowMillis())
-                smsGranted -> sync.backfill(clock.nowMillis() - days.days.inWholeMilliseconds, fileUnderOther.value)
+                days == null -> checkpoint.startAt(now)
+
+                // Everything from before setup ends, also what an earlier scan already stored.
+                smsGranted -> sync.backfill(now - days.days.inWholeMilliseconds, now.takeIf { fileUnderOther.value })
             }
             settings.setOnboardingDone(true)
             onDone()

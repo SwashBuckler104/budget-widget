@@ -262,7 +262,7 @@ class TransactionsViewModelTest {
 
         override fun reconcileNow() = Unit
 
-        override fun backfill(sinceMillis: Long, fileUnderOther: Boolean) = Unit
+        override fun backfill(sinceMillis: Long, fileUnderOtherBefore: Long?) = Unit
     }
 
     private companion object {

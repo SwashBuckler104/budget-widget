@@ -24,8 +24,12 @@ class BulkSorter @Inject constructor(
     private val sort: SortTransactionUseCase,
     private val events: InboxEvents,
 ) {
-    /** Returns how many transactions were filed. With [onlyBackfill], only imported history. */
-    suspend fun fileUnderOther(onlyBackfill: Boolean): Int {
+    /**
+     * Returns how many transactions were filed. With [occurredBefore] (epoch ms, UTC), only what
+     * happened before then: setup files everything from before it finished, whichever scan stored
+     * it, and leaves payments made since in the inbox.
+     */
+    suspend fun fileUnderOther(occurredBefore: Long? = null): Int {
         val filed = db.withTransaction {
             val categories = db.categoryDao()
             val target = mapOf(
@@ -33,7 +37,7 @@ class BulkSorter @Inject constructor(
                 Direction.IN to categories.bySeedKey(OtherSeeds.OTHER_INCOME)?.id,
             )
             val transfer = categories.bySeedKey(TransferSeeds.OWN_TRANSFER)?.id
-            db.transactionDao().bulkFilable(onlyBackfill).mapNotNull { pending ->
+            db.transactionDao().bulkFilable(occurredBefore).mapNotNull { pending ->
                 val categoryId =
                     (if (pending.parserType == ParserType.TRANSFER) transfer else target[pending.direction])
                         ?: return@mapNotNull null

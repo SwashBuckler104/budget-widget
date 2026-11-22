@@ -234,15 +234,16 @@ interface TransactionDao {
 
     /**
      * What bulk filing may sort (ADR-0058): PENDING, not a possible duplicate (that needs a look),
-     * and with [onlyBackfill] only imported history.
+     * and with [occurredBefore] (epoch ms, UTC) only what happened before then.
      */
     @Query(
         """
         SELECT id, direction, parserType FROM transactions
-        WHERE status = 'PENDING' AND duplicateOfId IS NULL AND (:onlyBackfill = 0 OR isBackfill = 1)
+        WHERE status = 'PENDING' AND duplicateOfId IS NULL
+          AND (:occurredBefore IS NULL OR occurredAt < :occurredBefore)
         """,
     )
-    suspend fun bulkFilable(onlyBackfill: Boolean): List<PendingDirection>
+    suspend fun bulkFilable(occurredBefore: Long?): List<PendingDirection>
 
     /** Marks [id] as sorted into [categoryId] (a leaf). Clears any earlier ignore. */
     @Query(
