@@ -1,8 +1,9 @@
 - Meet Purple: a short tour and small tips as you go.
-- "Always" for a merchant sorts its earlier and new payments.
+- Send a merchant's earlier or newer payments to a category.
 - Put a whole imported history under Other in one go.
 - Add each account's starting balance, never counted as income.
 - Purple reminds you to check for a newer version. Still offline.
 - Reads NKGSB Bank, IRCTC R-Wallet and CRED wallet SMS.
+- The app opens on Analysis.
 - Bottom sheets no longer shake after a swipe up.
 - Bank SMS text on transactions is stored masked.
