@@ -25,6 +25,7 @@ internal object FinancialSmsHeuristic {
         ACCOUNT.containsMatchIn(body) &&
         !hasSecret(body) &&
         !NOT_A_TRANSACTION.containsMatchIn(body) &&
+        !STORE_CREDIT.containsMatchIn(body) &&
         // The lender's or card's side of a payment the bank debit already shows (ADR-0042).
         !FlowRules.isPaymentConfirmation(body)
 
@@ -54,6 +55,15 @@ internal object FinancialSmsHeuristic {
     private val NOT_A_TRANSACTION = Regex(
         """\b(is due|due on|due date|amt due|amount due|will be (debited|deducted|charged|auto-?debited)|""" +
             """bounced|declined|has requested|requested rs|collect request|pre-?approved|apply now)\b""",
+        RegexOption.IGNORE_CASE,
+    )
+
+    /**
+     * A shop's own credit, not money in an account: "Rs. 100 CLiQ Cash has been credited to your
+     * wallet" (owner's parser feedback, ADR-0061). Coins and points read the same way.
+     */
+    private val STORE_CREDIT = Regex(
+        """\b(cliq cash|super ?coins?|neu ?coins?|reward points?)\b""",
         RegexOption.IGNORE_CASE,
     )
 
