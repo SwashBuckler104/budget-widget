@@ -21,5 +21,5 @@ keystore.properties
 .DS_Store
 
 # Owner-local inputs, never published: real (masked) bank SMS for the parser skill, bug videos.
-/docs/parser-dataset.md
+/docs/parser-dataset.*
 /docs/*.mp4
