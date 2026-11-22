@@ -128,6 +128,7 @@ fun CategoriesRoute(modifier: Modifier = Modifier, viewModel: CategoriesViewMode
             groups = state.groups,
             onDelete = viewModel::deleteRule,
             onMove = viewModel::moveRule,
+            onAlways = viewModel::setAlways,
             onDismiss = { viewModel.showRules(null) },
         )
     }

@@ -73,4 +73,6 @@
     <string name="categories_rule_move">Move rule for %1$s</string>
     <string name="categories_rule_delete">Delete rule for %1$s</string>
     <string name="categories_rule_move_title">Move %1$s to</string>
+    <string name="categories_rule_always">Always sort %1$s here</string>
+    <string name="categories_rule_always_on">Always: earlier and new payments</string>
 </resources>

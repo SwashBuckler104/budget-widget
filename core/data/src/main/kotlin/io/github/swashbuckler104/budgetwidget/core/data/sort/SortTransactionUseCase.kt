@@ -45,6 +45,8 @@ class SortTransactionUseCase @Inject constructor(
     /**
      * Sorts [transactionId] into [categoryId]. With [rememberMerchant], the merchant's rule learns
      * the choice (SCOPE.md F8): same category -> confirmCount + 1, different -> reset to 1.
+     * With [always] (ADR-0062), the rule becomes an "always" rule and every earlier payment from
+     * the merchant that fits the category is sorted there too.
      */
     suspend fun categorize(
         transactionId: Long,
@@ -52,10 +54,73 @@ class SortTransactionUseCase @Inject constructor(
         note: String? = null,
         rememberMerchant: Boolean = true,
         requirePending: Boolean = false,
-    ): SortResult = reported(transactionId) {
-        db.withTransaction {
-            categorizeLocked(transactionId, categoryId, note, rememberMerchant, requirePending)
+        always: Boolean = false,
+    ): SortResult {
+        var alsoSorted = emptyList<Long>()
+        val result = reported(transactionId) {
+            db.withTransaction {
+                categorizeLocked(transactionId, categoryId, note, rememberMerchant, requirePending).also {
+                    if (it == SortResult.Done && always) alsoSorted = alwaysLocked(transactionId, categoryId)
+                }
+            }
         }
+        alsoSorted.forEach { events.sorted(it) }
+        return result
+    }
+
+    /**
+     * "Always sort [merchantKey] into [categoryId]" from outside a sort (Purple's offer, the
+     * merchant rules list). Returns how many of its payments moved; null when the category can't
+     * take them (gone, archived or a group).
+     */
+    suspend fun always(merchantKey: String, categoryId: Long): Int? {
+        val moved = db.withTransaction {
+            val category = db.categoryDao().get(categoryId)
+            if (category == null || category.archived || db.categoryDao().childIds(categoryId).isNotEmpty()) {
+                return@withTransaction null
+            }
+            alwaysLocked(merchantKey, categoryId, exceptId = null)
+        } ?: return null
+        moved.pending.forEach { events.sorted(it) }
+        return moved.count
+    }
+
+    /** Back to a learned rule: new payments from [merchantKey] wait in the inbox again. */
+    suspend fun stopAlways(merchantKey: String) = db.merchantRuleDao().setAlways(merchantKey, false)
+
+    /** What [alwaysLocked] changed: [count] payments moved, [pending] of them left the inbox. */
+    internal class Moved(val count: Int, val pending: List<Long>)
+
+    /** [alwaysLocked] for the merchant of [transactionId], just sorted; returns the ids that left the inbox. */
+    internal suspend fun alwaysLocked(transactionId: Long, categoryId: Long): List<Long> {
+        val key = db.transactionDao().get(transactionId)?.merchantKey ?: return emptyList()
+        return alwaysLocked(key, categoryId, exceptId = transactionId).pending
+    }
+
+    /**
+     * Makes [merchantKey] an "always [categoryId]" rule (ADR-0062) and sorts its other payments
+     * there: those still in the inbox and those sorted elsewhere. Left alone: [exceptId], ignored
+     * ones, possible duplicates still in the inbox, legs of a transfer between own accounts, and
+     * money moving the way the category can't hold (a refund for an expense). Call inside
+     * `withTransaction`; report [Moved.pending] with [InboxEvents.sorted] after the commit.
+     */
+    private suspend fun alwaysLocked(merchantKey: String, categoryId: Long, exceptId: Long?): Moved {
+        val dao = db.transactionDao()
+        val category = db.categoryDao().get(categoryId) ?: return Moved(0, emptyList())
+        val now = clock.nowMillis()
+        val rules = db.merchantRuleDao()
+        val rule = rules.get(merchantKey) ?: nextRule(null, merchantKey, categoryId, now)
+        rules.upsert(rule.copy(categoryId = categoryId, always = true))
+        val moving = dao.byMerchantKey(merchantKey).filter { t ->
+            t.id != exceptId &&
+                t.status != TransactionStatus.IGNORED &&
+                !(t.status == TransactionStatus.PENDING && t.duplicateOfId != null) &&
+                t.linkedToId == null &&
+                t.categoryId != categoryId &&
+                category.kind.accepts(t.direction)
+        }
+        moving.forEach { dao.sortFromRule(it.id, categoryId, now) }
+        return Moved(moving.size, moving.filter { it.status == TransactionStatus.PENDING }.map { it.id })
     }
 
     /**
@@ -80,6 +145,7 @@ class SortTransactionUseCase @Inject constructor(
         val now = clock.nowMillis()
         db.transactionDao().categorize(transactionId, categoryId, cleanNote(note), auto = false, now = now)
         val key = tx.merchantKey
+        // A different category undoes an "always" rule; the same one keeps it (nextRule).
         if (rememberMerchant && key != null) {
             val rules = db.merchantRuleDao()
             rules.upsert(nextRule(rules.get(key), key, categoryId, now))
@@ -118,6 +184,7 @@ class SortTransactionUseCase @Inject constructor(
                 categoryId = categoryId,
                 confirmCount = if (current?.categoryId == categoryId) current.confirmCount + 1 else 1,
                 lastUsedAt = now,
+                always = current?.categoryId == categoryId && current.always,
             )
     }
 }

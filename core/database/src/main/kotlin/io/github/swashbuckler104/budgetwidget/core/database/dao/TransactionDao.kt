@@ -16,6 +16,9 @@ import kotlinx.coroutines.flow.Flow
 /** One stored SMS body, for the masking scrub. */
 data class StoredBody(val id: Long, val smsBody: String)
 
+/** The inbox in two numbers: what waits to be sorted, and how much of it may be a duplicate. */
+data class InboxSignals(val pending: Int, val duplicates: Int)
+
 /** An account's opening balance in paise, negative for money owed (ADR-0059). */
 data class AccountAmount(val accountId: Long, val balancePaise: Long)
 
@@ -93,6 +96,9 @@ interface TransactionDao {
         """,
     )
     suspend fun unignore(id: Long, now: Long): Int
+
+    @Query("SELECT COUNT(*) AS pending, COUNT(duplicateOfId) AS duplicates FROM transactions WHERE status = 'PENDING'")
+    fun observeInboxSignals(): Flow<InboxSignals>
 
     @Query("SELECT * FROM transactions WHERE merchantKey = :merchantKey")
     suspend fun byMerchantKey(merchantKey: String): List<TransactionEntity>
@@ -254,6 +260,16 @@ interface TransactionDao {
         """,
     )
     suspend fun categorize(id: Long, categoryId: Long, note: String?, auto: Boolean, now: Long): Int
+
+    /** Sorts [id] into [categoryId] from an "always" merchant rule (ADR-0062), keeping its note. */
+    @Query(
+        """
+        UPDATE transactions SET status = 'CATEGORIZED', categoryId = :categoryId, ignoreReason = NULL,
+          autoCategorized = 1, updatedAt = :now, sortedAt = COALESCE(sortedAt, :now)
+        WHERE id = :id
+        """,
+    )
+    suspend fun sortFromRule(id: Long, categoryId: Long, now: Long): Int
 
     @Query(
         """

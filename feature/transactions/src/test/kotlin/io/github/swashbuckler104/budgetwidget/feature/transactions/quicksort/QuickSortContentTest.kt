@@ -46,7 +46,7 @@ class QuickSortContentTest {
                     remaining = 3,
                     suggestions = listOf(groceries),
                 ),
-                onChoose = { c, note, remember -> chosen = Triple(c, note, remember) },
+                onChoose = { c, note, remember, _ -> chosen = Triple(c, note, remember) },
                 onIgnore = { ignored = true },
                 onSkip = {},
                 onClose = {},
@@ -72,7 +72,7 @@ class QuickSortContentTest {
                     remaining = 1,
                     suggestions = listOf(groceries),
                 ),
-                onChoose = { c, note, remember -> chosen = Triple(c, note, remember) },
+                onChoose = { c, note, remember, _ -> chosen = Triple(c, note, remember) },
                 onIgnore = {},
                 onSkip = {},
                 onClose = {},
@@ -86,9 +86,36 @@ class QuickSortContentTest {
     }
 
     @Test
+    fun `always for the merchant goes with the choice and turns remember on`() {
+        var always: Pair<Boolean, Boolean>? = null
+        compose.setSheetContent {
+            QuickSortContent(
+                state = QuickSortUiState(
+                    loading = false,
+                    transaction = transaction,
+                    remaining = 1,
+                    suggestions = listOf(groceries),
+                ),
+                onChoose = { _, _, remember, all -> always = remember to all },
+                onIgnore = {},
+                onSkip = {},
+                onClose = {},
+            )
+        }
+        compose.onNode(hasText("Remember for BLINKIT") and isToggleable()).performScrollTo().performClick()
+        val row = compose.onNode(hasText("Always for BLINKIT") and isToggleable())
+        row.performScrollTo().assertIsOff().performClick()
+        row.assertIsOn()
+        compose.onNode(hasText("Remember for BLINKIT") and isToggleable()).assertIsOn()
+        compose.onNodeWithText("Earlier and new payments go here too").assertExists()
+        compose.onNodeWithText("Groceries").performScrollTo().performClick()
+        assertThat(always).isEqualTo(true to true)
+    }
+
+    @Test
     fun `an empty inbox shows the done state`() {
         compose.setSheetContent {
-            QuickSortContent(QuickSortUiState(loading = false, finished = true), { _, _, _ -> }, {}, {}, {})
+            QuickSortContent(QuickSortUiState(loading = false, finished = true), { _, _, _, _ -> }, {}, {}, {})
         }
         compose.onNodeWithText("All sorted ✓").assertExists()
     }

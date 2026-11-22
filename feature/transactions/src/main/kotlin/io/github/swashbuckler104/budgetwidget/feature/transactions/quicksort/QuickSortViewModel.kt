@@ -125,9 +125,12 @@ class QuickSortViewModel @Inject constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), QuickSortUiState())
 
-    /** Sorts the shown transaction into [category]; [remember] teaches the merchant rule. */
-    fun choose(category: Category, note: String, remember: Boolean) = act { id ->
-        sort.categorize(id, category.id, note, remember)
+    /**
+     * Sorts the shown transaction into [category]; [remember] teaches the merchant rule, [always]
+     * also sorts the merchant's earlier and new payments there (ADR-0062).
+     */
+    fun choose(category: Category, note: String, remember: Boolean, always: Boolean = false) = act { id ->
+        sort.categorize(id, category.id, note, rememberMerchant = remember || always, always = always)
     }
 
     fun ignore() = act { id -> sort.ignore(id) }

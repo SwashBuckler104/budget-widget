@@ -10,6 +10,8 @@
     <string name="quicksort_hide_all">Hide categories</string>
     <string name="quicksort_note">Note (optional)</string>
     <string name="quicksort_remember">Remember for %1$s</string>
+    <string name="quicksort_always">Always for %1$s</string>
+    <string name="quicksort_always_summary">Earlier and new payments go here too</string>
     <string name="quicksort_ignore">Ignore</string>
     <string name="quicksort_skip">Skip</string>
     <string name="quicksort_overdue">Overdue</string>

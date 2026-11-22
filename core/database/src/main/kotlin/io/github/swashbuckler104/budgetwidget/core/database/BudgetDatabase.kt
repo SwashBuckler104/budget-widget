@@ -36,7 +36,7 @@ import io.github.swashbuckler104.budgetwidget.core.model.CategoryPalette
         UnparsedSmsEntity::class,
         MerchantAliasEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = true,
     autoMigrations = [
         // 1 -> 2: category.seedKey (nullable) with a unique index.
@@ -49,6 +49,8 @@ import io.github.swashbuckler104.budgetwidget.core.model.CategoryPalette
         AutoMigration(from = 4, to = 5, spec = BudgetDatabase.BrightColorsSpec::class),
         // 5 -> 6: transactions.linkedToId (nullable): the other leg of an own-account transfer.
         AutoMigration(from = 5, to = 6),
+        // 6 -> 7: merchant_rule.always (default 0): "always sort this merchant here" (ADR-0062).
+        AutoMigration(from = 6, to = 7),
     ],
 )
 abstract class BudgetDatabase : RoomDatabase() {

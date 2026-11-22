@@ -30,8 +30,17 @@ data class CategoryGroup(val category: Category, val children: List<Category>) {
         }
 }
 
-/** Learned `merchantKey -> category` rule (SCOPE.md F8). [lastUsedAt] is epoch ms (UTC). */
-data class MerchantRule(val merchantKey: String, val categoryId: Long, val confirmCount: Int, val lastUsedAt: Long)
+/**
+ * Learned `merchantKey -> category` rule (SCOPE.md F8). [lastUsedAt] is epoch ms (UTC). [always]:
+ * every payment from this merchant is sorted here, earlier and new ones (ADR-0062).
+ */
+data class MerchantRule(
+    val merchantKey: String,
+    val categoryId: Long,
+    val confirmCount: Int,
+    val lastUsedAt: Long,
+    val always: Boolean = false,
+)
 
 /** Whether a category of this kind can classify money moving in [direction]. */
 fun CategoryKind.accepts(direction: Direction): Boolean = when (this) {

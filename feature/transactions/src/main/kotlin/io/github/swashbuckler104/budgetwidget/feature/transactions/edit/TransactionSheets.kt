@@ -107,6 +107,7 @@ internal fun EditTransactionContent(
     var applyToAll by form.field("applyToAll") { false }
     var note by form.field("note") { t.note.orEmpty() }
     var remember by form.field("remember") { true }
+    var always by form.field("always") { false }
     var amountText by form.field("amountText") { formatInr(t.amountPaise).removePrefix("₹") }
     var occurredAt by form.field("occurredAt") { t.occurredAt }
     var showSms by form.field("showSms") { false }
@@ -194,6 +195,23 @@ internal fun EditTransactionContent(
                 Switch(checked = remember, onCheckedChange = { remember = it })
             }
         }
+        if (t.merchantKey != null && category != null) {
+            // "Always" (ADR-0062): earlier and new payments from the merchant go to this category.
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        stringResource(R.string.quicksort_always, t.merchantDisplay ?: name),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Text(
+                        stringResource(R.string.quicksort_always_summary),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(checked = always, onCheckedChange = { always = it })
+            }
+        }
 
         if (detail.smsBody != null) {
             // A manual entry added from an SMS (ADR-0048): the user typed the amount, so no report.
@@ -227,6 +245,7 @@ internal fun EditTransactionContent(
                             merchantName = name,
                             applyNameToMerchant = applyToAll,
                             rememberMerchant = remember,
+                            alwaysForMerchant = always && category != null,
                             amountPaise = if (manual) amount else null,
                             occurredAt = if (manual) occurredAt else null,
                         ),

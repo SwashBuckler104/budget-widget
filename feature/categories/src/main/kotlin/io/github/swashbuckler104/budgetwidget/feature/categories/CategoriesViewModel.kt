@@ -11,6 +11,7 @@ import io.github.swashbuckler104.budgetwidget.core.data.category.CategoryDraft
 import io.github.swashbuckler104.budgetwidget.core.data.category.CategoryRepository
 import io.github.swashbuckler104.budgetwidget.core.data.category.CategoryResult
 import io.github.swashbuckler104.budgetwidget.core.data.category.DeleteResult
+import io.github.swashbuckler104.budgetwidget.core.data.sort.SortTransactionUseCase
 import io.github.swashbuckler104.budgetwidget.core.model.Category
 import io.github.swashbuckler104.budgetwidget.core.model.CategoryGroup
 import io.github.swashbuckler104.budgetwidget.core.model.CategoryKind
@@ -100,7 +101,10 @@ class CategoriesActions(
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
-class CategoriesViewModel @Inject constructor(private val repository: CategoryRepository) : ViewModel() {
+class CategoriesViewModel @Inject constructor(
+    private val repository: CategoryRepository,
+    private val sort: SortTransactionUseCase,
+) : ViewModel() {
     private val showArchived = MutableStateFlow(false)
 
     /**
@@ -214,6 +218,13 @@ class CategoriesViewModel @Inject constructor(private val repository: CategoryRe
 
     fun deleteRule(rule: MerchantRule) {
         viewModelScope.launch { repository.deleteRule(rule.merchantKey) }
+    }
+
+    /** "Always" on sorts the merchant's earlier payments into the rule's category too (ADR-0062). */
+    fun setAlways(rule: MerchantRule, always: Boolean) {
+        viewModelScope.launch {
+            if (always) sort.always(rule.merchantKey, rule.categoryId) else sort.stopAlways(rule.merchantKey)
+        }
     }
 
     fun moveRule(rule: MerchantRule, target: Category) {

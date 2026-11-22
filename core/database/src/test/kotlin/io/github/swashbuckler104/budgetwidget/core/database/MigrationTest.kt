@@ -184,6 +184,29 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun `6 to 7 keeps merchant rules and makes none of them always`() {
+        helper.createDatabase(DB, 6).use { db ->
+            db.execSQL(
+                "INSERT INTO category (id, parentId, name, iconKey, colorArgb, kind, sortOrder, archived, isSeed, " +
+                    "seedKey) VALUES (7, NULL, 'Food', '🍽️', -1, 'EXPENSE', 3, 0, 0, NULL)",
+            )
+            db.execSQL(
+                "INSERT INTO merchant_rule (merchantKey, categoryId, confirmCount, lastUsedAt) VALUES ('shop', 7, 4, 9)",
+            )
+        }
+
+        helper.runMigrationsAndValidate(DB, 7, true).use { db ->
+            db.query("SELECT categoryId, confirmCount, lastUsedAt, always FROM merchant_rule").use {
+                assertThat(it.moveToFirst()).isTrue()
+                assertThat(it.getLong(0)).isEqualTo(7)
+                assertThat(it.getInt(1)).isEqualTo(4)
+                assertThat(it.getLong(2)).isEqualTo(9)
+                assertThat(it.getInt(3)).isEqualTo(0)
+            }
+        }
+    }
+
     private companion object {
         const val DB = "migration-test"
     }

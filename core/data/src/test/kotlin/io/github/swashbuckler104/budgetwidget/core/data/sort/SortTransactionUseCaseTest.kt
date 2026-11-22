@@ -75,6 +75,91 @@ class SortTransactionUseCaseTest {
     }
 
     @Test
+    fun `always sorts the merchant's earlier payments that fit and keeps their notes`() = runTest {
+        val food = cat("Food")
+        val fuel = cat("Fuel")
+        val tx = db.transactionDao()
+        val waiting = tx.insertOrIgnore(testTxn("waiting", key = "swiggy"))
+        val elsewhere = tx.insertOrIgnore(testTxn("elsewhere", key = "swiggy"))
+        sort.categorize(elsewhere, fuel, note = "late night")
+        val ignored = tx.insertOrIgnore(testTxn("ignored", key = "swiggy"))
+        sort.ignore(ignored)
+        val duplicate = tx.insertOrIgnore(testTxn("dup", key = "swiggy"))
+        tx.setDuplicateOf(duplicate, waiting)
+        val refund = tx.insertOrIgnore(testTxn("refund", key = "swiggy", direction = Direction.IN))
+        val leg = tx.insertOrIgnore(testTxn("leg", key = "swiggy"))
+        tx.setLinkedTo(leg, refund)
+        val other = tx.insertOrIgnore(testTxn("other", key = "zomato"))
+        val now0 = tx.insertOrIgnore(testTxn("now", key = "swiggy"))
+        listener.events.clear()
+
+        now = 5_000
+        assertThat(sort.categorize(now0, food, always = true)).isEqualTo(SortResult.Done)
+
+        with(db.merchantRuleDao().get("swiggy")!!) {
+            assertThat(categoryId).isEqualTo(food)
+            assertThat(always).isTrue()
+        }
+        with(tx.get(waiting)!!) {
+            assertThat(categoryId).isEqualTo(food)
+            assertThat(status).isEqualTo(TransactionStatus.CATEGORIZED)
+            assertThat(autoCategorized).isTrue()
+        }
+        with(tx.get(elsewhere)!!) {
+            assertThat(categoryId).isEqualTo(food)
+            assertThat(note).isEqualTo("late night")
+        }
+        assertThat(tx.get(ignored)!!.status).isEqualTo(TransactionStatus.IGNORED)
+        assertThat(tx.get(duplicate)!!.status).isEqualTo(TransactionStatus.PENDING)
+        assertThat(tx.get(refund)!!.status).isEqualTo(TransactionStatus.PENDING)
+        assertThat(tx.get(leg)!!.status).isEqualTo(TransactionStatus.PENDING)
+        assertThat(tx.get(other)!!.status).isEqualTo(TransactionStatus.PENDING)
+        // Only what left the inbox is reported (notifications, widgets).
+        assertThat(listener.events).containsExactly("sorted:$now0", "sorted:$waiting")
+    }
+
+    @Test
+    fun `sorting the merchant elsewhere ends always, the same category keeps it`() = runTest {
+        val food = cat("Food")
+        val fuel = cat("Fuel")
+        val tx = db.transactionDao()
+        val a = tx.insertOrIgnore(testTxn("a", key = "swiggy"))
+        val b = tx.insertOrIgnore(testTxn("b", key = "swiggy"))
+        val c = tx.insertOrIgnore(testTxn("c", key = "swiggy"))
+        sort.categorize(a, food, always = true)
+        sort.categorize(b, food)
+        assertThat(db.merchantRuleDao().get("swiggy")!!.always).isTrue()
+        sort.categorize(c, fuel)
+        with(db.merchantRuleDao().get("swiggy")!!) {
+            assertThat(always).isFalse()
+            assertThat(categoryId).isEqualTo(fuel)
+        }
+    }
+
+    @Test
+    fun `always from outside a sort moves the payments and can be stopped`() = runTest {
+        val food = cat("Food")
+        val groups = cat("Group")
+        cat("Leaf", parent = groups)
+        val tx = db.transactionDao()
+        val a = tx.insertOrIgnore(testTxn("a", key = "swiggy"))
+        val b = tx.insertOrIgnore(testTxn("b", key = "swiggy"))
+
+        assertThat(sort.always("swiggy", groups)).isNull()
+        assertThat(tx.get(a)!!.status).isEqualTo(TransactionStatus.PENDING)
+        assertThat(sort.always("swiggy", food)).isEqualTo(2)
+        assertThat(tx.get(a)!!.categoryId).isEqualTo(food)
+        assertThat(tx.get(b)!!.categoryId).isEqualTo(food)
+        assertThat(db.merchantRuleDao().get("swiggy")!!.always).isTrue()
+
+        sort.stopAlways("swiggy")
+        with(db.merchantRuleDao().get("swiggy")!!) {
+            assertThat(always).isFalse()
+            assertThat(categoryId).isEqualTo(food)
+        }
+    }
+
+    @Test
     fun `not remembering leaves the rule alone`() = runTest {
         val food = cat("Food")
         val a = db.transactionDao().insertOrIgnore(testTxn("a", key = "swiggy"))

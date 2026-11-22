@@ -283,6 +283,33 @@ class IngestPipelineTest {
     }
 
     @Test
+    fun `an always rule sorts new payments with auto-sort off, but not a refund`() = runTest {
+        val food = db.categoryDao().insert(
+            CategoryEntity(
+                parentId = null,
+                name = "Food",
+                iconKey = "🍽️",
+                colorArgb = 0,
+                kind = CategoryKind.EXPENSE,
+                sortOrder = 0,
+            ),
+        )
+        db.merchantRuleDao().upsert(MerchantRuleEntity("swiggy food", food, 1, 0, always = true))
+        autoSort = false
+
+        parser.next = txn(hash = "pay", merchant = "swiggy.food@paytm")
+        val pay = pipeline.ingest(RawSms(BANK, "a", 1), IngestOrigin.REALTIME) as IngestOutcome.Inserted
+        assertThat(pay.autoSorted).isTrue()
+        assertThat(db.transactionDao().get(pay.id)!!.categoryId).isEqualTo(food)
+
+        // Money back from the merchant can't go to an expense category: it waits in the inbox.
+        parser.next = txn(hash = "refund", merchant = "swiggy.food@paytm", direction = Direction.IN, at = 900_000_000)
+        val refund = pipeline.ingest(RawSms(BANK, "b", 2), IngestOrigin.REALTIME) as IngestOutcome.Inserted
+        assertThat(refund.autoSorted).isFalse()
+        assertThat(db.transactionDao().get(refund.id)!!.status).isEqualTo(TransactionStatus.PENDING)
+    }
+
+    @Test
     fun `listeners hear about new pending rows only, after they are stored`() = runTest {
         val food = db.categoryDao().insert(
             CategoryEntity(
@@ -339,11 +366,12 @@ class IngestPipelineTest {
         at: Long = 1_000,
         balance: Long? = null,
         body: String = "Rs 150.00 debited to swiggy.food@paytm",
+        direction: Direction = Direction.OUT,
     ) = SmsParseResult.Transaction(
         ParsedSms(
             txnHash = hash,
             amountPaise = 15_000,
-            direction = Direction.OUT,
+            direction = direction,
             parserType = ParserType.EXPENSE,
             isCard = false,
             merchant = merchant,

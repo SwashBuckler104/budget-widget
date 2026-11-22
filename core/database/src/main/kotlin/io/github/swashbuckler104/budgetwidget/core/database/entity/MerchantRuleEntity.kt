@@ -1,11 +1,16 @@
 package io.github.swashbuckler104.budgetwidget.core.database.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
-/** Learned `merchantKey -> category` rule (SCOPE.md F8). Used from M2. [lastUsedAt] is epoch ms. */
+/**
+ * Learned `merchantKey -> category` rule (SCOPE.md F8). Used from M2. [lastUsedAt] is epoch ms.
+ * [always]: the user chose "always" for this merchant (ADR-0062): new payments are sorted from it
+ * whatever the auto-sort setting and [confirmCount] say.
+ */
 @Entity(
     tableName = "merchant_rule",
     foreignKeys = [
@@ -23,4 +28,5 @@ data class MerchantRuleEntity(
     val categoryId: Long,
     val confirmCount: Int,
     val lastUsedAt: Long,
+    @ColumnInfo(defaultValue = "0") val always: Boolean = false,
 )

@@ -88,7 +88,8 @@ fun QuickSortRoute(
 @Composable
 internal fun QuickSortContent(
     state: QuickSortUiState,
-    onChoose: (Category, String, Boolean) -> Unit,
+    /** (category, note, remember the merchant, always for the merchant) */
+    onChoose: (Category, String, Boolean, Boolean) -> Unit,
     onIgnore: () -> Unit,
     onSkip: () -> Unit,
     onClose: () -> Unit,
@@ -109,8 +110,12 @@ internal fun QuickSortContent(
     // Per-transaction inputs reset when the next transaction comes up.
     var note by rememberSaveable(transaction.id) { mutableStateOf("") }
     var remember by rememberSaveable(transaction.id) { mutableStateOf(true) }
+    var always by rememberSaveable(transaction.id) { mutableStateOf(false) }
     var showAll by rememberSaveable(transaction.id) { mutableStateOf(false) }
-    val choose = { category: Category -> onChoose(category, note, remember && transaction.merchantKey != null) }
+    val hasMerchant = transaction.merchantKey != null
+    val choose = { category: Category ->
+        onChoose(category, note, (remember || always) && hasMerchant, always && hasMerchant)
+    }
 
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -150,25 +155,50 @@ internal fun QuickSortContent(
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        if (transaction.merchantKey != null) {
-            val rememberLabel = stringResource(R.string.quicksort_remember, transaction.merchantDisplay.orEmpty())
-            // The whole row is the switch: one large target, and TalkBack reads the label with
-            // the on/off state (the switch alone had no name).
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 48.dp)
-                    .toggleable(value = remember, role = Role.Switch, onValueChange = { remember = it }),
-            ) {
-                Text(rememberLabel, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                Switch(checked = remember, onCheckedChange = null)
+        if (hasMerchant) {
+            val merchant = transaction.merchantDisplay.orEmpty()
+            SwitchLine(stringResource(R.string.quicksort_remember, merchant), null, remember || always) {
+                remember = it
+                if (!it) always = false
             }
+            // "Always" (ADR-0062): earlier and new payments from the merchant follow this choice.
+            SwitchLine(
+                stringResource(R.string.quicksort_always, merchant),
+                stringResource(R.string.quicksort_always_summary),
+                always,
+            ) { always = it }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             TextButton(onClick = onIgnore, enabled = !state.working) { Text(stringResource(R.string.quicksort_ignore)) }
             TextButton(onClick = onSkip) { Text(stringResource(R.string.quicksort_skip)) }
         }
+    }
+}
+
+/**
+ * A labelled switch where the whole row is the switch: one large target, and TalkBack reads the
+ * label with the on/off state (the switch alone had no name).
+ */
+@Composable
+private fun SwitchLine(title: String, summary: String?, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .toggleable(value = checked, role = Role.Switch, onValueChange = onChange),
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyMedium)
+            if (summary != null) {
+                Text(
+                    summary,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        Switch(checked = checked, onCheckedChange = null)
     }
 }
 
