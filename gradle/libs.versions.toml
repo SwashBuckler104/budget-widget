@@ -1,6 +1,6 @@
 # Entries are added by the milestone that first uses them (docs/DECISIONS.md, ADR-0005).
 [versions]
-androidGradlePlugin = "9.5.1"
+androidGradlePlugin = "9.5.2"
 kotlin = "2.4.21"
 ksp = "2.3.14"
 hilt = "2.60.1"
