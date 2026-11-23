@@ -9,7 +9,7 @@ ktlint = "1.8.0"
 composeRules = "0.6.8"
 
 androidxActivity = "1.13.0"
-androidxComposeBom = "2026.09.00"
+androidxComposeBom = "2026.11.01"
 androidxCore = "1.19.1"
 androidxLifecycle = "2.11.0"
 androidxHilt = "1.4.0"
